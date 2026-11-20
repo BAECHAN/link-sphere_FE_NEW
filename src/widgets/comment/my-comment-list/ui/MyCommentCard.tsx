@@ -4,7 +4,7 @@ import { MyComment } from '@/entities/comment/model/comment.schema';
 import { Card } from '@/shared/ui/atoms/card';
 import { DateUtil } from '@/shared/utils/date.util';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { useMyCommentCard } from '@/widgets/comment/my-comment-list/hooks/useMyCommentCard';
 

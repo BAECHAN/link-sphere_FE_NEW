@@ -28,7 +28,7 @@ vi.mock('@/shared/lib/firebase/fcm', () => ({
 }));
 
 const mockToastError = vi.fn();
-vi.mock('@/shared/lib/toast/toast', () => ({
+vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
   toast: {
     error: (...args: unknown[]) => {
       mockToastError(...args);

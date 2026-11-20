@@ -7,7 +7,7 @@ import { useAuthStore } from '@/shared/store/auth.store';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { resetPendingSearchParams } from '@/shared/hooks/useSearchParamsDraft';
 import { resetRouterEvents } from '@/shared/lib/router/router-events';
-import { resetFailedImages } from '@/shared/lib/image/failedImageCache';
+import { resetFailedImages } from '@link-sphere/ui/lib/image/failedImageCache';
 
 // MSW 서버 라이프사이클
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
@@ -71,7 +71,7 @@ window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
 Element.prototype.scrollIntoView = vi.fn();
 
 // sonner toast 모킹 — queryClient 에러 핸들러에서 toast.error() 호출 방지
-// @/shared/lib/toast/toast 래퍼가 기본 toast() 호출과 dismiss도 참조하므로 함께 모킹
+// @link-sphere/ui/lib/toast/toast 래퍼가 기본 toast() 호출과 dismiss도 참조하므로 함께 모킹
 vi.mock('sonner', () => ({
   toast: Object.assign(vi.fn(), {
     error: vi.fn(),

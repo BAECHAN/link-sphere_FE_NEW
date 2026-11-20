@@ -6,7 +6,7 @@ import { Toaster as Sonner } from 'sonner';
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-// 종류별 토스트 색(richColors)을 sonner 고정 색 대신 globals.css 토큰에서 만든다 - 토큰을 바꾸면 토스트도 따라 바뀐다.
+// 종류별 토스트 색(richColors)을 sonner 고정 색 대신 토큰 CSS(styles/tokens.css)의 토큰에서 만든다 - 토큰을 바꾸면 토스트도 따라 바뀐다.
 // 배경·테두리는 토큰을 바탕색에 옅게 섞고, 글자(제목·아이콘·닫기 X)는 토큰에 본문색을 섞어 옅은 배경 위에서도
 // 대비 4.5:1을 넘긴다. sonner가 문서화하지 않은 변수 이름이라 sonner를 올리면 색을 다시 확인한다
 // (docs/DESIGN-SYSTEM.md §8, docs/DECISIONS.md 2026-11-18 "토스트 색")
@@ -49,7 +49,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           classNames: {
             toast:
               'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg flex items-center gap-2',
-            // 래퍼(shared/lib/toast/toast.ts)가 문장 끝에 넣은 줄바꿈을 그대로 보여준다
+            // 래퍼(lib/toast/toast.ts)가 문장 끝에 넣은 줄바꿈을 그대로 보여준다
             title: 'whitespace-pre-line',
             description: 'group-[.toast]:text-muted-foreground',
             actionButton: 'group-[.toast]:bg-primary group-[.toast]:text-primary-foreground',

@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { Button } from '@link-sphere/ui/atoms/button';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { FormField } from '@/shared/ui/elements/form/_base/FormField';
 import type { BookmarkFolder } from '@/entities/bookmark/folder/model/bookmark-folder.schema';

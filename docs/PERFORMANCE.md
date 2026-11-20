@@ -898,7 +898,7 @@ zstd`로 `curl` 1회씩 받은 전송 크기. "전"은 같은 날 `bb8d49e0`에�
 Practices가 77점이 나왔다. 감점은 `third-party-cookies`(가중치 5)와 `inspector-issues`(가중치 1) 두 항목뿐이었다.
 Lighthouse 13의 적용 대상 가중치 합이 26이라 20/26 = 77점이다.
 
-- **원인**: og 썸네일(`src/shared/ui/atoms/link-thumbnail.tsx`)은 외부 사이트 이미지를 `<img>`로 바로 불러온다.
+- **원인**: og 썸네일(`packages/ui/src/atoms/link-thumbnail.tsx`)은 외부 사이트 이미지를 `<img>`로 바로 불러온다.
   그러면 브라우저가 사용자 쿠키 저장소에 이미 있던 그 사이트 쿠키를 함께 보낸다. 리포트에는 jobkorea·thevc
   배너 이미지 요청에 실린 Hotjar(`_hjSession*`)·RTB House(`__rtbh.*`) 쿠키 8개가 찍혔다.
 - **CI·headless에서 재현되지 않는 이유**: 쿠키 저장소가 비어 있어 실을 쿠키가 없다. 같은 날 운영을 headless

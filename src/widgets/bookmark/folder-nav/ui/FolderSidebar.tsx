@@ -1,12 +1,12 @@
 import { Bookmark, Folder as FolderIcon, Inbox, Loader2, Pin, Plus, RotateCw } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { Input } from '@/shared/ui/atoms/input';
-import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Spinner } from '@link-sphere/ui/atoms/spinner';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
 import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import {

@@ -1,7 +1,7 @@
 import { StrictMode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { useImageAttachments } from '@/shared/hooks/useImageAttachments';
 import { TEXTS } from '@/shared/config/texts';
 

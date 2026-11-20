@@ -192,6 +192,10 @@ const VIEWPORT_WIDTH_MESSAGE =
 // 절대 경로 문자열과 상대 경로 접미사(끝이 /react-query/config/queryClient) 둘 다 검사한다.
 const QUERY_CLIENT_SINGLETON_PATH = '@/shared/lib/react-query/config/queryClient';
 
+// sonner의 toast·UNSAFE_classNames를 직접 다뤄도 되는 폴더. 토스트 래퍼(toast.ts)는 공용 UI 패키지로 옮겼고
+// (2026-11-20 분리 리허설), 앱 문구를 쓰는 토스트 함수(NoticeToast)와 그 테스트는 앱에 남았다
+const TOAST_MODULE_DIRS = ['/packages/ui/src/lib/toast/', '/src/shared/lib/toast/'];
+
 /** import 선언 전체가 타입 전용인지 (`import type {...}` / `import { type X }`) */
 function isTypeOnlyImport(node) {
   if (node.importKind === 'type') {
@@ -374,20 +378,20 @@ const customTailwindRulesPlugin = {
     // 이유: 이런 숫자 조합(10, 20, 40, 50, 55, 60, 70, 80)이 8개 파일에 이름 없이
     //       흩어져 있었고, Sidebar.tsx(드로어 백드롭)와 CommentComposer.tsx(좁은 화면
     //       댓글 시트)가 같은 값(55)을 공유하는 잠재 충돌도 있었다(2026-09-13 조사,
-    //       docs/DECISIONS.md 참고). globals.css의 @theme static 블록에 8단계를
-    //       이름 붙여뒀으니 새 코드는 그 이름만 쓰게 한다.
+    //       docs/DECISIONS.md 참고). 토큰 CSS(packages/ui/src/styles/tokens.css)의 @theme static
+    //       블록에 8단계를 이름 붙여뒀으니 새 코드는 그 이름만 쓰게 한다.
     // (주석에 실제 클래스명을 그대로 적지 않는다 - Tailwind 스캐너가 CSS/JS 주석도
-    //  텍스트로 훑어 후보로 오인식해 불필요한 유틸리티를 생성한다. globals.css의
+    //  텍스트로 훑어 후보로 오인식해 불필요한 유틸리티를 생성한다. 토큰 CSS의
     //  같은 문제 참고.)
     'no-raw-z-index': {
       meta: {
         type: 'problem',
         docs: {
-          description: '숫자 그대로 쓰는 raw z-index 유틸리티 금지, globals.css 명명 토큰 사용',
+          description: '숫자 그대로 쓰는 raw z-index 유틸리티 금지, 토큰 CSS의 명명 토큰 사용',
         },
         messages: {
           rawZIndex:
-            'z-{{value}} 대신 globals.css의 명명된 z-index 토큰(z-raised/z-hitbox/z-panel/z-nav/z-scrim/z-drawer/z-modal/z-popover) 중 하나를 사용하세요.',
+            'z-{{value}} 대신 토큰 CSS(packages/ui/src/styles/tokens.css)의 명명된 z-index 토큰(z-raised/z-hitbox/z-panel/z-nav/z-scrim/z-drawer/z-modal/z-popover) 중 하나를 사용하세요.',
         },
       },
       create(context) {
@@ -422,7 +426,7 @@ const customTailwindRulesPlugin = {
     //       규칙이었다(2026-09-09 감사에서 raw gray/zinc 잔존을 발견해 수동으로만 고침).
     //       검정·흰색은 명명 팔레트가 아니라 grep 규칙에도 안 걸렸는데, 실제로
     //       ImageViewer.tsx 등 12곳에 그런 리터럴이 남아 있었다(2026-09-13 조사).
-    //       globals.css에 --scrim/--scrim-foreground를 추가했으니 이제 코드로 강제한다.
+    //       토큰 CSS(packages/ui/src/styles/tokens.css)에 --scrim/--scrim-foreground를 뒀으니 이제 코드로 강제한다.
     // (주석에 실제 클래스명을 그대로 적지 않는다 - Tailwind 스캐너가 CSS/JS 주석도
     //  텍스트로 훑어 후보로 오인식해 불필요한 유틸리티를 생성한다.)
     'no-raw-color': {
@@ -433,7 +437,7 @@ const customTailwindRulesPlugin = {
         },
         messages: {
           rawColor:
-            '"{{value}}" 대신 globals.css의 디자인 토큰 기반 클래스(bg-scrim, text-destructive-foreground 등)를 사용하세요.',
+            '"{{value}}" 대신 토큰 CSS(packages/ui/src/styles/tokens.css)·src/app/globals.css의 디자인 토큰 기반 클래스(bg-scrim, text-destructive-foreground 등)를 사용하세요.',
         },
       },
       create(context) {
@@ -466,7 +470,7 @@ const customTailwindRulesPlugin = {
     },
     // [금지] px 단위 임의값(bracket) 폰트 크기 유틸리티
     // 이유: 12곳(h1 5·h2 3·마이크로 라벨 4)이 이런 임의값이거나 서로 다른 크기로
-    //       갈려 있었다(2026-09-16 조사). globals.css에 역할 토큰(screen-title 등)과
+    //       갈려 있었다(2026-09-16 조사). 토큰 CSS(packages/ui/src/styles/tokens.css)에 역할 토큰(screen-title 등)과
     //       스케일 층(t1~t14)을 뒀으니 새 코드는 그중 하나를 쓰게 한다. 기존
     //       text-xs~text-9xl 같은 Tailwind 기본 스케일은 아직 막지 않는다 - 잔여
     //       사용처가 많아 전량 치환이 강제되기 때문(docs/plans/
@@ -479,7 +483,7 @@ const customTailwindRulesPlugin = {
         },
         messages: {
           rawTextSize:
-            '"{{value}}" 대신 globals.css의 타이포그래피 역할 토큰(text-screen-title 등) 또는 스케일 토큰(text-t1~t14)을 사용하세요.',
+            '"{{value}}" 대신 토큰 CSS(packages/ui/src/styles/tokens.css)의 타이포그래피 역할 토큰(text-screen-title 등) 또는 스케일 토큰(text-t1~t14)을 사용하세요.',
         },
       },
       create(context) {
@@ -528,7 +532,7 @@ const customTailwindRulesPlugin = {
         },
         messages: {
           rawTitle:
-            '"{{size}} {{weight}}" 조합은 제목처럼 보입니다. globals.css의 타이포그래피 역할 토큰(text-screen-title 등)을 쓰거나, 제목이 아니라면 이 줄 위에 이유를 적은 eslint-disable-next-line 주석을 다세요.',
+            '"{{size}} {{weight}}" 조합은 제목처럼 보입니다. 토큰 CSS(packages/ui/src/styles/tokens.css)의 타이포그래피 역할 토큰(text-screen-title 등)을 쓰거나, 제목이 아니라면 이 줄 위에 이유를 적은 eslint-disable-next-line 주석을 다세요.',
         },
       },
       create(context) {
@@ -636,8 +640,11 @@ export default [
       '**/.stryker-tmp/**',
     ],
   },
+  // 공용 UI 패키지(packages/ui/src)는 옮기기 전 자리(src/shared/…)에 걸리던 블록에 모두 함께 적는다 - 옮긴 파일이
+  // 같은 규칙을 받는지는 2026-11-20 분리 리허설에서 --print-config로 비교했다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5).
+  // 타입 정보는 이 블록 바로 뒤의 블록이 패키지 tsconfig로 바꿔 읽는다
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     // 'src/*.d.ts'였던 패턴이 중첩 경로(src/types/lucide-react.d.ts)를 못 잡아, 그 파일
     // 하나만 수동 eslint-disable로 회피하고 있었다 — CLAUDE.md가 이미 별도로 경고하는
     // "ignore 패턴에 **/ prefix 누락" 실수의 같은 종류 재발(2026-09-09 문서-코드 정합성
@@ -754,9 +761,23 @@ export default [
       'react-hooks/incompatible-library': 'error',
     },
   },
+  // 공용 UI 패키지 파일은 앱 tsconfig에 들어 있지 않다 - 타입 정보와 import 해석을 패키지 tsconfig로 읽는다
+  {
+    files: ['packages/ui/src/**/*.{ts,tsx}'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./packages/ui/tsconfig.json'],
+      },
+    },
+    settings: {
+      'import/resolver': {
+        typescript: { project: './packages/ui/tsconfig.json' },
+      },
+    },
+  },
   // Import 규칙: 일반 파일은 절대 경로(@/) 사용 강제
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: ['src/main.tsx', 'src/app/App.tsx'],
     plugins: {
       'custom-import': {
@@ -770,10 +791,12 @@ export default [
             meta: {
               type: 'problem',
               docs: {
-                description: '일반 파일은 절대 경로(@/) 사용 강제, 상대 경로(./, ../) 금지',
+                description:
+                  '일반 파일은 절대 경로(@/, 공용 UI 패키지 안은 @link-sphere/ui/) 사용 강제, 상대 경로(./, ../) 금지',
               },
               messages: {
-                relativeImport: './ 대신 @/를 사용한 절대 경로 import를 사용해주세요.',
+                relativeImport:
+                  './ 대신 절대 경로 import를 사용해주세요(앱은 @/, 공용 UI 패키지 packages/ui 안은 @link-sphere/ui/).',
               },
             },
             create(context) {
@@ -794,11 +817,11 @@ export default [
               type: 'problem',
               docs: {
                 description:
-                  "'sonner'에서 toast를 직접 import 금지. @/shared/lib/toast/toast 를 사용해야 카테고리별 위치 정책(성공=하단, 오류=상단)이 적용됨",
+                  "'sonner'에서 toast를 직접 import 금지. @link-sphere/ui/lib/toast/toast 를 사용해야 카테고리별 위치 정책(성공=하단, 오류=상단)이 적용됨",
               },
               messages: {
                 sonnerDirectImport:
-                  "'sonner'에서 toast를 직접 import할 수 없습니다. @/shared/lib/toast/toast 를 사용해주세요. (카테고리별 위치 정책 적용)",
+                  "'sonner'에서 toast를 직접 import할 수 없습니다. @link-sphere/ui/lib/toast/toast 를 사용해주세요. (카테고리별 위치 정책 적용)",
               },
             },
             create(context) {
@@ -808,7 +831,8 @@ export default [
                   if (importPath !== 'sonner') return;
 
                   const filename = context.getFilename().replace(/\\/g, '/');
-                  if (filename.includes('/src/shared/lib/toast/')) return;
+                  // 토스트 래퍼(패키지)와 앱에 남은 토스트 함수(NoticeToast)·테스트
+                  if (TOAST_MODULE_DIRS.some((dir) => filename.includes(dir))) return;
 
                   const hasToastSpecifier = node.specifiers.some(
                     (specifier) =>
@@ -827,11 +851,11 @@ export default [
               type: 'problem',
               docs: {
                 description:
-                  '토스트 래퍼의 UNSAFE_classNames는 src/shared/lib/toast/ 안에서만 쓴다. 버튼 배치는 래퍼가 정한다(docs/FE-ARCHITECTURE.md §14 "버튼 배치")',
+                  '토스트 래퍼의 UNSAFE_classNames는 토스트 폴더(packages/ui/src/lib/toast/, src/shared/lib/toast/) 안에서만 쓴다. 버튼 배치는 래퍼가 정한다(docs/FE-ARCHITECTURE.md §14 "버튼 배치")',
               },
               messages: {
                 unsafeClassNames:
-                  'UNSAFE_classNames는 src/shared/lib/toast/ 안에서만 쓸 수 있습니다. 토스트의 버튼 자리·닫기 X는 래퍼가 정합니다. 새 모양이 필요하면 shared/lib/toast/에 토스트 함수를 만들고 스토리(sonner.stories.tsx)에 견본을 더해주세요.',
+                  'UNSAFE_classNames는 토스트 폴더(packages/ui/src/lib/toast/, src/shared/lib/toast/) 안에서만 쓸 수 있습니다. 토스트의 버튼 자리·닫기 X는 래퍼가 정합니다. 새 모양이 필요하면 그 폴더에 토스트 함수를 만들고 스토리(sonner.stories.tsx)에 견본을 더해주세요.',
               },
             },
             create(context) {
@@ -845,7 +869,7 @@ export default [
 
                   const filename = context.getFilename().replace(/\\/g, '/');
 
-                  if (filename.includes('/src/shared/lib/toast/')) {
+                  if (TOAST_MODULE_DIRS.some((dir) => filename.includes(dir))) {
                     return;
                   }
 
@@ -864,10 +888,10 @@ export default [
     },
   },
   // 클릭 가능한 요소는 인터랙티브 시맨틱(button/role)이 필요 - 커스텀 규칙
-  // onClick만 달린 div/span 등은 커서(globals.css 인터랙션 커서 규칙)와 키보드 접근성이
-  // 모두 빠진다. INTERACTIVE_ROLES는 globals.css의 커서 규칙 선택자 목록과 동일하게 유지한다.
+  // onClick만 달린 div/span 등은 커서(토큰 CSS packages/ui/src/styles/tokens.css의 인터랙션 커서 규칙)와 키보드 접근성이
+  // 모두 빠진다. INTERACTIVE_ROLES는 토큰 CSS의 커서 규칙 선택자 목록과 동일하게 유지한다.
   {
-    files: ['src/**/*.tsx'],
+    files: ['src/**/*.tsx', 'packages/ui/src/**/*.tsx'],
     ignores: ['**/*.stories.tsx', 'src/test/**/*.tsx'],
     plugins: {
       'custom-a11y': {
@@ -881,7 +905,7 @@ export default [
               },
               messages: {
                 needsInteractiveElement:
-                  '"{{tag}}"에 onClick만 달려 있습니다. @/shared/ui/atoms/button 의 Button(또는 <button>)을 사용하거나, 불가피하면 role="button"과 키보드 핸들러(onKeyDown)를 함께 지정해주세요.',
+                  '"{{tag}}"에 onClick만 달려 있습니다. @link-sphere/ui/atoms/button 의 Button(또는 <button>)을 사용하거나, 불가피하면 role="button"과 키보드 핸들러(onKeyDown)를 함께 지정해주세요.',
               },
             },
             create(context) {
@@ -983,7 +1007,7 @@ export default [
   // 파일 명명 규칙 (unicorn/filename-case)
   // 비-ASCII 문자 검사 (한글 등) - 커스텀 규칙
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     plugins: {
       'custom-filename': {
         rules: {
@@ -1035,7 +1059,7 @@ export default [
   // URL을 조용히 바꾸지 않게 기대값만 메시지로 보여준다.
   // no-story-name: 사이드바 이름은 export 이름만 쓴다(scripts/lib/no-story-name-rule.js).
   {
-    files: ['src/**/*.stories.tsx'],
+    files: ['src/**/*.stories.tsx', 'packages/ui/src/**/*.stories.tsx'],
     plugins: {
       'custom-storybook': {
         rules: {
@@ -1064,8 +1088,13 @@ export default [
               // src/<layer>/<...dirs>/<Name>.stories.tsx → <Layer>/<...Dirs>/<Name>
               // - shared 밖의 ui 세그먼트와 _ 접두사(내부 전용) 폴더는 생략
               // - 마지막 폴더명이 컴포넌트명과 같으면 중복이라 생략(dialog/image-viewer/ImageViewer → Dialog/ImageViewer)
+              // - 공용 UI 패키지(packages/ui/src/<...>)는 옮기기 전 자리(src/shared/ui/<...>)로 계산한다 - 공개 Storybook
+              //   주소(shared-ui-...)를 지킨다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)
               function computeExpectedTitle(filename) {
-                const relative = filename.replace(/\\/g, '/').split('/src/').pop();
+                const normalized = filename.replace(/\\/g, '/');
+                const relative = normalized.includes('/packages/ui/src/')
+                  ? `shared/ui/${normalized.split('/packages/ui/src/').pop()}`
+                  : normalized.split('/src/').pop();
                 const parts = relative.split('/');
                 const name = toPascal(parts.pop().replace(/\.stories\.tsx$/, ''));
                 const [layer, ...dirs] = parts;
@@ -1170,14 +1199,14 @@ export default [
   // storybook:recommended:stories-rules). 이 레포 스토리는 훅을 PascalCase 컴포넌트 안에서만 써
   // 켜진 채로 통과하므로, 도입 전처럼 다시 켠다(2026-11-18 사용자 결정).
   {
-    files: ['src/**/*.stories.tsx'],
+    files: ['src/**/*.stories.tsx', 'packages/ui/src/**/*.stories.tsx'],
     rules: {
       'react-hooks/rules-of-hooks': 'error',
     },
   },
   // Atoms 폴더: kebab-case
   {
-    files: ['src/shared/ui/atoms/**/*.{ts,tsx}'],
+    files: ['src/shared/ui/atoms/**/*.{ts,tsx}', 'packages/ui/src/atoms/**/*.{ts,tsx}'],
     plugins: {
       unicorn: unicornPlugin,
     },
@@ -1187,12 +1216,13 @@ export default [
   },
   // 컴포넌트 파일: PascalCase
   {
-    files: ['src/**/*.tsx'],
+    files: ['src/**/*.tsx', 'packages/ui/src/**/*.tsx'],
     ignores: [
       'src/main.tsx',
       'src/app/App.tsx',
       'src/test/**/*.{ts,tsx}',
       'src/shared/ui/atoms/**/*.tsx', // atoms 폴더는 위 규칙에서 처리
+      'packages/ui/src/atoms/**/*.tsx',
       // 약어로 시작하는 파일명 허용 (UI, URL 등)
       ...ALLOWED_ACRONYMS.map((acronym) => `**/${acronym}*.tsx`),
     ],
@@ -1289,7 +1319,7 @@ export default [
   // 프로젝트 금지 패턴 (no-restricted-syntax)
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: ['src/shared/utils/date.util.ts', '**/*.test.{ts,tsx}', 'src/mocks/**'],
     rules: {
       'no-restricted-syntax': [
@@ -1338,7 +1368,7 @@ export default [
   //       두 rule key는 이 블록에서만 선언한다 — 다른 블록에서 다시 선언하면 이 목록이 통째로 덮어써진다.
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     rules: {
       'no-restricted-properties': [
         'error',
@@ -1365,7 +1395,7 @@ export default [
   //       Playwright(playwright.config.ts의 forbidOnly)가 .only를 실패로 처리한다.
   // ============================================================
   {
-    files: ['src/**/*.{test,spec}.{ts,tsx}'],
+    files: ['src/**/*.{test,spec}.{ts,tsx}', 'packages/ui/src/**/*.{test,spec}.{ts,tsx}'],
     plugins: { vitest: vitestPlugin },
     rules: {
       'vitest/no-focused-tests': ['error', { fixable: false }],
@@ -1399,7 +1429,7 @@ export default [
   //       그대로 쓴다 — 아래 "[금지] MSW 기본 핸들러" 블록)
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: [
       // 싱글턴을 provider에 주입하는 유일한 지점
       'src/app/providers/QueryProvider.tsx',
@@ -1422,7 +1452,7 @@ export default [
   // 위 queryClient 블록의 "주의"와 같다(FSD 레이어 블록과 rule key가 겹친다).
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: [
       // apiClient 위에 스펙 경로 타입을 얹는 유일한 지점
       'src/shared/api/spec-client.ts',
@@ -1444,7 +1474,7 @@ export default [
   // 타입 전용 import(import type { QueryClient })는 룰 구현에서 통과시킨다.
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: [
       // 앱 부트스트랩 — QueryProvider, QueryErrorResetBoundary
       'src/app/**/*.{ts,tsx}',
@@ -1496,7 +1526,7 @@ export default [
   //       테스트는 scope mutation을 일부러 확인 없이 만들기도 해서 제외한다.
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: ['**/*.test.{ts,tsx}', 'src/test/**', 'src/mocks/**'],
     plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
@@ -1512,7 +1542,7 @@ export default [
   //       테스트는 mutation을 일부러 선언 없이 만들기도 해서 제외한다.
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: ['**/*.test.{ts,tsx}', 'src/test/**', 'src/mocks/**'],
     plugins: { 'custom-query-rules': customQueryRulesPlugin },
     rules: {
@@ -1529,7 +1559,7 @@ export default [
   //       entities의 @x는 FSD 교차 참조 표기, test/utils.tsx는 testing-library를 함께 내보내는 테스트 도구라 제외한다.
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     plugins: {
       'custom-barrel-rules': {
         rules: {
@@ -1559,10 +1589,10 @@ export default [
   //       글자를 영어까지 막는다(본체는 scripts/lib/).
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: [
       'src/shared/config/texts.ts', // TEXTS 단일 소스
-      'src/shared/ui/texts/ko-ui-texts.ts', // 공용 UI 부품의 한국어 문구 묶음(앱 문구를 import할 수 없다)
+      'packages/ui/src/texts/ko-ui-texts.ts', // 공용 UI 부품의 한국어 문구 묶음(앱 문구를 import할 수 없다)
       'src/test/**/*.{ts,tsx}', // 테스트 인프라
       'src/mocks/**/*.{ts,tsx}', // MSW 목/픽스처
       '**/*.test.{ts,tsx}', // 콜로케이션 테스트
@@ -1632,7 +1662,7 @@ export default [
   //       (navigate 호출·window.location.href 대입·JSX to prop)만 좁혀서 검사한다.
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: [
       'src/shared/config/route-paths.ts', // ROUTES_PATHS 단일 소스
       'src/test/**/*.{ts,tsx}', // 테스트 인프라
@@ -1722,23 +1752,22 @@ export default [
   // 이유: 범용 부품이 앱 문구(TEXTS)·라우터·스토어를 import하면 패키지로 내든 파일을 복사해 가든 다른
   //       프로젝트에서 쓸 수 없다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1). 허용 목록과 규칙 본체는
   //       scripts/lib/ui-boundary-rule.js에 있다.
-  // 대상: 공용 UI 전체와, 부품이 함께 가져가는 보조 모듈 13개 파일(보조 모듈을 거쳐 다시 묶이는 길을 막는다).
+  // 대상: 공용 UI 전체(공용 UI 패키지 포함)와, 부품이 함께 가져가는 보조 모듈 중 아직 앱에 있는 9개 파일(보조
+  //       모듈을 거쳐 다시 묶이는 길을 막는다). 패키지로 옮긴 보조 모듈(cn·토스트 래퍼·실패 이미지 기억)은 패키지
+  //       경로로 걸린다.
   // no-restricted-imports가 아니라 커스텀 룰인 이유는 queryClient 블록의 "주의"와 같다
   // (아래 FSD 레이어 블록과 rule key가 겹친다).
   // ============================================================
   {
     files: [
       'src/shared/ui/**/*.{ts,tsx}',
+      'packages/ui/src/**/*.{ts,tsx}',
       // 보조 모듈 (docs/DESIGN-SYSTEM-PRINCIPLES.md §5.5)
-      'src/shared/lib/tailwind/utils.ts',
       'src/shared/hooks/useClickGuard.ts',
       'src/shared/hooks/useOpenClickGuard.ts',
       'src/shared/hooks/useMergedRef.ts',
       'src/shared/hooks/useDelayedLoading.ts',
       'src/shared/hooks/useKeydown.ts',
-      'src/shared/lib/toast/toast.ts',
-      'src/shared/lib/toast/toast-layout.ts',
-      'src/shared/lib/image/failedImageCache.ts',
       'src/shared/utils/scroll.util.ts',
       'src/shared/config/const.ts',
       'src/shared/types/common.type.ts',
@@ -1770,7 +1799,7 @@ export default [
   // 대상: 공용 UI 전체. 앱 전용 부품도 같은 규칙을 따른다(경계 블록과 달리 예외 목록이 없다).
   // ============================================================
   {
-    files: ['src/shared/ui/**/*.{ts,tsx}'],
+    files: ['src/shared/ui/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: ['**/*.stories.{ts,tsx}', '**/*.test.{ts,tsx}'],
     plugins: { 'custom-design-system': customDesignSystemPlugin },
     rules: {
@@ -1811,6 +1840,26 @@ export default [
             {
               group: ['@/app/**'],
               message: 'shared 레이어는 app 레이어를 import할 수 없습니다. (역방향 의존성)',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // 공용 UI 패키지(packages/ui): 앱 코드(@/) import 불가. 패키지 안끼리는 @link-sphere/ui/…로 가리킨다. shared 블록의
+  // 레이어 목록보다 넓게 막아(앱의 모든 레이어) 그 목록을 따로 두지 않는다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)
+  {
+    files: ['packages/ui/src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/**'],
+              message:
+                '공용 UI 패키지(packages/ui)는 앱 코드(@/)를 import할 수 없습니다. 패키지 안 파일은 @link-sphere/ui/…로 가져오고, 앱이 정할 값(문구·링크·이동)은 속성이나 Provider로 받습니다. (근거: docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)',
             },
           ],
         },
@@ -1947,7 +1996,7 @@ export default [
   // Tailwind className 일관성 규칙 (customTailwindRulesPlugin)
   // ============================================================
   {
-    files: ['src/**/*.{ts,tsx}'],
+    files: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
     ignores: ['**/*.stories.tsx', '**/*.test.{ts,tsx}'],
     plugins: { 'custom-tailwind': customTailwindRulesPlugin },
     rules: {

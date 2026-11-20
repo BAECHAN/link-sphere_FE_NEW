@@ -5,6 +5,9 @@ on:
     branches: ['main']
     paths:
       - 'src/**'
+      # 앱이 그대로 번들하는 공용 UI 패키지(packages/ui)와, 그 패키지를 잇고 의존성 덮어쓰기를 담는 워크스페이스 설정
+      - 'packages/**'
+      - 'pnpm-workspace.yaml'
       - 'public/**'
       - 'package.json'
       - 'pnpm-lock.yaml'

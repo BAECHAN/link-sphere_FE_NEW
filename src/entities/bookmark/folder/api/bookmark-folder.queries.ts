@@ -44,7 +44,7 @@ import {
 } from '@/entities/post/@x/bookmark';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { ApiError } from '@/shared/types/common.type';
 

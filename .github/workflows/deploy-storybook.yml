@@ -17,6 +17,9 @@ on:
     branches: ['main']
     paths:
       - 'src/**'
+      # 공용 UI 패키지(packages/ui)의 스토리도 이 Storybook이 함께 읽는다(.storybook/main.ts)
+      - 'packages/**'
+      - 'pnpm-workspace.yaml'
       - 'public/**'
       - '.storybook/**'
       - 'pages-site/**'

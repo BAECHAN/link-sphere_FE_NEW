@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@/test/utils';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
 import { ImageViewer } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
-import { KO_UI_TEXTS } from '@/shared/ui/texts/ko-ui-texts';
-import { UiTextsProvider } from '@/shared/ui/texts/UiTextsProvider';
-import type { UiTexts } from '@/shared/ui/texts/ui-texts';
+import { KO_UI_TEXTS } from '@link-sphere/ui/texts/ko-ui-texts';
+import { UiTextsProvider } from '@link-sphere/ui/texts/UiTextsProvider';
+import type { UiTexts } from '@link-sphere/ui/texts/ui-texts';
 
 // 이 부품은 스토어와 라우터를 모른다 - 열림과 지금 보는 이미지를 속성으로만 받는다. 스토어·뒤로가기와 이은
 // 동작은 GlobalImageViewer.test.tsx가 본다.

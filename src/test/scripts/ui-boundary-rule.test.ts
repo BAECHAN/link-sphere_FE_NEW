@@ -32,10 +32,11 @@ ruleTester.run('no-app-import-in-generic-ui', noAppImportInGenericUiRule, {
     "import { X } from 'lucide-react';",
     "import { Button } from '@/shared/ui/atoms/button';",
     "import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';",
+    // 공용 UI 패키지(packages/ui)도 앱 밖 패키지다 - 패키지로 옮긴 보조 모듈은 허용 목록에서 빠졌다
+    "import { cn } from '@link-sphere/ui/lib/tailwind/utils';",
+    "import { toast } from '@link-sphere/ui/lib/toast/toast';",
     // 통째로 허용한 보조 모듈
-    "import { cn } from '@/shared/lib/tailwind/utils';",
     "import { useMergedRef } from '@/shared/hooks/useMergedRef';",
-    "import { toast } from '@/shared/lib/toast/toast';",
     "import { ScrollUtil } from '@/shared/utils/scroll.util';",
     // 이름 단위로 허용한 것
     "import { LOADING_INDICATOR_DELAY_MS, DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';",
@@ -76,7 +77,7 @@ ruleTester.run('no-app-import-in-generic-ui', noAppImportInGenericUiRule, {
     },
     // 허용한 경로와 앞부분만 같은 경로
     {
-      code: "import { helper } from '@/shared/lib/tailwind/utils-extra';",
+      code: "import { helper } from '@/shared/hooks/useMergedRef-extra';",
       errors: [{ messageId: 'module' }],
     },
     // 라우터

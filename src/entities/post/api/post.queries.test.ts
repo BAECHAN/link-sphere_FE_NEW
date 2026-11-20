@@ -10,7 +10,7 @@ import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/co
 // eslint-disable-next-line custom-query-rules/no-query-client-singleton-import
 import { queryClient as appQueryClient } from '@/shared/lib/react-query/config/queryClient';
 import { createQueryClientWithErrorToasts, createTestQueryClient } from '@/test/utils';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { postKeys } from '@/entities/post/api/post.keys';
 import { bookmarkFolderKeys } from '@/entities/bookmark/folder/api/bookmark-folder.keys';

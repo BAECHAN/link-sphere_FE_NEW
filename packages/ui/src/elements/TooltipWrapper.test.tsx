@@ -1,13 +1,12 @@
-import { act, fireEvent, waitFor } from '@testing-library/react';
-import { toast } from '@/shared/lib/toast/toast';
-import { renderWithProviders } from '@/test/utils';
-import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
-import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
-import { Button } from '@/shared/ui/atoms/button';
+import { act, fireEvent, render, waitFor } from '@testing-library/react';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
+import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
+import { Button } from '@link-sphere/ui/atoms/button';
 
-// renderWithProviders에는 TooltipProvider가 없으므로 직접 감싼다.
+// render에는 TooltipProvider가 없으므로 직접 감싼다.
 function renderTooltipWrapper(content: string | null) {
-  return renderWithProviders(
+  return render(
     <TooltipProvider>
       <TooltipWrapper content={content} disabled={!!content}>
         <Button disabled={!!content}>버튼</Button>
@@ -53,7 +52,7 @@ describe('TooltipWrapper', () => {
   it('터치 직후 짧은 시간 안에 마우스 hover로 열리려는 요청은 무시한다 (터치스크린 노트북 등 하이브리드 입력 대비)', async () => {
     // delayDuration={0}이 실제 앱 설정(App.tsx)과 같다 - 지연 없이 즉시 열리는 조건이라야
     // 터치 직후 hover가 실제로 열리려고 시도하는 레이스가 재현된다.
-    const { getByRole, queryAllByText } = renderWithProviders(
+    const { getByRole, queryAllByText } = render(
       <TooltipProvider delayDuration={0}>
         <TooltipWrapper content="변경한 내용이 없어요." disabled>
           <Button disabled>버튼</Button>
@@ -70,7 +69,7 @@ describe('TooltipWrapper', () => {
   });
 
   function renderInFormWithSiblingInput() {
-    return renderWithProviders(
+    return render(
       <TooltipProvider delayDuration={0}>
         <form>
           <input aria-label="닉네임" />
@@ -117,7 +116,7 @@ describe('TooltipWrapper', () => {
       );
     }
 
-    const { getByRole, rerender, queryAllByText, getAllByText } = renderWithProviders(
+    const { getByRole, rerender, queryAllByText, getAllByText } = render(
       renderWithContent('이전 이유')
     );
     const trigger = getByRole('button').parentElement as HTMLElement;

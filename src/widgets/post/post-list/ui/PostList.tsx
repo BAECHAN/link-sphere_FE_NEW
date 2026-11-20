@@ -15,10 +15,10 @@ import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { LoadMoreError } from '@/shared/ui/elements/LoadMoreError';
-import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Spinner } from '@link-sphere/ui/atoms/spinner';
 import { usePullToRefresh } from '@/shared/hooks/usePullToRefresh';
 import { TEXTS } from '@/shared/config/texts';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 
 interface PostListProps {
   /**

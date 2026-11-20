@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/ui/atoms/card';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { FeaturedIcon } from '@/shared/ui/atoms/featured-icon';
 import { LabeledDivider } from '@/shared/ui/atoms/labeled-divider';
 import { Link } from 'react-router-dom';

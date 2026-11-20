@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { ImagePlus } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
-import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
+import { Button } from '@link-sphere/ui/atoms/button';
+import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
 
 interface ImageAttachmentButtonProps {
   count: number;

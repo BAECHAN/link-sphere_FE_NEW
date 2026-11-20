@@ -37,7 +37,8 @@ module.exports = {
       name: 'no-non-package-json',
       comment:
         'package.json에 없는 패키지는 import하지 않는다 — .npmrc가 shamefully-hoist=true라 ' +
-        '다른 패키지의 하위 의존성이 끌어올려져 pnpm이 막지 못한다.',
+        '다른 패키지의 하위 의존성이 끌어올려져 pnpm이 막지 못한다. 공용 UI 패키지(packages/ui) 파일은 ' +
+        '루트가 아니라 packages/ui/package.json에 선언해야 한다(가장 가까운 package.json으로 판정).',
       severity: 'error',
       from: {},
       to: { dependencyTypes: ['npm-no-pkg', 'npm-unknown'] },
@@ -59,10 +60,11 @@ module.exports = {
         '코드로 새는 것을 막는다.',
       severity: 'error',
       from: {
-        path: '^src/',
+        path: '^(src|packages/ui/src)/',
         pathNot: [
           '[.](test|stories)[.]tsx?$',
           '^src/(test|mocks)/',
+          '^packages/ui/src/test/',
           // 선언 파일은 런타임 코드를 만들지 않는다(vite-env.d.ts의 vite/client 타입 참조 등)
           '[.]d[.]ts$',
           // devtools는 NODE_ENV=development일 때만 번들에 포함된다

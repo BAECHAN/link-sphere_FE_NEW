@@ -1,4 +1,4 @@
-import type { UiTexts } from '@/shared/ui/texts/ui-texts';
+import type { UiTexts } from '@link-sphere/ui/texts/ui-texts';
 
 /**
  * 한국어 문구 묶음 - 부품 문구를 직접 적지 않으려는 프로젝트가 가져다 `UiTextsProvider`에 넘기는 양식.

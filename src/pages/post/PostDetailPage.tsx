@@ -4,7 +4,7 @@ import { usePostDetail } from '@/pages/post/hooks/usePostDetail';
 import { PostCard } from '@/widgets/post/post-card/ui/PostCard';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 import { ArrowLeft, FileX } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { Divider } from '@/shared/ui/atoms/divider';
 import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';

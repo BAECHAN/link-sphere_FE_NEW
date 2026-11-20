@@ -311,7 +311,7 @@ accessToken이 없으면 조용히 return하는 구조라 같은 이유로 요�
 
 앱이 포그라운드(탭 활성화)일 때 FCM 메시지를 받으면 Service Worker 대신 앱 레벨
 `onMessage()`가 처리한다. 토스트는 sonner가 아니라 이 레포 공통 래퍼
-`@/shared/lib/toast/toast`를 쓴다(§12), 문구는 `TEXTS.notification.*`(하드코딩
+`@link-sphere/ui/lib/toast/toast`를 쓴다(§12), 문구는 `TEXTS.notification.*`(하드코딩
 아님)이다.
 
 **정정(2026-09-29)**: 이전 버전은 이 훅이 "앱 전체에서 단 한 번만 구독"하고 "항상
@@ -820,7 +820,7 @@ onSuccess: (data) => {
   `accessToken` 필드를 FCM 토큰 등록 시 직접 읽는다(§6). 해제(`unregisterFcmToken`)는 읽지 않는다
 - **토스트 래퍼** — 이 문서의 다이어그램·코드에서 "toast"라고만 쓴 것은 sonner
   라이브러리를 직접 부르는 게 아니라 이 레포 공통 래퍼
-  `@/shared/lib/toast/toast`를 가리킨다
+  `@link-sphere/ui/lib/toast/toast`를 가리킨다
 - **`family_id`/`session_family_id`** — BE `member_sessions.family_id`는 한
   로그인의 refresh 회전 계열을 식별하는 UUID(로그인=새 계열, `/auth/refresh`
   회전=계열 유지, 로그아웃·재사용탐지=계열 전체 폐기). `fcm_tokens.session_family_id`는

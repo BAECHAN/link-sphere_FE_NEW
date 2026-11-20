@@ -567,7 +567,7 @@ flowchart LR
   바꾸고 배경을 빼서 크기 변화 없이 600ms 동안 흐려진다. 마지막 타이머가 페이드용 클래스를 떼는데,
   그 600ms는 `duration-600`과 같은 값이어야 한다(`motion-ux` skill "exit 애니메이션 동기화 함정").
   "동작 줄이기"를 켜도 페이드는 남는다 — 전역 규칙이 배경색·그림자 트랜지션은 남기기 때문이다
-  (`src/app/globals.css`의 `prefers-reduced-motion` 블록). 전에는 `ring-2 ring-primary ring-offset-2`를
+  (`packages/ui/src/styles/tokens.css`의 `prefers-reduced-motion` 블록). 전에는 `ring-2 ring-primary ring-offset-2`를
   1.6초 뒤 트랜지션 없이 뗐다. 라이트 모드에서 `--primary`가 거의 검정(neutral-900)이라, 테두리가
   진하게 나타났다가 갑자기 사라지는 게 거슬린다는 피드백을 받아 세 안을 나란히 재생해 비교했다
   ([미리보기](https://claude.ai/artifact/R8GzQjRZT1qsfNMjSBwjyD)).
@@ -1594,7 +1594,7 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
   폼 컨테이너를 ref로 찾아 스크롤하고 포커스한다 — DOM id가 아니라 이 effect가 해석하는 신호다.
 - **맨 위로 버튼(`BackToTopButton`)** — 300px 넘게 내리면 우하단에 뜨는 전역 플로팅 버튼
   (`src/shared/ui/elements/BackToTopButton.tsx`). 어느 화면에 그릴지는 `AppLayout.tsx`가 정한다.
-- **`z-panel` / `z-scrim`** — `src/app/globals.css:103-105`의 z-index 토큰(40 / 55).
+- **`z-panel` / `z-scrim`** — `packages/ui/src/styles/tokens.css:63-65`의 z-index 토큰(40 / 55).
 - **`ImageUploadError`** — 이미지 업로드 단계(서명 URL 발급·스토리지 PUT)의 실패. `reason`
   (형식·용량·한도·저장소·네트워크·원인 불명)과 한도일 때 `retryAfterSeconds`를 담는다
   (`src/shared/types/common.type.ts`).

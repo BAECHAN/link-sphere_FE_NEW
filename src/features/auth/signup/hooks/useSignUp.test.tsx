@@ -10,7 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { useSignUp } from '@/features/auth/signup/hooks/useSignUp';
 
-vi.mock('@/shared/lib/toast/toast', () => ({
+vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 

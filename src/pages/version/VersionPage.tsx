@@ -1,9 +1,9 @@
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
 import { BUILD_INFO } from '@/shared/config/build-info';
 import { TEXTS } from '@/shared/config/texts';
 import { useDeployedBuildInfo } from '@/shared/hooks/useDeployedBuildInfo';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { DateUtil } from '@/shared/utils/date.util';
 import { VersionUtil } from '@/shared/utils/version.util';
 

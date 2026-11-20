@@ -1,6 +1,6 @@
 import { Input, InputProps } from '@/shared/ui/atoms/input';
 import { Kbd } from '@/shared/ui/atoms/kbd';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { useKeydown } from '@/shared/hooks/useKeydown';
 import { forwardRef, useRef } from 'react';
 import { useMergedRef } from '@/shared/hooks/useMergedRef';

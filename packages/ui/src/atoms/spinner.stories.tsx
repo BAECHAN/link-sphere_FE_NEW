@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Spinner } from '@link-sphere/ui/atoms/spinner';
 
 const meta = {
   title: 'Shared/UI/Atoms/Spinner',

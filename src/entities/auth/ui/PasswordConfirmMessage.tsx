@@ -1,4 +1,4 @@
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import type { PasswordConfirmStatus } from '@/entities/auth/utils/auth.util';
 

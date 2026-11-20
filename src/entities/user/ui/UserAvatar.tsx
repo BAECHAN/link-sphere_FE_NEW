@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/shared/ui/atoms/avatar';
-import { Button } from '@/shared/ui/atoms/button';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { Button } from '@link-sphere/ui/atoms/button';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { getTransformedImageUrl } from '@/shared/lib/image/supabaseImage';
 import { useImageViewer } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { TEXTS } from '@/shared/config/texts';

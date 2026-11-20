@@ -15,7 +15,10 @@ const HEADING = '## 뮤테이션 테스트 (정보용 — 머지를 막지 않�
 
 /** 대상에서 빼는 .ts 파일. 테스트 인프라·생성 타입은 로직이 아니고, 테스트·스토리는 뮤테이션 대상이 아니다. */
 const EXCLUDED_PATTERN =
-  /^src\/(test\/|mocks\/|shared\/api\/generated\/)|\.(test|spec|stories)\.ts$|\.d\.ts$/;
+  /^src\/(test\/|mocks\/|shared\/api\/generated\/)|^packages\/ui\/src\/test\/|\.(test|spec|stories)\.ts$|\.d\.ts$/;
+
+/** 대상을 고르는 폴더. 공용 UI 패키지 파일도 패키지 테스트로 잰다(vitest.stryker.config.ts) */
+const TARGET_DIRS = ['src', 'packages/ui/src'];
 const TEST_FILE_PATTERN = /\.(test|spec)\.tsx?$/;
 
 /** 파일당 목록에 적는 뮤턴트 상한. 넘으면 개수만 적는다. */
@@ -32,7 +35,7 @@ function listTargets(baseRevision) {
   // --affected와 같은 방식).
   const changedFiles = execFileSync(
     'git',
-    ['diff', '--name-only', '--diff-filter=d', baseRevision, '--', 'src'],
+    ['diff', '--name-only', '--diff-filter=d', baseRevision, '--', ...TARGET_DIRS],
     { cwd: ROOT, encoding: 'utf8' }
   )
     .split('\n')
@@ -128,7 +131,7 @@ function buildReport(reportPath, targetsPath) {
     : [];
 
   if (targets.length === 0) {
-    return `${HEADING}\n\n이 PR에는 대상이 없다. 대상은 바뀐 \`src/**/*.ts\` 로직 파일(테스트·스토리·mocks·생성 타입 제외)과, 테스트만 바뀐 경우 같은 폴더의 짝 원본이다.`;
+    return `${HEADING}\n\n이 PR에는 대상이 없다. 대상은 바뀐 \`src/**/*.ts\`·\`packages/ui/src/**/*.ts\` 로직 파일(테스트·스토리·mocks·생성 타입 제외)과, 테스트만 바뀐 경우 같은 폴더의 짝 원본이다.`;
   }
 
   if (!fs.existsSync(reportPath)) {

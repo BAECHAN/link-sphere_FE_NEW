@@ -7,7 +7,7 @@ import {
 import { Post } from '@/entities/post/model/post.schema';
 import { TEXTS } from '@/shared/config/texts';
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';

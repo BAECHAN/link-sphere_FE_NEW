@@ -6,7 +6,7 @@ import { postKeys } from '@/entities/post/api/post.keys';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
-import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
+import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
 
 vi.mock('@/shared/hooks/useGoBack', () => ({ useGoBack: () => vi.fn() }));
 // 관심 분야 목록은 이 테스트가 보는 안내 문구와 무관하다 - 목 서버에 핸들러가 없어 빈 목록으로 둔다

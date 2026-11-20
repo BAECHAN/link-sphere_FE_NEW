@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowUp } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { Button } from '@link-sphere/ui/atoms/button';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
-import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
 
 // framer-motion의 AnimatePresence와 같은 fade+scale+slide 지속시간(ms) - exit
 // 애니메이션이 끝날 때까지 마운트를 유지하려면 CSS transition 시간과 정확히 맞아야 한다.

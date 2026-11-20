@@ -26,6 +26,7 @@
     "vite.config.ts",
     "vitest.config.ts",
     "vitest.unit.ts",
+    "packages/ui/vitest.config.ts",
     "vitest.stryker.config.ts",
     "dev-server.config.ts"
   ]

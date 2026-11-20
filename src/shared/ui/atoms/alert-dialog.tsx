@@ -2,9 +2,9 @@ import * as React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import { X } from 'lucide-react';
 
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { useOpenClickGuard } from '@/shared/hooks/useOpenClickGuard';
-import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
 
 // 응답을 받아야 하는 확인창(삭제·이탈 등) 전용 — role="alertdialog"로 렌더돼 스크린리더가
 // "경고 대화상자"로 안내한다(W3C APG Alert Dialog 패턴). 모양과 가드는 dialog.tsx를 그대로

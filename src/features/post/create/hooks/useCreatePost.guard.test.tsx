@@ -18,7 +18,7 @@ import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/co
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { DOUBLE_CLICK_GUARD_MS } from '@/shared/config/const';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { useAuthStore } from '@/shared/store/auth.store';

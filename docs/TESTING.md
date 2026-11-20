@@ -453,7 +453,7 @@ describe('PostCard', () => {
 > `@testing-library/react`를 통째로 다시 내보내므로 `screen`·`waitFor`도 여기서 가져오면 된다(RTL 공식
 > [Custom Render](https://testing-library.com/docs/react-testing-library/setup#custom-render) 방식). 두 가지 예외가 있다.
 > ① Provider가 없는 상태 자체를 보는 테스트는 RTL `render`를 직접 쓴다
-> ([`UiTextsProvider.test.tsx`](../src/shared/ui/texts/UiTextsProvider.test.tsx)). ② `vi.resetModules()`로 부품을 새로
+> ([`UiTextsProvider.test.tsx`](../packages/ui/src/texts/UiTextsProvider.test.tsx)). ② `vi.resetModules()`로 부품을 새로
 > 불러오는 테스트는 Provider도 같은 자리에서 동적 import해 감싼다 — 먼저 불러 둔 Provider와 새로 불린 부품은 서로 다른
 > 컨텍스트 객체를 보기 때문이다([`AppErrorFallback.test.tsx`](../src/shared/ui/elements/AppErrorFallback.test.tsx)의
 > `loadAppErrorFallback`). 배경은 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §1.2.

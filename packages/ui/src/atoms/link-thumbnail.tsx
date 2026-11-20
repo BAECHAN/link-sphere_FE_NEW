@@ -1,7 +1,7 @@
 import { ImageOff } from 'lucide-react';
 import { useState } from 'react';
-import { hasImageFailed, recordImageFailure } from '@/shared/lib/image/failedImageCache';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { hasImageFailed, recordImageFailure } from '@link-sphere/ui/lib/image/failedImageCache';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 
 interface LinkThumbnailProps {
   src?: string | null;

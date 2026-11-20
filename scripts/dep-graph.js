@@ -22,8 +22,15 @@ const OUTPUT_DIR = path.join(ROOT, 'node_modules/.cache/dep-graph');
  * 그림에서 뺄 모듈. app/·main.tsx는 모든 경로가 거쳐 가는 루트라 그림만 복잡해지고,
  * 테스트·스토리와 테스트 인프라(src/test 셋업, src/mocks MSW)는 "사용처"가 아니다.
  */
-const EXCLUDED_PATTERN = /^src\/(app\/|main\.tsx$|test\/|mocks\/)|\.(test|stories)\.tsx?$/;
+const EXCLUDED_PATTERN =
+  /^src\/(app\/|main\.tsx$|test\/|mocks\/)|^packages\/ui\/src\/test\/|\.(test|stories)\.tsx?$/;
 const EXCLUDED_DESCRIPTION = 'src/app/·main.tsx·테스트(src/test·src/mocks 포함)·스토리';
+
+/**
+ * 공용 UI 패키지(packages/ui). 원래 shared/ui·shared/lib에 있던 것이라 그림에서는 shared 레이어로 칠하고,
+ * 슬라이스는 `packages/ui/src/<폴더>`로 묶는다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)
+ */
+const PACKAGE_PREFIX = 'packages/ui/src/';
 
 const LAYER_STYLES = {
   pages: 'fill:#fde2e2,stroke:#d9534f,color:#111',
@@ -49,7 +56,10 @@ const MAX_MERMAID_EDGES = 450;
 const ARCHI_LAYERS = ['pages', 'widgets', 'features', 'entities'];
 
 function isGraphModule(source) {
-  return source.startsWith('src/') && !EXCLUDED_PATTERN.test(source);
+  return (
+    (source.startsWith('src/') || source.startsWith(PACKAGE_PREFIX)) &&
+    !EXCLUDED_PATTERN.test(source)
+  );
 }
 
 /** dependency-cruiser 결과에서 그림 대상 모듈끼리의 import만 남긴 인접 목록(from → to 집합) */
@@ -126,6 +136,7 @@ function sliceOf(source) {
   const parts = source.split('/');
   const [, layer, first] = parts;
   const deeper =
+    source.startsWith(PACKAGE_PREFIX) ||
     layer === 'features' ||
     layer === 'widgets' ||
     (layer === 'entities' && first === 'bookmark') ||
@@ -135,9 +146,14 @@ function sliceOf(source) {
   return parts.slice(0, Math.min(depth, parts.length - 1)).join('/');
 }
 
-/** 노드(모듈 경로 또는 슬라이스 키)의 레이어 — 두 번째 경로 조각이다 */
+/** 슬라이스 키의 표시 이름 — src/는 떼고, 패키지는 경로를 그대로 둔다 */
+function sliceLabel(slice) {
+  return slice.startsWith('src/') ? slice.slice('src/'.length) : slice;
+}
+
+/** 노드(모듈 경로 또는 슬라이스 키)의 레이어 — 두 번째 경로 조각이다. 패키지는 shared로 본다 */
 function layerOf(node) {
-  return node.split('/')[1];
+  return node.startsWith(PACKAGE_PREFIX) ? 'shared' : node.split('/')[1];
 }
 
 /**
@@ -442,7 +458,7 @@ function toAffectedMarkdown(graph, changed, reached) {
     nodes: new Set(filesPerSlice.keys()),
     edges: sliceEdges,
     highlighted: new Set(changed.map(sliceOf)),
-    labelOf: (slice) => `${slice.slice('src/'.length)}<br/>파일 ${filesPerSlice.get(slice)}개`,
+    labelOf: (slice) => `${sliceLabel(slice)}<br/>파일 ${filesPerSlice.get(slice)}개`,
   });
 
   if (fitsMermaid(sliceMermaid, sliceEdges.length)) {
@@ -452,7 +468,7 @@ function toAffectedMarkdown(graph, changed, reached) {
   // 경로순으로 정렬하면 레이어끼리 모인다
   const rows = [...filesPerSlice]
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([slice, count]) => `| ${slice.slice('src/'.length)} | ${count} |`)
+    .map(([slice, count]) => `| ${sliceLabel(slice)} | ${count} |`)
     .join('\n');
   const changedList = changed.map((source) => `- \`${source}\``).join('\n');
 
@@ -464,7 +480,7 @@ function runAffected(baseRevision) {
   // 커밋하기 전 변경까지 미리 볼 수 있다.
   const changedFiles = execFileSync(
     'git',
-    ['diff', '--name-only', '--diff-filter=d', baseRevision, '--', 'src'],
+    ['diff', '--name-only', '--diff-filter=d', baseRevision, '--', 'src', PACKAGE_PREFIX],
     { cwd: ROOT, encoding: 'utf8' }
   )
     .split('\n')
@@ -474,7 +490,9 @@ function runAffected(baseRevision) {
   const changed = changedFiles.filter((file) => graph.has(file));
 
   if (changed.length === 0) {
-    console.log(`${heading}\n\n그림 대상인 src 파일 변경이 없다(${EXCLUDED_DESCRIPTION}는 제외).`);
+    console.log(
+      `${heading}\n\n그림 대상인 src·packages/ui 파일 변경이 없다(${EXCLUDED_DESCRIPTION}는 제외).`
+    );
     return;
   }
 

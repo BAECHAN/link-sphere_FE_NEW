@@ -104,7 +104,7 @@ test.describe('로그인 만료', () => {
     await expectNoErrorToast(page);
 
     // 두 문장 문구라 버튼은 문구 아래 줄에, 닫기 X는 버튼보다 위(오른쪽 위)에 있다 - 버튼이 문구 옆 세로 가운데에
-    // 끼지 않는다(shared/lib/toast/toast-layout.ts)
+    // 끼지 않는다(packages/ui/src/lib/toast/toast-layout.ts)
     const layout = await expiredToast.evaluate((toastElement) => {
       const edge = (selector: string) =>
         toastElement.querySelector(selector)!.getBoundingClientRect();

@@ -1,6 +1,6 @@
 ---
 name: design-tokens
-description: Link-Sphere FE 디자인 토큰(`src/app/globals.css`) 색상·반경·z-index·타이포그래피(스케일+역할)·커서·다크모드·폰트 규약. 컴포넌트를 스타일링하거나 색상/텍스트 크기 클래스를 고를 때 사용.
+description: Link-Sphere FE 디자인 토큰(범용은 `packages/ui/src/styles/tokens.css`, 앱 전용은 `src/app/globals.css`) 색상·반경·z-index·타이포그래피(스케일+역할)·커서·다크모드·폰트 규약. 컴포넌트를 스타일링하거나 색상/텍스트 크기 클래스를 고를 때 사용.
 when_to_use: 컴포넌트에 색상/배경/테두리 클래스를 붙일 때, 제목·라벨 등에 텍스트 크기·굵기 클래스를 붙일 때, 클릭 가능한 요소에 커서 스타일이 필요한지 판단할 때, 다크모드·라운딩 값을 정할 때.
 paths: src/**/*.tsx
 ---
@@ -11,9 +11,14 @@ paths: src/**/*.tsx
 불러오면 된다. **하드코딩 색상 클래스 사용 금지**라는 원칙 자체는 `.claude/CLAUDE.md`의
 "Never" 목록에 남아 있다 — 이 skill은 그 대체 클래스 표를 담고 있다.
 
-## 디자인 토큰 (`src/app/globals.css`)
+## 디자인 토큰 (`packages/ui/src/styles/tokens.css` + `src/app/globals.css`)
 
 Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — 아래 의미론적 클래스를 사용한다.
+
+토큰은 두 파일에 나뉜다. 색·반경·z-index·글자 크기·다크 변형·기본 커서·동작 줄이기처럼 어느 앱에서나 쓰는 것은 공용
+UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카테고리·사이드바·차트 색과 `hover-or-open`·
+`--navbar-height`처럼 이 앱에 묶인 것은 `src/app/globals.css`에 있다. 새 토큰도 같은 기준으로 둔다(기준:
+`docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.5).
 
 무채색 의미 토큰의 값은 `:root`의 `--palette-*`(Primitive 층)를 참조한다. `--palette-*`는 Tailwind
 클래스가 없고, 컴포넌트에서 `var(--palette-*)`로 직접 쓰지도 않는다 — 항상 아래 의미 토큰을 쓴다
@@ -44,7 +49,7 @@ Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금
 | 링                    | `--ring`                            | `ring-ring`                                               | 포커스 링                                                                                                                                                                                                                 |
 
 종류별 토스트(오류·경고·성공·안내)의 배경·테두리·글자색도 위 `--destructive`·`--warning`·`--success`·`--info`에서
-만들어진다(`src/shared/ui/atoms/sonner.tsx`의 `KIND_COLOR_VARS`). 이 토큰 값을 바꾸면 토스트 색과 글자 대비가 함께
+만들어진다(`packages/ui/src/atoms/sonner.tsx`의 `KIND_COLOR_VARS`). 이 토큰 값을 바꾸면 토스트 색과 글자 대비가 함께
 바뀌므로 `docs/DESIGN-SYSTEM.md` §8 "토스트 종류별 색 바꾸기"대로 다시 잰다.
 
 ### 반경 토큰
@@ -108,10 +113,10 @@ Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를
 `TEXT_SIZE_PATTERN`). 역할 토큰·`t*` 스케일과 `font-bold`를 같이 쓰는 건 이 룰이
 못 잡으니 사람이 지킨다(제목이 아니라면 `eslint-disable-next-line`에 이유를 남긴다).
 
-**새 `--text-*` 토큰을 추가하면 `src/shared/lib/tailwind/utils.ts`의 `TEXT_SIZE_TOKENS`에도 이름을 넣는다.**
+**새 `--text-*` 토큰을 추가하면 `packages/ui/src/lib/tailwind/utils.ts`의 `TEXT_SIZE_TOKENS`에도 이름을 넣는다.**
 `cn()`(tailwind-merge)은 기본 설정으로 `xs`~`9xl`만 글자 크기로 알아, 등록하지 않은 토큰은 글자 색으로 본다 —
 그러면 같이 쓴 색 클래스를 지우고 컴포넌트 기본 크기(`Button`의 `text-sm` 등)는 남겨 토큰 크기가 무시된다
-(2026-10-28 발견, 경위 `docs/DESIGN-SYSTEM.md` §10). 빠뜨리면 `utils.test.ts`가 `globals.css`와 대조해 실패한다.
+(2026-10-28 발견, 경위 `docs/DESIGN-SYSTEM.md` §10). 빠뜨리면 `utils.test.ts`가 토큰 CSS와 대조해 실패한다.
 반대로 역할 토큰 위에 기본 크기를 덮으면(`DialogTitle className="text-base"`) `cn()`이 토큰을 통째로 지워 두께도
 빠지니 두께를 함께 준다.
 
@@ -170,7 +175,7 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 
 Tailwind v4 preflight엔 v3에 있던 `button, [role="button"] { cursor: pointer }`가 없다
 (`node_modules/tailwindcss/preflight.css`에 cursor 규칙 자체가 없음). 이걸 컴포넌트마다
-개별로 `cursor-pointer`를 붙여 메꾸지 않는다 — `globals.css`의 `@layer base`가 아래
+개별로 `cursor-pointer`를 붙여 메꾸지 않는다 — 토큰 CSS(`packages/ui/src/styles/tokens.css`)의 `@layer base`가 아래
 대상 전체에 전역으로 적용한다.
 
 | 분류       | 대상                                                                                                              |

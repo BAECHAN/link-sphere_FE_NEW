@@ -4,6 +4,9 @@ on:
     branches: ['main']
     paths:
       - 'src/**'
+      # deploy.yml과 같이 공용 UI 패키지와 워크스페이스 설정도 앱 변경으로 본다
+      - 'packages/**'
+      - 'pnpm-workspace.yaml'
       - 'public/**'
       - 'package.json'
       - 'pnpm-lock.yaml'

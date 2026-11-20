@@ -1,7 +1,12 @@
-# pnpm 설정 파일. 패키지가 하나인 레포라 `packages`는 두지 않는다(그러면 루트만 워크스페이스에 든다).
-# pnpm 문서는 설정을 이 파일에 두라고 하고, 최신 pnpm은 package.json의 `pnpm` 필드를 읽지 않는다
-# (https://pnpm.io/package_json). 2026-11-12 pnpm 10.20.0에서 `pnpm add`(-w 없이)·
-# `pnpm install --frozen-lockfile`이 그대로 되고 lockfile이 바뀌지 않는 것을 확인했다.
+# pnpm 설정 파일. pnpm 문서는 설정을 이 파일에 두라고 하고, 최신 pnpm은 package.json의 `pnpm` 필드를 읽지 않는다
+# (https://pnpm.io/package_json).
+#
+# 워크스페이스: 루트(이 앱)는 늘 들어가고, packages/ 아래 패키지가 함께 든다(2026-11-20 분리 리허설,
+# docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5). packages/ui는 공용 UI 패키지 `@link-sphere/ui`이고 이 앱이
+# `workspace:*`로 가져다 쓴다. 루트에서 `pnpm add`는 지금처럼 루트에 더해지고(2026-11-20 pnpm 10.20.0에서
+# -w 없이 확인), 패키지에 더할 때는 `pnpm --filter @link-sphere/ui add <패키지>`를 쓴다.
+packages:
+  - 'packages/*'
 
 # 부모가 버전 범위를 막아 락 갱신으로 안 풀리는 개발 의존성 알림을 올리는 자리. 항목마다 이유와 지울 때를
 # 적는다. 절차는 docs/DEPLOY.md "npm 패키지 업데이트"의 "간접 의존성 알림".

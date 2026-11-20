@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
-import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
-import { Button } from '@/shared/ui/atoms/button';
+import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
+import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
+import { Button } from '@link-sphere/ui/atoms/button';
 
 const meta = {
   title: 'Shared/UI/Elements/TooltipWrapper',

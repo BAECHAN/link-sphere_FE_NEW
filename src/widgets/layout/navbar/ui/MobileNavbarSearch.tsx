@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Input } from '@/shared/ui/atoms/input';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { ArrowLeftIcon, SearchIcon, XIcon } from 'lucide-react';
 import { TEXTS } from '@/shared/config/texts';
 import { useNavbarSearch } from '@/widgets/layout/navbar/hooks/useNavbarSearch';

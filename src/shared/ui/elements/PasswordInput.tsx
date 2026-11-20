@@ -1,6 +1,6 @@
 import { Input, InputProps } from '@/shared/ui/atoms/input';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
-import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
 import { forwardRef, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 

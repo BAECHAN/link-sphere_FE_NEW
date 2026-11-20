@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import { toast } from '@/shared/lib/toast/toast';
-import { STACKED_ACTION_CLASS_NAMES } from '@/shared/lib/toast/toast-layout';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { STACKED_ACTION_CLASS_NAMES } from '@link-sphere/ui/lib/toast/toast-layout';
 
 // 버튼이 없을 때도 같은 틀(닫기 X 오른쪽 위, 아이콘은 제목 줄)을 쓰려고 배치 클래스를 직접 넘긴다. 제목은 종류의
 // 색·소제목 굵기로, 설명은 본문색으로 구분한다(근거·미리보기 승인: docs/UNSAVED-CHANGES-GUARD.md §5). sonner는

@@ -6,7 +6,7 @@ import {
   DialogOverlay,
   DialogPortal,
 } from '@/shared/ui/atoms/dialog';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 
 /**
  * 모바일 시트의 딤과 시트가 함께 쓰는 시간·곡선. 둘은 형제 요소라 --tw-duration·--tw-ease가 상속되지

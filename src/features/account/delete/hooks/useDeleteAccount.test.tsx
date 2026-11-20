@@ -10,7 +10,7 @@ import { useDeleteAccount } from '@/features/account/delete/hooks/useDeleteAccou
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { LocalStorageUtil } from '@/shared/utils/storage.util';
 
-vi.mock('@/shared/lib/toast/toast', () => ({
+vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 

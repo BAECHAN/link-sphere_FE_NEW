@@ -1,6 +1,6 @@
 import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
 
 // 스크롤할 자리를 잡는 용도라 화면을 넘길 만큼이면 된다 - 댓글이 수백 개여도 그만큼 그리지 않는다

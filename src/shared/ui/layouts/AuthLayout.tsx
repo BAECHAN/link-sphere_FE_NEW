@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
 
 export interface AuthLayoutProps {
   children: ReactNode;

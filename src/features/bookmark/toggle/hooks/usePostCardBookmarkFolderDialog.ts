@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, type Location } from 'react-router-dom';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { ErrorUtil } from '@/shared/utils/error.util';
@@ -64,7 +64,7 @@ export function usePostCardBookmarkFolderDialog({
   }
 
   // 저장 결과를 바로 확인할 수 있게 저장된 폴더로 데려간다. 버튼 자리와 닫기 X 유무는 래퍼가 정한다
-  // (shared/lib/toast/toast-layout.ts - 한 줄 문구라 버튼은 같은 줄 오른쪽, X는 없다)
+  // (packages/ui/src/lib/toast/toast-layout.ts - 한 줄 문구라 버튼은 같은 줄 오른쪽, X는 없다)
   const viewSavedOptions = (folderKey: string) => ({
     action: {
       label: TEXTS.bookmark.folder.viewAction,
@@ -106,7 +106,7 @@ export function usePostCardBookmarkFolderDialog({
     if (isBookmarkLimitExceeded(error)) {
       const action = { label: TEXTS.bookmark.folder.viewBookmarksAction, onClick: goToBookmarks };
 
-      // 두 문장 문구라 래퍼가 버튼을 문구 아래 줄 오른쪽에, 닫기 X를 오른쪽 위에 둔다(shared/lib/toast/toast-layout.ts)
+      // 두 문장 문구라 래퍼가 버튼을 문구 아래 줄 오른쪽에, 닫기 X를 오른쪽 위에 둔다(packages/ui/src/lib/toast/toast-layout.ts)
       toast.error(TEXTS.messages.error.bookmarkLimitExceeded, { ...persistent, action });
 
       return;

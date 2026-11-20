@@ -1,7 +1,7 @@
 import { Moon, Sun, Search, Menu } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
-import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Spinner } from '@link-sphere/ui/atoms/spinner';
 import { useLayoutEffect, useRef } from 'react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { useAuthStore } from '@/shared/store/auth.store';
@@ -25,7 +25,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { useBackClosableOverlayOpen } from '@/shared/hooks/useBackClosableOverlay';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 
 export function Navbar() {
   const { isAuthenticated } = useAuthStore();

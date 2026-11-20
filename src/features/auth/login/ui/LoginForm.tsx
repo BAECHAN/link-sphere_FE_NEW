@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { FormProvider } from 'react-hook-form';
 import { useLogin } from '@/features/auth/login/hooks/useLogin';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';

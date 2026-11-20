@@ -101,7 +101,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **TanStack Virtual**(`useWindowGridVirtualizer`, `shared/hooks/`) — 피드 카드 그리드를 행
   단위로 가상화
 - **React Hook Form + Zod** — 작성·수정 폼(`createPostSchema`·`updatePostSchema`)
-- **Sonner 토스트**(`shared/lib/toast/toast.ts`) — 성공 토스트, 삭제·공개 전환 실패 토스트(등록·수정의
+- **Sonner 토스트**(`packages/ui/src/lib/toast/toast.ts`) — 성공 토스트, 삭제·공개 전환 실패 토스트(등록·수정의
   진행은 버튼 라벨, 실패는 입력칸·`FormAlert` — §5 "작성" 7)
 - **`fetch` keepalive** — 작성·수정 요청을 탭을 닫아도 끝까지 보내기
 - **NProgress** — 목록 첫 페이지 조회 동안 상단 진행 막대

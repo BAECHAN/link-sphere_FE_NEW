@@ -1,7 +1,7 @@
 import { SearchInput } from '@/shared/ui/elements/SearchInput';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { useBookmarkSearch } from '@/widgets/bookmark/bookmark-search/hooks/useBookmarkSearch';
 
 interface BookmarkSearchProps {

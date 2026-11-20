@@ -63,7 +63,7 @@ pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm b
 돌리지 않는다). 예외 8개(`eslint.config.js` ignores와 1:1):
 
 - `src/shared/config/texts.ts` — TEXTS 단일 소스 자기 자신
-- `src/shared/ui/texts/ko-ui-texts.ts` — 공용 UI 부품의 한국어 문구 묶음(아래 "공용 UI 부품이 스스로 보여 주는 글자")
+- `packages/ui/src/texts/ko-ui-texts.ts` — 공용 UI 부품의 한국어 문구 묶음(아래 "공용 UI 부품이 스스로 보여 주는 글자")
 - `src/test/**/*.{ts,tsx}` — 테스트 인프라
 - `src/mocks/**/*.{ts,tsx}` — MSW 목/픽스처
 - `**/*.test.{ts,tsx}` — 콜로케이션 테스트
@@ -83,8 +83,8 @@ pre-commit(lint-staged)과 CI·배포의 `pnpm check`에서 차단한다(`pnpm b
 
 부품에 글자를 더하는 순서(하나라도 빠지면 타입 검사나 묶음 검사 테스트가 실패한다):
 
-1. `src/shared/ui/texts/ui-texts.ts` — `UiTexts` 타입에 키를 더한다. 모든 키가 필수다(넘기지 않으면 컴파일 오류).
-2. `src/shared/ui/texts/ko-ui-texts.ts` — 패키지가 내보내는 한국어 묶음 `KO_UI_TEXTS`에 값을 더한다. 자동으로 쓰이지
+1. `packages/ui/src/texts/ui-texts.ts` — `UiTexts` 타입에 키를 더한다. 모든 키가 필수다(넘기지 않으면 컴파일 오류).
+2. `packages/ui/src/texts/ko-ui-texts.ts` — 패키지가 내보내는 한국어 묶음 `KO_UI_TEXTS`에 값을 더한다. 자동으로 쓰이지
    않고, 쓰려는 앱이 직접 가져와 Provider에 넘긴다.
 3. `src/app/providers/UiTextsProvider.tsx` — 이 앱이 넘기는 `APP_UI_TEXTS`에 `TEXTS.*`를 이어 준다. 맞는 키가 없으면
    `texts.ts`에 먼저 더한다. 이 앱의 문구를 정하는 곳은 지금처럼 `texts.ts`다.

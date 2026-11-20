@@ -12,7 +12,7 @@ import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useDebounce } from '@/shared/hooks/useDebounce';
 import { getImageFileSizeError } from '@/shared/lib/image/resizeImage';
 import { isAllowedImageType } from '@/shared/lib/image/imageFormat';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 
 type NicknameStatus = 'idle' | 'checking' | 'available' | 'duplicate';

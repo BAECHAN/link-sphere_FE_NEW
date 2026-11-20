@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { XIcon } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 
 /**
  * 데스크톱 헤더 검색의 최근검색 드롭다운(grid) 요소 id. NavbarSearch가 입력창의

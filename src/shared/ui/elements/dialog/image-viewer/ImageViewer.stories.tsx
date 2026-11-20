@@ -6,7 +6,7 @@ import {
   ImageViewer,
   type ImageViewerImage,
 } from '@/shared/ui/elements/dialog/image-viewer/ImageViewer';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { RouterEvents } from '@/shared/lib/router/router-events';

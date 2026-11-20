@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 
