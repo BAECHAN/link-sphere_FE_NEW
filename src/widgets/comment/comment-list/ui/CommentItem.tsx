@@ -8,11 +8,13 @@ import { UrlUtil } from '@/shared/utils/url.util';
 import { LikeCommentButton } from '@/features/comment/like/ui/LikeCommentButton';
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { CommentEditForm } from '@/features/comment/update/ui/CommentEditForm';
-import { MessageSquare, Trash2, Edit2 } from 'lucide-react';
+import { MessageSquare, Pencil, Trash } from 'lucide-react';
 import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { ActionButton } from '@/shared/ui/elements/ActionButton';
+import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
+import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
@@ -130,6 +132,26 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           <span className="text-xs text-muted-foreground shrink-0">
             {DateUtil.formatRelativeShort(comment.createdAt)}
           </span>
+          {isOwner && canShowActionBar && (
+            // 수정·삭제를 동작 줄에 두면 좁은 폰(381px 미만)에서 줄이 화면 밖으로 밀린다(docs/COMMENT.md §5 "내 댓글 메뉴").
+            // 음수 마진으로 터치 영역(44px)은 두고 이름 줄 높이(20px)는 밀어 올리지 않는다 - PostCard.tsx의 ⋮와 같다
+            <KebabMenu
+              aria-label={TEXTS.ariaLabels.commentMenu}
+              triggerClassName="ml-auto -my-3 size-11 md:pointer-fine:-my-1.5 md:pointer-fine:size-8"
+            >
+              <DropdownMenuItem onClick={() => setIsEditing(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                {TEXTS.comment.item.edit}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => onDelete(comment.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash className="mr-2 h-4 w-4" />
+                {TEXTS.buttons.delete}
+              </DropdownMenuItem>
+            </KebabMenu>
+          )}
         </div>
 
         {isEditing ? (
@@ -167,23 +189,6 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 onClick={() => setIsReplying(!isReplying)}
                 className="min-h-11 px-2 hover:text-info md:pointer-fine:min-h-0 md:pointer-fine:px-0"
               />
-            )}
-
-            {isOwner && (
-              <>
-                <ActionButton
-                  icon={Edit2}
-                  label={TEXTS.comment.item.edit}
-                  onClick={() => setIsEditing(true)}
-                  className="min-h-11 px-2 hover:text-info md:pointer-fine:min-h-0 md:pointer-fine:px-0"
-                />
-                <ActionButton
-                  icon={Trash2}
-                  label={TEXTS.buttons.delete}
-                  onClick={() => onDelete(comment.id)}
-                  className="min-h-11 px-2 hover:text-destructive md:pointer-fine:min-h-0 md:pointer-fine:px-0"
-                />
-              </>
             )}
           </div>
         )}

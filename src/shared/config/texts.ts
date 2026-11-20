@@ -839,6 +839,7 @@ export const TEXTS = {
     attachmentImage: '첨부 이미지',
     attachmentImageAt: (order: number) => `첨부 이미지 ${order}`,
     postMenu: '게시글 메뉴',
+    commentMenu: '댓글 메뉴',
 
     // 게시글 검색 필터
     postCategoryFilters: '카테고리 검색 태그',
