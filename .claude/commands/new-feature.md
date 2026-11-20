@@ -134,7 +134,7 @@ export function use<FeatureName>(<entity>Id: string) {
 ```typescript
 import { FormProvider } from 'react-hook-form';
 import { use<FeatureName> } from '@/features/<domain>/<slice>/hooks/use<FeatureName>';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
 import { TEXTS } from '@/shared/config/texts';
 
@@ -169,7 +169,7 @@ export function <FeatureName>Form() {
 **Button UI (toggle/action):**
 
 ```typescript
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { use<FeatureName> } from '@/features/<domain>/<slice>/hooks/use<FeatureName>';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';

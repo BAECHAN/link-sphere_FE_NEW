@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { FormProvider } from 'react-hook-form';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
 import { FormCheckboxGroup } from '@/shared/ui/elements/form/FormCheckboxGroup';
@@ -7,7 +7,7 @@ import { FormCheckbox } from '@/shared/ui/elements/form/FormCheckbox';
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
 import { useUpdatePost } from '@/features/post/update/hooks/useUpdatePost';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
-import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
+import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { LinkPreviewCard } from '@/entities/post/ui/LinkPreviewCard';

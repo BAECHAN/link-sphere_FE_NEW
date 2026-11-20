@@ -32,7 +32,7 @@ test.describe('브라우저 기본 글꼴을 키운 사용자 — 폭 판정이 
     // inert인 main은 접근성 트리에서 빠져 getByRole로 찾을 수 없다
     await expect(page.locator('main')).toHaveJSProperty('inert', true);
 
-    // 데스크톱 값(globals.css :root 기본값 24px)이 아니라 max-md 쪽 값이어야 한다. Chromium은
+    // 데스크톱 값(토큰 CSS packages/ui/src/styles/tokens.css의 :root 기본값 24px)이 아니라 max-md 쪽 값이어야 한다. Chromium은
     // env()를 계산해 돌려줘서(calc(4rem + 0px + 0.75rem)) 모바일 값 문자열과 직접 비교하지 않는다
     const toastOffset = await page.evaluate(() =>
       getComputedStyle(document.documentElement).getPropertyValue('--toast-offset-bottom')

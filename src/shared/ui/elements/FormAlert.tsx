@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { CircleAlert } from 'lucide-react';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 
 export interface FormAlertProps {
   children: ReactNode;

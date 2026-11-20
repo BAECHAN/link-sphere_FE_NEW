@@ -1,7 +1,7 @@
 import { Card, CardDescription, CardFooter, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { FeaturedIcon } from '@/shared/ui/atoms/featured-icon';
-import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Spinner } from '@link-sphere/ui/atoms/spinner';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, XCircle } from 'lucide-react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';

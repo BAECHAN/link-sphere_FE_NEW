@@ -9,7 +9,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { UNDO_TOAST_DURATION_MS } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { usePostCardBookmarkFolderDialog } from '@/features/bookmark/toggle/hooks/usePostCardBookmarkFolderDialog';
 import type {
@@ -26,7 +26,7 @@ vi.mock('react-router-dom', async (importOriginal) => {
 });
 
 // 토스트 인자를 캡처해 action.onClick을 직접 호출한다
-vi.mock('@/shared/lib/toast/toast', () => ({
+vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 

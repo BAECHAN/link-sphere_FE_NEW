@@ -1,5 +1,5 @@
 import { ArrowLeft, ArrowUpDown } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import {
   Select,
   SelectContent,
@@ -17,7 +17,7 @@ import { POST_CARD_GRID } from '@/widgets/post/post-card/config/post-card-grid.c
 import { BookmarkFolderTitle } from '@/features/bookmark/rename/ui/BookmarkFolderTitle';
 import { BookmarkFolderSort } from '@/entities/bookmark/folder/model/bookmark-folder.schema';
 import type { Post } from '@/entities/post/model/post.schema';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { useBookmarkPage, VALID_SORTS } from '@/pages/bookmark/hooks/useBookmarkPage';
 import { useHeldBookmarkRegions } from '@/pages/bookmark/hooks/useHeldBookmarkRegions';
 

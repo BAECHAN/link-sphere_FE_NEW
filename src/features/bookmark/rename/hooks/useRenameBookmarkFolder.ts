@@ -1,5 +1,5 @@
 import { KeyboardEvent, useId, useRef, useState } from 'react';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { useUpdateBookmarkFolderMutation } from '@/entities/bookmark/folder/api/bookmark-folder.queries';

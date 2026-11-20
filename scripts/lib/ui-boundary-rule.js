@@ -9,17 +9,16 @@
 const GENERIC_UI_PREFIX = '@/shared/ui/';
 const ROUTER_PACKAGE = /^react-router(-dom)?(\/|$)/;
 
-/** 부품과 함께 옮길 보조 모듈 - 통째로 허용한다(docs/DESIGN-SYSTEM-PRINCIPLES.md §5.5) */
+/**
+ * 부품과 함께 옮길 보조 모듈 - 통째로 허용한다(docs/DESIGN-SYSTEM-PRINCIPLES.md §5.5). 공용 UI 패키지(@link-sphere/ui)로
+ * 이미 옮긴 것(cn·토스트 래퍼·실패 이미지 기억)은 @/ 밖이라 아래 checkSource의 isOutsideApp으로 통과해 여기 적지 않는다
+ */
 const ALLOWED_MODULES = new Set([
-  '@/shared/lib/tailwind/utils',
   '@/shared/hooks/useClickGuard',
   '@/shared/hooks/useOpenClickGuard',
   '@/shared/hooks/useMergedRef',
   '@/shared/hooks/useDelayedLoading',
   '@/shared/hooks/useKeydown',
-  '@/shared/lib/toast/toast',
-  '@/shared/lib/toast/toast-layout',
-  '@/shared/lib/image/failedImageCache',
   '@/shared/utils/scroll.util',
 ]);
 

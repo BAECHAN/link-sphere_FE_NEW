@@ -6,7 +6,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { renderWithDataRouter, userEvent } from '@/test/utils';
 import { CommentComposer } from '@/features/comment/create/ui/CommentComposer';
 import type { CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
-import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
+import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
 import { TEXTS } from '@/shared/config/texts';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { useAuthStore } from '@/shared/store/auth.store';

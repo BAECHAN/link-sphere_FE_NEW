@@ -6,7 +6,7 @@ import { apiClient } from '@/shared/api/client';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { SessionExpiredError } from '@/shared/types/common.type';
 // 전역 에러 핸들러(mutationCache.onError)가 붙은 실제 싱글턴이어야 토스트가 드러난다

@@ -1,5 +1,5 @@
 import { ImagePlus } from 'lucide-react';
-import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
 
 type DragEventHandler = (e: React.DragEvent<HTMLElement>) => void;
 

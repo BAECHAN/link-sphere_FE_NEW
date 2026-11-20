@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { chunkReloadKey } from '@/shared/config/storage-keys';
 import { TEXTS } from '@/shared/config/texts';
-import { KO_UI_TEXTS } from '@/shared/ui/texts/ko-ui-texts';
+import { KO_UI_TEXTS } from '@link-sphere/ui/texts/ko-ui-texts';
 
 const PATHNAME = '/post';
 const CHUNK_ERROR = new TypeError(
@@ -16,7 +16,7 @@ const CHUNK_ERROR = new TypeError(
 async function loadAppErrorFallback() {
   vi.resetModules();
   const { AppErrorFallback } = await import('@/shared/ui/elements/AppErrorFallback');
-  const { UiTextsProvider } = await import('@/shared/ui/texts/UiTextsProvider');
+  const { UiTextsProvider } = await import('@link-sphere/ui/texts/UiTextsProvider');
 
   return function AppErrorFallbackWithUiTexts(props: { error: unknown }) {
     return (

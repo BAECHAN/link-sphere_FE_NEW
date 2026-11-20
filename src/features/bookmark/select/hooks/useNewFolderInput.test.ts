@@ -7,7 +7,7 @@ import { createTestQueryClient } from '@/test/utils';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { useNewFolderInput } from '@/features/bookmark/select/hooks/useNewFolderInput';
 

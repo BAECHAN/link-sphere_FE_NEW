@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { TEXTS } from '@/shared/config/texts';
-import { UiTextsProvider as BaseUiTextsProvider } from '@/shared/ui/texts/UiTextsProvider';
-import type { UiTexts } from '@/shared/ui/texts/ui-texts';
+import { UiTextsProvider as BaseUiTextsProvider } from '@link-sphere/ui/texts/UiTextsProvider';
+import type { UiTexts } from '@link-sphere/ui/texts/ui-texts';
 
 /**
  * 범용 공용 UI 부품이 스스로 보여 주는 글자(닫기, 확인, 취소 등)를 이 앱의 문구 파일에서 뽑은 것.

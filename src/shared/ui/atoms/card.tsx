@@ -1,4 +1,4 @@
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { forwardRef } from 'react';
 
 const Card = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(

@@ -21,6 +21,8 @@ export default defineConfig({
         extends: true,
         test: unitTestConfig,
       },
+      // 공용 UI 패키지(packages/ui)의 단위 테스트. 앱 설정을 물려받지 않게 패키지의 설정 파일을 그대로 쓴다
+      'packages/ui',
       {
         extends: true,
         plugins: [
@@ -44,9 +46,12 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      include: ['src/**/*.{ts,tsx}'],
+      include: ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'],
       exclude: [
         'src/test/**',
+        'packages/ui/src/test/**',
+        'packages/ui/src/**/*.stories.{ts,tsx}',
+        'packages/ui/src/**/*.test.{ts,tsx}',
         'src/mocks/**',
         'src/**/*.stories.{ts,tsx}',
         'src/**/*.test.{ts,tsx}',

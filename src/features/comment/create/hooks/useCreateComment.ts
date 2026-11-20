@@ -20,7 +20,7 @@ import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { ErrorUtil } from '@/shared/utils/error.util';
 

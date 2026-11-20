@@ -1,12 +1,12 @@
 import { MoreVertical } from 'lucide-react';
 import { ReactNode } from 'react';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/shared/ui/atoms/dropdown-menu';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 
 export interface KebabMenuProps {
   'aria-label': string;

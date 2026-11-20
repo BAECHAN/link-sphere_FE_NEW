@@ -3,7 +3,7 @@ import {
   hasImageFailed,
   recordImageFailure,
   resetFailedImages,
-} from '@/shared/lib/image/failedImageCache';
+} from '@link-sphere/ui/lib/image/failedImageCache';
 
 describe('hasImageFailed / recordImageFailure', () => {
   it('1회 실패한 URL은 아직 차단 대상이 아니다', () => {

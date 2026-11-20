@@ -1,5 +1,5 @@
 import { FormProvider } from 'react-hook-form';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { FormInputPassword } from '@/shared/ui/elements/form/FormInputPassword';
 import { TEXTS } from '@/shared/config/texts';
 import { useDeleteAccount } from '@/features/account/delete/hooks/useDeleteAccount';

@@ -2,8 +2,8 @@ import { memo } from 'react';
 import { Post } from '@/entities/post/model/post.schema';
 import { Card, CardContent, CardFooter, CardHeader } from '@/shared/ui/atoms/card';
 import { Badge } from '@/shared/ui/atoms/badge';
-import { Button } from '@/shared/ui/atoms/button';
-import { LinkThumbnail } from '@/shared/ui/atoms/link-thumbnail';
+import { Button } from '@link-sphere/ui/atoms/button';
+import { LinkThumbnail } from '@link-sphere/ui/atoms/link-thumbnail';
 import {
   ChevronDown,
   ChevronUp,
@@ -28,7 +28,7 @@ import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
 import { BookmarkPostButton } from '@/features/bookmark/toggle/ui/BookmarkPostButton';
 import { TEXTS } from '@/shared/config/texts';
 import { usePostCard } from '@/widgets/post/post-card/hooks/usePostCard';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import {
   CATEGORY_COLOR_CLASSNAME,
   CATEGORY_COLOR_COUNT,

@@ -16,7 +16,7 @@ import {
   MAX_COMMENT_CONTENT_HANGUL_CHARS,
 } from '@/entities/comment/config/comment.const';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 

@@ -1,13 +1,13 @@
 import { forwardRef, useImperativeHandle, useRef, useState, type ForwardedRef } from 'react';
 import { ChevronDown, ChevronUp, Link2 } from 'lucide-react';
-import { Button } from '@/shared/ui/atoms/button';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { Button } from '@link-sphere/ui/atoms/button';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
 import { ImageAttachmentButton } from '@/shared/ui/elements/ImageAttachmentButton';
 import { ImageAttachmentPreviews } from '@/shared/ui/elements/ImageAttachmentPreviews';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
-import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
+import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { CharacterCount } from '@/shared/ui/elements/CharacterCount';

@@ -8,7 +8,7 @@ import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { SessionChangedError } from '@/shared/types/common.type';
 // 전역 에러 핸들러(mutationCache.onError)가 붙은 실제 싱글턴이어야 이 겹침이 드러난다

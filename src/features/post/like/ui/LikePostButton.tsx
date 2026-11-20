@@ -1,7 +1,7 @@
 import { Post } from '@/entities/post/model/post.schema';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 import { ThumbsUp } from 'lucide-react';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { useLikePost } from '@/features/post/like/hooks/useLikePost';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { TEXTS } from '@/shared/config/texts';

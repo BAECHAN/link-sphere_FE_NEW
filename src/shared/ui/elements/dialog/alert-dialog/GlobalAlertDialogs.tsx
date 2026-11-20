@@ -12,9 +12,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/shared/ui/atoms/alert-dialog';
-import { Button } from '@/shared/ui/atoms/button';
-import { cn } from '@/shared/lib/tailwind/utils';
-import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';
+import { Button } from '@link-sphere/ui/atoms/button';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
 
 interface AlertDialogItemProps {
   dialog: AlertDialogData;

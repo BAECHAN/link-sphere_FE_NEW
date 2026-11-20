@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/atoms/select';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@/shared/ui/atoms/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@link-sphere/ui/atoms/tooltip';
 
 // 공용 UI 부품이 ref·className·나머지 속성을 어디로 넘기는지 고정한다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4).
 // - atoms: 폴더를 훑어 내보낸 부품을 모두 그린다. 표에 적지 않은 새 부품도 단독으로 그려 검사한다.
@@ -225,9 +225,17 @@ const ATOM_RECIPES: Record<string, RenderRecipe> = {
   },
 };
 
+// 공용 UI 패키지(packages/ui)로 옮긴 부품도 같은 표로 검사한다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)
 const ATOMS = collectParts(
   import.meta.glob<Record<string, unknown>>(
-    ['./atoms/*.tsx', '!./atoms/*.stories.tsx', '!./atoms/*.test.tsx'],
+    [
+      './atoms/*.tsx',
+      '../../../packages/ui/src/atoms/*.tsx',
+      '!./atoms/*.stories.tsx',
+      '!./atoms/*.test.tsx',
+      '!../../../packages/ui/src/atoms/*.stories.tsx',
+      '!../../../packages/ui/src/atoms/*.test.tsx',
+    ],
     { eager: true }
   )
 );
@@ -374,7 +382,15 @@ const ASSEMBLY_CONTRACTS: Record<string, AssemblyContract> = {
 
 const ASSEMBLIES = collectParts(
   import.meta.glob<Record<string, unknown>>(
-    ['./elements/**/*.tsx', './layouts/**/*.tsx', '!./**/*.stories.tsx', '!./**/*.test.tsx'],
+    [
+      './elements/**/*.tsx',
+      './layouts/**/*.tsx',
+      '../../../packages/ui/src/elements/**/*.tsx',
+      '!./**/*.stories.tsx',
+      '!./**/*.test.tsx',
+      '!../../../packages/ui/src/**/*.stories.tsx',
+      '!../../../packages/ui/src/**/*.test.tsx',
+    ],
     { eager: true }
   )
 );

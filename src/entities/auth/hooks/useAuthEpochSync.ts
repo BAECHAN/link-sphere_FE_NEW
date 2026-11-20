@@ -4,7 +4,7 @@ import { authApi } from '@/entities/auth/api/auth.api';
 import { handleSessionAdoptedSuccess } from '@/entities/auth/api/auth.keys';
 import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { hasStoredSession, useAuthStore } from '@/shared/store/auth.store';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';

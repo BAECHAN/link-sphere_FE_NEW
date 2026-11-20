@@ -6,7 +6,7 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
-import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
+import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
 import { CommentEditForm } from '@/features/comment/update/ui/CommentEditForm';
 import { useAuthStore } from '@/shared/store/auth.store';
 

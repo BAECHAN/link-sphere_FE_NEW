@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Sparkles } from 'lucide-react';
-import { Toaster } from '@/shared/ui/atoms/sonner';
-import { toast } from '@/shared/lib/toast/toast';
+import { Toaster } from '@link-sphere/ui/atoms/sonner';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import {
   Dialog,
   DialogContent,
@@ -66,7 +66,7 @@ export const Kinds: Story = {
 
 const logAction = (label: string) => ({ label, onClick: () => console.log(label) });
 
-// 버튼(action)의 자리는 호출부가 아니라 래퍼가 정한다(shared/lib/toast/toast-layout.ts). 문구가 한 줄이면
+// 버튼(action)의 자리는 호출부가 아니라 래퍼가 정한다(packages/ui/src/lib/toast/toast-layout.ts). 문구가 한 줄이면
 // 같은 줄 오른쪽이고 닫기 X가 없다
 const INLINE_ACTIONS: ToastSample[] = [
   {
@@ -129,7 +129,7 @@ export const StackedAction: Story = {
   render: () => <ToastSamples samples={STACKED_ACTIONS} />,
 };
 
-// 래퍼(shared/lib/toast/toast.ts)가 문장 끝에서 줄을 바꾼다 - 두 문장은 문장마다 한 줄,
+// 래퍼(packages/ui/src/lib/toast/toast.ts)가 문장 끝에서 줄을 바꾼다 - 두 문장은 문장마다 한 줄,
 // 한 줄보다 긴 문장(마지막 버튼)은 그 문장 안에서만 다시 줄이 바뀐다
 const SENTENCE_LINE_BREAKS = [
   { label: '두 문장 (info)', show: () => toast.info(TEXTS.messages.info.sessionExpired) },

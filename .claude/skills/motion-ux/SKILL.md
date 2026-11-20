@@ -71,7 +71,7 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 
 - **스크롤**(2026-10-14) — `behavior: ScrollUtil.getBehavior()`(`src/shared/utils/scroll.util.ts`)가
   "동작 줄이기"면 즉시 이동을 준다. `behavior: 'smooth'` 리터럴은 ESLint가 막는다(`docs/FE-ARCHITECTURE.md` §25).
-- **CSS 애니메이션·트랜지션**(2026-10-15) — `src/app/globals.css` 끝의 `@media (prefers-reduced-motion: reduce)`
+- **CSS 애니메이션·트랜지션**(2026-10-15) — 토큰 CSS(`packages/ui/src/styles/tokens.css`) 끝의 `@media (prefers-reduced-motion: reduce)`
   블록 하나가 전역으로 처리한다. 컴포넌트마다 `motion-reduce:`를 붙이지 않는다 — 특히
   `motion-reduce:animate-none`은 스피너를 멈추고 페이드까지 없애 이 규칙과 어긋난다(#390이 필터 대기
   표시에 붙였던 2곳을 2026-10-15에 걷어냈다).
@@ -106,7 +106,7 @@ CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라�
 
 같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
 때는 이 값이 실제 CSS `duration-*` 클래스와 정확히 일치해야 한다는 걸 놓치지
-않는다. 값을 `globals.css` 토큰으로 중앙화해 중복 자체를 없애는 리팩터링은
+않는다. 값을 CSS 토큰으로 중앙화해 중복 자체를 없애는 리팩터링은
 이번 범위 밖 — 후속 과제로 남긴다.
 
 **등장(enter)도 따로 챙긴다.** 이 패턴은 보이는 상태 그대로 마운트되므로, 마운트한 뒤 상태가
@@ -143,9 +143,9 @@ Content를 각자 Presence로 감싸 각자의 애니메이션이 끝날 때 내
 | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | `duration-*`             | 150×1, 200×10, 300×4, 600×2                                                                                                                     |
 | `ease-*`                 | 3건(`select.tsx`의 `ease-in-out`, `CommentList.tsx`의 `ease-out`, `SheetDialogContent.tsx`의 `ease-[cubic-bezier(0.32,0.72,0,1)]`)              |
-| `prefers-reduced-motion` | `globals.css` 전역 블록 1곳, 코드 1곳(`scroll.util.ts`), 컴포넌트 `motion-reduce:` 0곳                                                          |
+| `prefers-reduced-motion` | 토큰 CSS 전역 블록 1곳, 코드 1곳(`scroll.util.ts`), 컴포넌트 `motion-reduce:` 0곳                                                               |
 | `transition-all`         | 10건(속성별 선례: `transition-colors` 10, `transition-shadow` 6, `transition-opacity` 5, `transition-transform` 4, 임의값 `transition-[...]` 6) |
-| `globals.css` 모션 토큰  | 0개(색상·반경·z-index·타이포그래피는 있음, 모바일 시트 타이밍은 컴포넌트 상수)                                                                  |
+| CSS 모션 토큰            | 0개(색상·반경·z-index·타이포그래피는 있음, 모바일 시트 타이밍은 컴포넌트 상수)                                                                  |
 
 ## 점검 항목
 

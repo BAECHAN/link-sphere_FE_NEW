@@ -177,7 +177,7 @@ test.describe('로그인 상태 — 북마크 폴더 모달 열림·닫힘', () 
 });
 
 // 한 줄 문구에 버튼이 달린 토스트(같은 줄 배치)는 좁은 화면에서 문구와 버튼이 한 줄에 안 들어가면 문구를 접지 않고
-// 버튼을 다음 줄로 내린다 - 접힌 문구 옆 세로 가운데에 버튼이 끼지 않는다(shared/lib/toast/toast-layout.ts)
+// 버튼을 다음 줄로 내린다 - 접힌 문구 옆 세로 가운데에 버튼이 끼지 않는다(packages/ui/src/lib/toast/toast-layout.ts)
 test.describe('로그인 상태 — 좁은 화면의 폴더 저장 토스트', () => {
   const LONG_NAME_FOLDER = { ...mockBookmarkFolder, name: '가나다라마바사아자차카타파하가' };
 

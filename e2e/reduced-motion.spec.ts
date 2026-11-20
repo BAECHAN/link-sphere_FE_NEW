@@ -5,7 +5,7 @@ import { mockPostListPaged } from './mocks/post.mock';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
-// globals.css 끝의 @media (prefers-reduced-motion: reduce) 블록 — 움직임(이동·확대·회전)만 빼고
+// 토큰 CSS(packages/ui/src/styles/tokens.css) 끝의 @media (prefers-reduced-motion: reduce) 블록 — 움직임(이동·확대·회전)만 빼고
 // 페이드·색 변화는 남기며, 스피너는 느리게 돌린다. jsdom은 CSS를 적용하지 않아 브라우저에서만 확인된다.
 const CASES = [
   {

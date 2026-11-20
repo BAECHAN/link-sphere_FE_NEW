@@ -94,12 +94,12 @@ flex h-16
 
 ### 토스트 오프셋
 
-`src/app/globals.css`에 `--toast-offset-bottom`이 정의돼 있고, 탭바 높이를 피해 계산된다:
+`--toast-offset-bottom`의 기본값 24px은 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 모바일 값은 `src/app/globals.css`가
+탭바 높이를 피해 덮어쓴다:
 
 ```css
+/* globals.css */
 :root {
-  --toast-offset-bottom: 24px;
-
   @variant max-md {
     --toast-offset-bottom: calc(4rem + env(safe-area-inset-bottom) + 0.75rem);
   }
@@ -168,7 +168,7 @@ framer-motion 아님, `package.json`에 없음)를 페이지별로 상호 배타
 
 ## z-index 사다리 (실측, 모바일+데스크톱 공용)
 
-`globals.css`가 8단계를 이름 있는 토큰으로 정의하고, `custom-tailwind/no-raw-z-index`
+토큰 CSS(`packages/ui/src/styles/tokens.css`)가 8단계를 이름 있는 토큰으로 정의하고, `custom-tailwind/no-raw-z-index`
 ESLint 룰이 `z-50` 같은 raw 숫자 클래스를 pre-commit에서 차단한다 — 아래 값은 참고용,
 실제로는 토큰을 쓴다.
 

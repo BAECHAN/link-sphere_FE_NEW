@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { getImageFileSizeError, normalizeSvgDimensions } from '@/shared/lib/image/resizeImage';
 import { isAllowedImageType } from '@/shared/lib/image/imageFormat';

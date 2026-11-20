@@ -12,9 +12,9 @@
   },
   "aliases": {
     "components": "@/shared/ui/atoms",
-    "utils": "@/shared/lib/tailwind/utils",
+    "utils": "@link-sphere/ui/lib/tailwind/utils",
     "ui": "@/shared/ui/atoms",
-    "lib": "@/shared/lib/tailwind/utils",
+    "lib": "@link-sphere/ui/lib/tailwind/utils",
     "hooks": "@/shared/hooks"
   }
 }

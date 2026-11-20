@@ -357,7 +357,7 @@ JSX만, 호스트는 아래 "시트는 카드 밖 호스트가 그린다(2026-11
 - **어디서** — `SheetDialogContent.tsx`가 `DialogContent` 대신 `DialogPortal`·`DialogOverlay`·`DialogContentPanel`을
   직접 조립하고, `SHEET_TIMING`을 딤과 시트 둘 다에 붙인다(형제 요소라 한쪽에만 두면 다른 쪽이 기본값으로 먼저
   사라진다). 중앙 모달의 흐림·확대는 `dialog.tsx`의 `DIALOG_CONTENT_MOTION`으로 떼어 `DialogContent`만 붙인다.
-- **동작 줄이기** — 이동이 빠지면 밀기만 하는 시트는 흐려지지도 않고 툭 사라진다. 그래서 `globals.css`의 동작 줄이기
+- **동작 줄이기** — 이동이 빠지면 밀기만 하는 시트는 흐려지지도 않고 툭 사라진다. 그래서 토큰 CSS(`packages/ui/src/styles/tokens.css`)의 동작 줄이기
   블록이 투명도 시작·끝값도 0으로 둬 고치기 전처럼 시트가 제자리에서 흐려지며 닫힌다.
 - **회귀 검사** — `e2e/bookmark-sheet-motion.mobile.spec.ts`가 닫힘을 150ms에 멈춰 딤·시트의 끝 시각·곡선, 시트의
   투명도·크기, 동작 줄이기의 페이드를 읽는다. 기존 모달 클래스가 그대로인지는 `dialog.test.tsx`·

@@ -11,13 +11,13 @@ import {
 } from 'lucide-react';
 import { Dialog, DialogTitle, DialogDescription } from '@/shared/ui/atoms/dialog';
 import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogContent';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
-import { Spinner } from '@/shared/ui/atoms/spinner';
+import { Spinner } from '@link-sphere/ui/atoms/spinner';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
 import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
-import { cn } from '@/shared/lib/tailwind/utils';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import {

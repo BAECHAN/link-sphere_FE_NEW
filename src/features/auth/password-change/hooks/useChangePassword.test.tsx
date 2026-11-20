@@ -8,7 +8,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { type ReactNode } from 'react';
 import { useChangePassword } from '@/features/auth/password-change/hooks/useChangePassword';
 
-vi.mock('@/shared/lib/toast/toast', () => ({
+vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 

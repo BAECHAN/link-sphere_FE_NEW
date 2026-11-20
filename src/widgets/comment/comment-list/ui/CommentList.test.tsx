@@ -19,7 +19,7 @@ import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { COMMENT_SECTION_HASH } from '@/entities/comment/config/comment.const';
 import { commentKeys } from '@/entities/comment/api/comment.keys';
 import { seedEmptyComments } from '@/entities/comment/api/comment.queries';
-import { TooltipProvider } from '@/shared/ui/atoms/tooltip';
+import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
 import { CommentList } from '@/widgets/comment/comment-list/ui/CommentList';
 
 const POST_ID = mockPost.id;

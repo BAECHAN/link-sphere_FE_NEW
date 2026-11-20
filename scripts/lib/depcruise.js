@@ -33,7 +33,14 @@ function countSrcDependencies(modules) {
 }
 
 /**
- * src 전체를 dependency-cruiser로 검사해 JSON 결과({ modules, summary })를 돌려준다.
+ * 앱이 import하지 않는 패키지 파일(테스트·스토리)도 검사하려고 공용 UI 패키지를 함께 넣는다.
+ * 패키지 파일은 가장 가까운 packages/ui/package.json 선언으로 판정된다(combinedDependencies 기본값 false,
+ * dependency-cruiser 18.7.2 src/extract/resolve/get-manifest.mjs).
+ */
+const INPUT_GLOBS = ['src/**/*.{ts,tsx}', 'packages/ui/src/**/*.{ts,tsx}'];
+
+/**
+ * src와 공용 UI 패키지 전체를 dependency-cruiser로 검사해 JSON 결과({ modules, summary })를 돌려준다.
  * `--reaches` 같은 필터는 넘기지 않는다 — 필터를 걸면 summary.totalCruised가 걸러진 뒤 개수가
  * 돼(2026-10-01 실측: useClickGuard 기준 51) 안전장치가 오작동한다. 필요한 부분은 호출부가
  * 결과에서 직접 고른다.
@@ -41,14 +48,7 @@ function countSrcDependencies(modules) {
 export function runDepcruise() {
   const run = spawnSync(
     process.execPath,
-    [
-      DEPCRUISE_BIN,
-      'src/**/*.{ts,tsx}',
-      '--config',
-      '.dependency-cruiser.cjs',
-      '--output-type',
-      'json',
-    ],
+    [DEPCRUISE_BIN, ...INPUT_GLOBS, '--config', '.dependency-cruiser.cjs', '--output-type', 'json'],
     { cwd: ROOT, encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 }
   );
 
@@ -64,7 +64,7 @@ export function runDepcruise() {
   if (totalCruised < MIN_CRUISED_MODULES) {
     throw new Error(
       `dependency-cruiser가 모듈 ${totalCruised}개만 검사했다(최소 ${MIN_CRUISED_MODULES}개). ` +
-        '입력 경로(src/**/*.{ts,tsx})가 깨졌을 수 있다.'
+        `입력 경로(${INPUT_GLOBS.join(', ')})가 깨졌을 수 있다.`
     );
   }
 

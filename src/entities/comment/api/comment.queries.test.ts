@@ -11,7 +11,7 @@ import { TEXTS } from '@/shared/config/texts';
 // 전역 핸들러(mutationCache)가 붙은 실제 싱글턴이어야 안내가 몇 개 뜨는지 드러난다
 // eslint-disable-next-line custom-query-rules/no-query-client-singleton-import
 import { queryClient as appQueryClient } from '@/shared/lib/react-query/config/queryClient';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { SessionExpiredError } from '@/shared/types/common.type';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';

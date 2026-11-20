@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
-import { cn } from '@/shared/lib/tailwind/utils';
-import { Button } from '@/shared/ui/atoms/button';
+import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { Button } from '@link-sphere/ui/atoms/button';
 
 // type·children은 이 부품이 정한다 - 쓰는 쪽이 바꿀 수 없게 타입에서 뺀다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4)
 export interface ActionChipProps extends Omit<

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
-// 이 파일은 단일 컴포넌트가 아니라 src/app/globals.css의 디자인 토큰을 한눈에 보여주는
-// 카탈로그다. 값을 복제하지 않고 CSS 커스텀 프로퍼티 원본 이름(var(--primary) 등, `var(--${token})`)을
+// 이 파일은 단일 컴포넌트가 아니라 디자인 토큰(범용 토큰은 공용 UI 패키지의 packages/ui/src/styles/tokens.css,
+// 앱 전용 토큰은 src/app/globals.css)을 한눈에 보여주는 카탈로그다. 값을 복제하지 않고 CSS 커스텀 프로퍼티 원본 이름(var(--primary) 등, `var(--${token})`)을
 // 인라인 style로 직접 읽어 렌더링한다 - 토큰이 바뀌면 이 스토리도 자동으로 따라간다.
 // (Tailwind의 `bg-${token}`처럼 클래스명을 동적으로 조합하면 JIT 스캐너가 정적 문자열만
 // 인식하기 때문에 생성되지 않는다 - 그래서 여기서는 클래스가 아니라 CSS 변수를 직접 쓴다.)
@@ -19,7 +19,7 @@ interface ColorGroup {
   tokens: ColorToken[];
 }
 
-// globals.css @theme inline 블록의 색 토큰과 1:1 대응.
+// 토큰 CSS(packages/ui/src/styles/tokens.css)와 src/app/globals.css의 @theme inline 블록 색 토큰과 1:1 대응.
 const COLOR_GROUPS: ColorGroup[] = [
   {
     title: '기본',
@@ -161,7 +161,7 @@ interface ZIndexLayer {
   usage: string;
 }
 
-// globals.css의 @theme static z-index 블록과 1:1 대응. 값이 큰 순서(위로 올라오는 순서)로
+// 토큰 CSS(packages/ui/src/styles/tokens.css)의 @theme static z-index 블록과 1:1 대응. 값이 큰 순서(위로 올라오는 순서)로
 // 나열한다.
 const Z_INDEX_LAYERS: ZIndexLayer[] = [
   { token: 'popover', usage: 'Dropdown / Select / Tooltip' },
@@ -191,7 +191,7 @@ function ZIndexCatalog() {
   );
 }
 
-// globals.css @theme static 타이포 스케일 블록(t1~t14)과 1:1 대응. 값 출처는
+// 토큰 CSS(packages/ui/src/styles/tokens.css) @theme static 타이포 스케일 블록(t1~t14)과 1:1 대응. 값 출처는
 // https://seed-design.io/foundations/typography - t11~t14는 sm 이상 권장이라는
 // 표시를 함께 보여준다.
 const TYPOGRAPHY_SCALE = [
@@ -237,7 +237,7 @@ interface RoleToken {
   usage: string;
 }
 
-// globals.css의 (static 아닌) @theme 역할 토큰 블록과 1:1 대응. 스케일 층(t1~t14)에서
+// 토큰 CSS(packages/ui/src/styles/tokens.css)의 (static 아닌) @theme 역할 토큰 블록과 1:1 대응. 스케일 층(t1~t14)에서
 // 실제 화면에 쓰이는 값만 골라 이름 붙인 것 - TYPOGRAPHY_SCALE과 달리 매 항목이
 // 곧 실제 컴포넌트가 쓰는 클래스다.
 const ROLE_TOKENS: RoleToken[] = [

@@ -16,7 +16,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuRadioGroup,
 } from '@/shared/ui/atoms/dropdown-menu';
-import { Button } from '@/shared/ui/atoms/button';
+import { Button } from '@link-sphere/ui/atoms/button';
 import {
   User,
   CreditCard,

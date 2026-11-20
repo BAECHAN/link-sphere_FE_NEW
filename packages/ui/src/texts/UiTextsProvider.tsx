@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 
-import type { UiTexts } from '@/shared/ui/texts/ui-texts';
+import type { UiTexts } from '@link-sphere/ui/texts/ui-texts';
 
 // 기본값을 두지 않는다(null) - 문구를 넘기지 않았는데 글자가 나오면 그 글자가 어디서 왔는지 코드로 알 수 없다.
 // createContext의 기본값은 맞는 Provider가 없을 때 읽히는 값이다

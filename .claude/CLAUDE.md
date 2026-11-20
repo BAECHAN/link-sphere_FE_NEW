@@ -35,7 +35,7 @@
   짐작하지 않는다. `pnpm graph:focus "<경로>" --text`(바로 이웃)나 `pnpm graph "<경로>" --text`(거슬러 올라가 전체)로 실제
   import 사용처를 뽑는다. PR을 열면 CI가 같은 영향 그림을 PR 댓글로 붙이므로(`ci.yml` "PR 영향 그래프"), PR 본문에는
   영향 범위를 한두 줄로 요약한다.
-- **시각 변경 미리보기** — 실제로 동작 중인 컴포넌트의 스크린샷이거나, 실제 Tailwind 클래스와 `globals.css` 색 토큰을
+- **시각 변경 미리보기** — 실제로 동작 중인 컴포넌트의 스크린샷이거나, 실제 Tailwind 클래스와 토큰 CSS(`packages/ui/src/styles/tokens.css`)·`globals.css` 색 토큰을
   그대로 쓴 목업으로 만든다(근거: `docs/DECISIONS.md` 2026-09-06 "화면 먼저, 그다음 반영").
 
 ### 계획과 PR 본문
@@ -94,6 +94,12 @@
   `dismissKey`). ESLint `custom-design-system/no-app-import-in-generic-ui`가 허용 목록 밖 import를 막는다. 이 앱에서만 쓰는
   부품이면 `eslint.config.js`의 그 규칙 블록 예외 목록에 더하고 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §5 분류표에 "앱 전용"으로
   적는다. 글자를 더하는 순서는 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 같은 문서 §1.1·§1.2
+- **Never** 공용 UI 패키지(`packages/ui`, `@link-sphere/ui`) 안에서 `@/` 경로(앱 코드)를 import하거나, 패키지 파일이 쓰는 외부
+  패키지를 `packages/ui/package.json`에 선언하지 않는다 → 패키지 안 파일끼리는 패키지 이름으로 가리키고
+  (`@link-sphere/ui/lib/tailwind/utils`), 앱도 옮긴 모듈을 같은 경로로 import한다. ESLint `no-restricted-imports`(패키지 블록)와
+  `custom-design-system/no-app-import-in-generic-ui`가 앱 import를, dependency-cruiser `no-non-package-json`(`pnpm check:deps`)이
+  선언 누락을 막는다. 3단계 전까지 새 범용 부품은 `src/shared/ui`에 만든다. 경계와 옮긴 기준은
+  `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.5
 - **Never** 공용 UI 부품(`src/shared/ui`)에서 종류를 고르는 속성에 `variant` 밖의 이름을 붙이거나, `className`을 `cn()`의 맨 뒤가
   아닌 자리에서 합친다 → 종류는 `variant`, 크기는 `size`다. 모양과 뜻을 따로 골라야 하는 부품에서만 뜻 축을 `tone`으로 더한다.
   `className`은 `cn(자기 클래스, className)`으로 합치고 cva로 만든 함수에는 넘기지 않는다. ESLint
@@ -105,7 +111,7 @@
   받는지 한 줄로 적고, 자기 DOM 요소가 없는 atoms는 같은 파일의 `ATOMS_OUTSIDE_CONTRACT`에 이유를 적는다. 어기면 그 테스트가
   실패한다(`pnpm test`). 버튼을 감싼 부품은 `{...props}`를 먼저 펼치고 스스로 정하는 속성을 그 뒤에 적는다. 정한 이유와
   테스트가 못 보는 것은 같은 문서 §1.4
-- **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 `globals.css` 디자인 토큰 기반 Tailwind 클래스 사용
+- **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 토큰 CSS(`packages/ui/src/styles/tokens.css`)·`globals.css` 디자인 토큰 기반 Tailwind 클래스 사용
   (`text-destructive`, `bg-success`, `text-warning` 등). ESLint `custom-tailwind/no-raw-color`가 black/white/gray/zinc 등 명명 팔레트
   리터럴 클래스를 pre-commit과 `pnpm check`에서 막는다(도입 경위: `docs/DESIGN-SYSTEM.md`)
 - **Never** 문자열을 이어 붙인 API 경로·손으로 적은 응답 타입(``apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${id}`)``)
@@ -134,7 +140,7 @@
 - **Never** `shared/ui/atoms`·`elements`에 컴포넌트를 추가하거나 시각적으로 변경하고 스토리 없이 커밋 → 항상 같은 커밋에 `<Component>.stories.tsx`를 함께 만들거나 갱신한다. `.storybook/main.ts`의 글롭이 `src/**/*.stories.tsx`를 자동 인식하므로 파일만 만들면 된다 (예시: `checkbox.tsx`+`checkbox.stories.tsx`, `switch.tsx`+`switch.stories.tsx`). 스토리 `title`은 파일 경로에서 계산한 값이어야 한다(ESLint `custom-storybook/title-matches-path`가 차단). 스토리 이름은 export 이름(PascalCase)만 쓰고 `name`을 달지 않는다(`custom-storybook/no-story-name`·공식 `eslint-plugin-storybook` `flat/recommended`가 차단). 형식과 다른 레이어에 스토리를 둘 수 있는 기준은 `docs/FE-ARCHITECTURE.md` §18 "Storybook 스토리"를 먼저 읽는다
 - **Never** `if`문을 인라인으로 작성 (`if (x) return;`) → 항상 중괄호 블록으로 감싼다 (`if (x) {\n  return;\n}`). 한 줄짜리 본문도 예외 없음 (ESLint `curly: ['error', 'all']` 규칙으로 강제 중)
 - **Never** 문장을 다닥다닥 붙여 논리 그룹을 뭉개지 않는다 → 가드절(`if (...) { return; }`) 뒤, 그리고 `if`/`try` 같은 제어 블록 **앞뒤**에 **빈 줄 1줄**을 넣어 논리 단위를 분리한다 (Prettier가 아닌 컨벤션 — 아래 예시 참고)
-- **Never** 클릭 가능한 요소에 `cursor-pointer`를 개별로 붙인다 → `globals.css`의 `@layer base` 규칙이 `button`/ARIA role 전체를 전역으로 처리한다(`design-tokens` skill의 "인터랙션 커서" 참고). `div`/`span`에 `onClick`만 다는 것도 금지 — `Button`/`<button>`을 쓰거나, 불가피하면 `role="button"`을 함께 지정한다 (ESLint `custom-a11y/clickable-needs-interactive-element`가 차단)
+- **Never** 클릭 가능한 요소에 `cursor-pointer`를 개별로 붙인다 → 토큰 CSS(`packages/ui/src/styles/tokens.css`)의 `@layer base` 규칙이 `button`/ARIA role 전체를 전역으로 처리한다(`design-tokens` skill의 "인터랙션 커서" 참고). `div`/`span`에 `onClick`만 다는 것도 금지 — `Button`/`<button>`을 쓰거나, 불가피하면 `role="button"`을 함께 지정한다 (ESLint `custom-a11y/clickable-needs-interactive-element`가 차단)
 - **Never** `main`에 push한 뒤 워크플로 결과를 확인하지 않고 "배포됨"이라 보고 → `gh run list --branch main --workflow
 "Frontend Deploy (S3 + CloudFront)"`(또는 `gh run watch <id>`)로 그 커밋 SHA가 success인지 확인한 뒤에 보고한다. 후속 커밋이
   `docs/`나 `CHANGELOG.md`처럼 `deploy.yml`의 경로 필터에 안 걸리는 파일만 건드렸다면 워크플로가 돌지 않으므로
@@ -283,10 +289,11 @@ git merge --abort   # 확인 끝나면 되돌리기 (커밋 안 남음)
 
 에러가 있으면 진행 전 반드시 수정.
 
-> **⚠️ 타입체크는 반드시 `pnpm type-check`(= `tsc -b --noEmit`)로.** 루트 `tsconfig.json`은
+> **⚠️ 타입체크는 반드시 `pnpm type-check`(= `tsc -b --noEmit` + 공용 UI 패키지의 `tsc --noEmit`)로.** 루트 `tsconfig.json`은
 > `files: []` + `references`만 있는 솔루션 스타일이라 `tsc -p tsconfig.json`으로 돌리면 **0개 파일을
 > 검사**(무의미)한다. 실제 소스는 `tsconfig.app.json`(`strict` + `noUncheckedIndexedAccess: true`)에서
-> 검사되며, build 모드(`-b`)라야 references를 따라가 이 설정까지 검사한다.
+> 검사되며, build 모드(`-b`)라야 references를 따라가 이 설정까지 검사한다. 공용 UI 패키지(`packages/ui`)는 references에
+> 넣으면 선언 파일을 만드는 설정 때문에 타입 이름 오류(TS2742)가 나서 따로 검사한다(`docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.5).
 
 ---
 
@@ -391,9 +398,10 @@ CLAUDE.md가 984줄까지 길어진 것을 계기로 이 절을 분리했다 —
 
 ---
 
-## 디자인 토큰 (`src/app/globals.css`)
+## 디자인 토큰 (`packages/ui/src/styles/tokens.css` + `src/app/globals.css`)
 
-Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — `globals.css` 색 토큰
+Tailwind v4 CSS 변수 기반 테마. 범용 토큰은 공용 UI 패키지의 토큰 CSS, 앱 전용 토큰(카테고리·사이드바 등)은 `globals.css`에
+있다. **하드코딩 색상 클래스 사용 금지** — 두 파일의 색 토큰
 기반 Tailwind 클래스(`text-destructive`, `bg-success` 등)를 쓴다. 전체 색상/반경 토큰 표,
 클릭 가능 요소의 전역 커서 규칙, 다크모드·폰트는 `design-tokens` skill
 (`.claude/skills/design-tokens/SKILL.md`)에 있다 — 컴포넌트를 스타일링할 때 그 skill을

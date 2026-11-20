@@ -12,7 +12,7 @@ import { STORAGE_KEYS } from '@/shared/config/storage-keys';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 

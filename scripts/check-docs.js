@@ -113,10 +113,14 @@ function readLinesWithIgnoreZones(absPath) {
   return { lines, ignored };
 }
 
-// src/**, .github/**, infra/** 아래 파일 하나를 가리키는 것으로 보이는 토큰.
+// src/**, .github/**, infra/**, packages/ui/**, examples/** 아래 파일 하나를 가리키는 것으로 보이는 토큰.
 // 확장자가 있는 경로만 대상으로 한다 — 확장자 없는 디렉터리 경로(`src/entities/post/`)는
 // grep 정확도가 떨어져 오탐이 크므로 제외한다.
-const PATH_TOKEN_RE = /\b(src|\.github|infra)\/[A-Za-z0-9/_.-]*\.[A-Za-z0-9]+\b/g;
+// packages/ui·examples가 없으면 `packages/ui/src/atoms/button.tsx` 안의 `src/atoms/button.tsx`만 떼어 루트 경로로
+// 검사했다(2026-11-20, 공용 UI 패키지 분리 리허설에서 발견). 왼쪽부터 찾으므로 패키지 경로 전체가 먼저 잡힌다.
+// `packages/` 전체가 아니라 `packages/ui/`만 보는 것은 문서가 다른 저장소의 경로(`packages/css/base.css` 등)를 자주 인용해서다.
+const PATH_TOKEN_RE =
+  /\b(packages\/ui|examples|src|\.github|infra)\/[A-Za-z0-9/_.-]*\.[A-Za-z0-9]+\b/g;
 
 // FSD 레이어 이름으로 시작하지만 `src/` 접두사가 빠진 경로 서술(예: `entities/bookmark/
 // folder/ui/BookmarkFolderSelectDialog.tsx`) — 산문·트리 그림에서 실제로 이렇게 쓰인다

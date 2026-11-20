@@ -9,7 +9,7 @@ import { AuthUtil } from '@/shared/utils/auth.util';
 import { API_BASE_URL, API_ENDPOINTS, IDEMPOTENCY_KEY_HEADER } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import {
   ApiError,
   NetworkError,
@@ -69,7 +69,7 @@ const makeCommentSuccess = () =>
   );
 
 describe('ApiClient — 인증 오류 처리', () => {
-  // 만료 안내 토스트(AuthUtil.applySessionExpired)는 래퍼(@/shared/lib/toast/toast)로 뜬다 - 그 info를 지켜본다
+  // 만료 안내 토스트(AuthUtil.applySessionExpired)는 래퍼(@link-sphere/ui/lib/toast/toast)로 뜬다 - 그 info를 지켜본다
   let sessionToastInfo: MockInstance<typeof toast.info>;
 
   beforeEach(() => {
@@ -910,7 +910,7 @@ describe('ApiClient — 인증 오류 처리', () => {
         );
       });
 
-    // 안내 토스트는 AuthUtil이 래퍼(@/shared/lib/toast/toast)로 띄운다 - 그 info를 지켜본다
+    // 안내 토스트는 AuthUtil이 래퍼(@link-sphere/ui/lib/toast/toast)로 띄운다 - 그 info를 지켜본다
     let toastInfo: MockInstance<typeof toast.info>;
 
     beforeEach(() => {

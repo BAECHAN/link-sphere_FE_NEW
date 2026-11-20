@@ -7,7 +7,7 @@ import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@/shared/lib/toast/toast';
+import { toast } from '@link-sphere/ui/lib/toast/toast';
 import {
   PostCardBookmarkFolderDialog,
   type BookmarkFolderSelectRenderProps,
@@ -49,7 +49,7 @@ vi.mock('@/shared/hooks/useOpenClickGuard', () => ({
 
 // renderWithProviders에는 <Toaster />가 없어 되돌리기 버튼을 실제로 클릭할 수 없다 —
 // toast.success 호출 인자를 캡처해 action.onClick을 직접 호출하는 방식으로 검증한다.
-vi.mock('@/shared/lib/toast/toast', () => ({
+vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
