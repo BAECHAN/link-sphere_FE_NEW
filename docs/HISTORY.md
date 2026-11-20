@@ -1,3 +1,7 @@
+### 2026-11-20 (FE)
+- 북마크 기능 안정성 개선
+  - 뷰포트 전환(768px 브레이크포인트) 시 기존 폴더 이름 및 검색어 상태 유지 로직 적용 ([#662](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/662))
+
 ### 2026-11-19 (FE)
 - 댓글 입력창 내 링크 클립보드 붙여넣기 기능 구현 ([#659](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/659))
 
