@@ -83,16 +83,17 @@ test.describe('태블릿 세로 폭 — 터치 타깃과 hover 메뉴', () => {
     await expect(menuButton).toHaveCSS('opacity', '1');
   });
 
-  test('댓글의 좋아요·답글·수정·삭제 버튼이 44px 이상이다', async ({ page }) => {
+  test('댓글의 좋아요·답글 버튼과 내 댓글 ⋮ 메뉴가 44px 이상이다', async ({ page }) => {
     await page.goto(`/post/${mockPost.id}`);
 
     const replyButton = page.getByRole('button', { name: TEXTS.comment.item.reply });
     await expect(replyButton).toBeVisible();
 
-    // 행동 버튼들은 한 줄(div)의 형제다
+    // 행동 버튼들은 한 줄(div)의 형제다. 수정·삭제는 이름 줄 ⋮ 메뉴에 있다(docs/COMMENT.md §5 "내 댓글 메뉴")
     const actionButtons = replyButton.locator('..').getByRole('button');
-    await expect(actionButtons).toHaveCount(4);
+    await expect(actionButtons).toHaveCount(2);
     await expectTouchTargets(actionButtons);
+    await expectIconTouchTargets(page.getByRole('button', { name: TEXTS.ariaLabels.commentMenu }));
   });
 
   test('글 등록 폼의 폴더 칸과 폴더 선택 창의 행이 44px 이상이다', async ({ page }) => {

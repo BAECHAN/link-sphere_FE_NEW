@@ -668,6 +668,24 @@ flowchart TD
 - 썸네일은 도구 줄 위에 둔다. 첨부 버튼 아래(왼쪽 칸)에 두면 좁은 화면에서 취소·등록 버튼 폭만큼 좁아진다. 그래서 공용 부품을
   첨부 버튼(`ImageAttachmentButton`)과 썸네일 목록(`ImageAttachmentPreviews`)으로 나눠 두 줄에 따로 놓는다.
 
+### 내 댓글 메뉴 — 수정·삭제는 이름 줄 ⋮에(2026-11-20)
+
+내 댓글의 수정·삭제는 이름 줄(닉네임·작성자 배지·시간) 오른쪽 끝 ⋮ 메뉴(`KebabMenu`, 접근명 "댓글 메뉴")에 있다. 그 아래 동작
+줄에는 좋아요·답글 달기만 남는다. 전에는 네 버튼이 한 줄에 있었는데 줄이 접히지 않아, 오른쪽 끝이 화면 폭과 상관없이 381px에
+놓였다. 그래서 381px보다 좁은 폰(360·375px 등)에서는 페이지 전체가 가로로 밀렸다(§9 "내 댓글 메뉴").
+
+- 글 카드의 ⋮(`PostCard.tsx`)와 같은 방식이고 모든 폭에서 같다. YouTube도 내 댓글의 수정·삭제를 ⋮에 둔다 — _"댓글 오른쪽 위를
+  가리킨다. 더보기를 누른다. 수정 또는 삭제를 고른다"_ (번역, [YouTube 고객센터](https://support.google.com/youtube/answer/6000964)).
+- 버튼 여백만 줄이는 안(약 32px)은 320px에서 여전히 넘치고, 좁은 폭에서 라벨을 숨기는 안은 NN/g의 _"아이콘 라벨은 사용자가
+  아무것도 하지 않아도 늘 보여야 한다"_ (번역, [Icon Usability](https://www.nngroup.com/articles/icon-usability/))와 어긋나 고르지
+  않았다(비교: [`plans/2026-11-20-comment-owner-menu.md`](./plans/2026-11-20-comment-owner-menu.md)).
+- ⋮는 터치 기기에서 44px이고 넓은 폭 + 마우스에서만 32px로 줄인다. 음수 마진으로 이름 줄 높이(20px)를 밀어 올리지 않는다 —
+  내 댓글과 남의 댓글의 간격이 같다. 대신 터치 영역이 본문 첫 줄 오른쪽 끝과 몇 px 겹친다.
+- ⋮는 내 댓글을 내가 볼 때만 보인다. 그만큼(⋮ 44px + 간격 8px) 이름 칸이 좁아져 좁은 폰의 내 답글에서는 긴 닉네임이 더 일찍
+  말줄임된다. 잘린 이름을 보는 사람은 본인뿐이라 그대로 두었다(사용자 결정, §9 표).
+- 수정을 고르면 메뉴가 닫히며 ⋮가 사라지고, 포커스는 수정 폼 입력칸(`autoFocus`)으로 간다. 삭제를 고르면 메뉴가 닫히고 확인
+  창이 뜬다(§5 "삭제").
+
 ### 모바일 시트 높이 — 시트 70%, 입력칸 40%(2026-11-04)
 
 **긴 댓글을 넣어도 펼친 시트가 화면 안에 있고, 글자 수·넘침 안내·등록 버튼이 늘 보인다.** 입력칸은 화면 높이의 40%에서
@@ -997,8 +1015,9 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | 목록 정렬·개수                  | `src/widgets/comment/comment-list/hooks/useCommentList.ts:6-30`                                                                                |
 | 목록 렌더·해시 이동·진입점 배치 | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `CommentListContent`·`CommentList`                                                     |
-| 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:85-218`                                                                                   |
-| 링크 카드                       | `CommentItem.tsx:29-76`의 `LinkCard`, `src/features/comment/update/ui/CommentEditForm.tsx:121-141`(수정 폼). 값은 BE가 고른다(§5)              |
+| 댓글 한 개(액션·답글 폼·재귀)   | `src/widgets/comment/comment-list/ui/CommentItem.tsx:87-223`                                                                                   |
+| 내 댓글 메뉴(수정·삭제)         | `CommentItem.tsx:135-154`의 `KebabMenu`(§5 "내 댓글 메뉴")                                                                                     |
+| 링크 카드                       | `CommentItem.tsx:31-78`의 `LinkCard`, `src/features/comment/update/ui/CommentEditForm.tsx:121-141`(수정 폼). 값은 BE가 고른다(§5)              |
 | 우리 글 링크를 앱 안에서 열기   | `src/shared/utils/url.util.ts`의 `toInAppPostPath`, `src/shared/ui/elements/MarkdownContent.tsx`의 `InAppPostLink`·`inAppPostLinks`(§5)        |
 | 댓글이 오는 중인 자리(뼈대)     | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`                                                                                  |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
@@ -1258,6 +1277,24 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - 전·후 화면을 나란히 붙여 사용자가 보고 확인했다.
 - 바꾼 뒤 360×727 시트(댓글 없는 글)에서도 도구 줄이 한 줄에 들어가고 높이가 같았다(빈 폼 156px, 첨부·실패 상태 403px).
 - 실제 휴대폰에서는 보지 않았다.
+
+**내 댓글 메뉴**(2026-11-20 직접 측정, §5 "내 댓글 메뉴"). 모킹한 글 상세(e2e 모킹 도구, 운영 API 미사용)에서 내 댓글 + 내 답글 +
+남의 댓글을 두고 Pixel 5 에뮬레이션으로 쟀다. 폰 에뮬레이션에서는 내용이 넓으면 `innerWidth`도 따라 늘어나(360px에서 381) 화면
+폭과 `document.documentElement.scrollWidth`를 비교했다.
+
+| 화면 폭 | 전 `scrollWidth` | 뒤 `scrollWidth` | 이름 줄 높이(내 댓글·남의 댓글, 전·뒤) |
+| ------- | ---------------- | ---------------- | -------------------------------------- |
+| 320px   | 381              | 320              | 20px                                   |
+| 360px   | 381              | 360              | 20px                                   |
+| 375px   | 381              | 375              | 20px                                   |
+| 1280px  | 1280             | 1280             | 20px                                   |
+
+- `e2e/comment-action-row.mobile.spec.ts`가 세 폭의 넘침과 이름 줄 높이를 본다. 고치기 전 코드에서 넘침 3건이 `381`을 받아
+  실패했다.
+- 360px 폰의 내 답글에서 닉네임이 보이는 폭(px, 전 → 뒤): `testuser`는 날짜가 "5분 전"·"3개월 전"이면 54 → 54, "2025년 1월 1일"이면
+  54 → 32. 10자 한글 닉네임은 "5분 전" 121 → 78, "3개월 전" 119 → 67.
+- 키보드로 ⋮ → Enter → 수정을 고르면 포커스가 수정 입력칸에 있었다. 삭제를 고르면 확인 창의 취소 버튼에 포커스가 있었다.
+- 전·후 화면(360px·1280px, 라이트·다크, 메뉴 열림)을 나란히 붙여 사용자가 보고 확인했다. 실제 휴대폰에서는 보지 않았다.
 
 ## 10. 시행착오
 

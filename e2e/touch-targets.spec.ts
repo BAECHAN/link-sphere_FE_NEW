@@ -34,10 +34,14 @@ test.describe('데스크톱 마우스 — 터치 타깃을 넓히지 않는다',
     const replyButton = page.getByRole('button', { name: TEXTS.comment.item.reply });
     await expect(replyButton).toBeVisible();
 
+    // 수정·삭제는 이름 줄 ⋮ 메뉴에 있다(docs/COMMENT.md §5 "내 댓글 메뉴") - ⋮도 같은 밀도로 돌아오는지 본다
     const actionButtons = replyButton.locator('..').getByRole('button');
-    await expect(actionButtons).toHaveCount(4);
+    await expect(actionButtons).toHaveCount(2);
 
-    for (const button of await actionButtons.all()) {
+    const commentMenu = page.getByRole('button', { name: TEXTS.ariaLabels.commentMenu });
+    await expect(commentMenu).toHaveCount(1);
+
+    for (const button of [...(await actionButtons.all()), commentMenu]) {
       await expect.poll(async () => (await button.boundingBox())?.height ?? 0).toBeLessThan(44);
     }
   });

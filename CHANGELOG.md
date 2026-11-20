@@ -321,6 +321,13 @@
 
 ### Fixed
 
+- `comment` 좁은 폰에서 내 댓글이 있으면 글 상세가 가로로 밀리던 문제
+  <details><summary>배경·구현</summary>
+
+  내 댓글의 동작 줄(좋아요·답글 달기·수정·삭제)이 줄을 접지 않아 오른쪽 끝이 화면 폭과 상관없이 381px에 놓였다. 그래서 그보다 좁은 폰(320·360·375px)에서는 삭제 버튼이 화면 밖으로 나가고 페이지 전체가 가로로 밀렸다. 이제 수정·삭제는 이름 줄 오른쪽 끝 ⋮ 메뉴("댓글 메뉴")에 있고 동작 줄에는 좋아요·답글 달기만 남는다. 모든 폭에서 같고, 글 카드의 ⋮와 같은 방식이다. ⋮는 터치 기기에서 44px이고 음수 마진으로 이름 줄 높이를 그대로 둔다. ⋮는 본인에게만 보여 좁은 폰의 내 답글에서 내 긴 닉네임이 더 일찍 말줄임된다. 방법·자리·높이·데스크톱 표시와 닉네임 잘림을 그대로 두는 것은 실제 화면을 보고 사용자가 정했다 (`CommentItem.tsx`, `texts.ts`, `e2e/comment-action-row.mobile.spec.ts`(신규), `e2e/comment-delete.spec.ts`, `e2e/touch-targets.spec.ts`, `e2e/touch-targets.mobile.spec.ts`, `docs/COMMENT.md` §5 "내 댓글 메뉴"·§9, `docs/TESTING.md`, `docs/plans/2026-11-20-comment-owner-menu.md`, [PR #666](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/666))
+
+  </details>
+
 - `bookmark` 창 폭이 768px 경계를 넘으면 쓰던 폴더 이름·검색어가 사라지던 문제
   <details><summary>배경·구현</summary>
 

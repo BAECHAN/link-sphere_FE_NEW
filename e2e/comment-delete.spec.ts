@@ -51,6 +51,14 @@ function setupRoutes(page: Page, before: Comment[], after: Comment[], commentCou
   ]);
 }
 
+// 삭제는 내 댓글의 이름 줄 ⋮ 메뉴 안에 있다(CommentItem.tsx). 내 댓글이 하나뿐인 스펙이라 메뉴도 하나다
+async function openOwnCommentMenuAndDelete(page: Page) {
+  const menuButton = page.getByRole('button', { name: TEXTS.ariaLabels.commentMenu });
+  await expect(menuButton).toHaveCount(1);
+  await menuButton.click();
+  await page.getByRole('menuitem', { name: TEXTS.buttons.delete }).click();
+}
+
 test.describe('댓글 삭제', () => {
   test.beforeEach(async ({ page }) => {
     await installCatchAll(page);
@@ -66,9 +74,7 @@ test.describe('댓글 삭제', () => {
     await page.goto(`/post/${mockPost.id}`);
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
 
-    const deleteButton = page.getByRole('button', { name: TEXTS.buttons.delete });
-    await expect(deleteButton).toHaveCount(1);
-    await deleteButton.click();
+    await openOwnCommentMenuAndDelete(page);
 
     // 트리거 버튼과 confirm 확인 버튼이 둘 다 role=button + 텍스트 '삭제'라 alertdialog로
     // 스코프해야 한다. confirm에 title이 없어 접근명은 sr-only 제목(alertDialogFallbackTitle)이다(GlobalAlertDialogs.tsx).
@@ -124,9 +130,7 @@ test.describe('댓글 삭제', () => {
     await page.goto(`/post/${mockPost.id}`);
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
 
-    const deleteButton = page.getByRole('button', { name: TEXTS.buttons.delete });
-    await expect(deleteButton).toHaveCount(1);
-    await deleteButton.click();
+    await openOwnCommentMenuAndDelete(page);
 
     const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
@@ -145,10 +149,10 @@ test.describe('댓글 삭제', () => {
     await expect(page.getByText('삭제된 댓글입니다.')).toBeVisible();
     // 행이 톰스톤으로 남아도 삭제는 성공한 것이라 같은 성공 토스트가 뜬다.
     await expect(page.getByText(TEXTS.messages.success.commentDeleted)).toBeVisible();
-    // 액션 행(좋아요/답글/수정/삭제) 전체가 사라진다 — isDeleted가 true면
-    // CommentItem.tsx가 그 행 자체를 렌더하지 않는다.
-    await expect(page.getByRole('button', { name: TEXTS.buttons.delete })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: TEXTS.comment.item.edit })).toHaveCount(0);
+    // 액션 행(좋아요/답글)과 내 댓글 메뉴(수정/삭제)가 모두 사라진다 — isDeleted가 true면
+    // CommentItem.tsx가 둘 다 렌더하지 않는다.
+    await expect(page.getByRole('button', { name: TEXTS.ariaLabels.commentMenu })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: TEXTS.comment.item.reply })).toHaveCount(0);
     await expect(page.getByRole('heading', { level: 2, name: '댓글2' })).toBeVisible();
     // 답글 본문은 그대로 남아있다.
     await expect(page.getByText('답글입니다')).toBeVisible();
@@ -184,7 +188,7 @@ test.describe('댓글 삭제', () => {
     await page.goto(`/post/${mockPost.id}`);
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
 
-    await page.getByRole('button', { name: TEXTS.buttons.delete }).click();
+    await openOwnCommentMenuAndDelete(page);
 
     const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
@@ -231,7 +235,7 @@ test.describe('댓글 삭제', () => {
     await page.goto(`/post/${mockPost.id}`);
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
 
-    await page.getByRole('button', { name: TEXTS.buttons.delete }).click();
+    await openOwnCommentMenuAndDelete(page);
 
     const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
@@ -265,7 +269,7 @@ test.describe('댓글 삭제', () => {
     await page.goto(`/post/${mockPost.id}`);
     await expect(page.getByRole('heading', { level: 3, name: mockPost.title })).toBeVisible();
 
-    await page.getByRole('button', { name: TEXTS.buttons.delete }).click();
+    await openOwnCommentMenuAndDelete(page);
 
     const confirmDialog = page.getByRole('alertdialog');
     await expect(confirmDialog).toBeVisible();
