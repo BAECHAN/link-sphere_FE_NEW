@@ -21,18 +21,45 @@ type CloudFrontHandler = (event: unknown) => {
   headers?: Record<string, { value: string }>;
 };
 
-function loadHandler(fileName: string): CloudFrontHandler {
+/** 런타임 2.0의 `cloudfront` 모듈 대역. 고른 오리진 id를 모은다 */
+interface FakeCloudFrontModule {
+  selectedOrigins: string[];
+  selectRequestOriginById: (originId: string) => void;
+}
+
+function createFakeCloudFrontModule(): FakeCloudFrontModule {
+  const fake: FakeCloudFrontModule = {
+    selectedOrigins: [],
+    selectRequestOriginById: (originId) => {
+      fake.selectedOrigins.push(originId);
+    },
+  };
+
+  return fake;
+}
+
+// 런타임 2.0 Function의 첫 줄. new Function 안에서는 import를 쓸 수 없어 이 줄을 빼고 대역을 인자로 넣는다
+const CLOUDFRONT_IMPORT = "import cf from 'cloudfront';";
+
+function loadHandler(
+  fileName: string,
+  cloudfront: FakeCloudFrontModule = createFakeCloudFrontModule()
+): CloudFrontHandler {
   const code = readFileSync(
     path.resolve(__dirname, '../../../infra/cloudfront-functions', fileName),
     'utf8'
   );
 
-  const createHandler = new Function(`${code}\nreturn handler;`) as () => CloudFrontHandler;
+  const createHandler = new Function(
+    'cf',
+    `${code.replace(CLOUDFRONT_IMPORT, '')}\nreturn handler;`
+  ) as (cf: FakeCloudFrontModule) => CloudFrontHandler;
 
-  return createHandler();
+  return createHandler(cloudfront);
 }
 
-const spaFallback = loadHandler('spa-fallback.js');
+const cloudfront = createFakeCloudFrontModule();
+const spaFallback = loadHandler('spa-fallback.js', cloudfront);
 const spaStatus = loadHandler('spa-status.js');
 
 /** acceptEncoding을 주지 않으면 Accept-Encoding 헤더가 없는 요청이다 */
@@ -40,7 +67,18 @@ function rewrite(uri: string, acceptEncoding?: string): string | undefined {
   const headers =
     acceptEncoding === undefined ? {} : { 'accept-encoding': { value: acceptEncoding } };
 
-  return spaFallback({ request: { uri, headers } }).uri;
+  return spaFallback({ request: { method: 'GET', uri, headers } }).uri;
+}
+
+/** 미리보기 봇 분기를 보려고 UA·메서드를 넣어 요청하고, 바뀐 주소와 고른 오리진을 함께 돌려준다 */
+function rewriteAs(userAgent: string, uri: string, method = 'GET') {
+  cloudfront.selectedOrigins.length = 0;
+
+  const result = spaFallback({
+    request: { method, uri, headers: { 'user-agent': { value: userAgent } } },
+  });
+
+  return { uri: result.uri, origins: [...cloudfront.selectedOrigins] };
 }
 
 /** appRoutes를 돌며 절대 경로를 모은다. `*`(404)는 제외, 동적 세그먼트는 샘플 값으로 채운다. */
@@ -122,6 +160,67 @@ describe('spa-fallback.js (viewer-request)', () => {
   });
 });
 
+// 각 서비스의 링크 미리보기 봇이 보내는 User-Agent(출처는 spa-fallback.js의 PREVIEW_BOT 주석)
+const PREVIEW_BOT_USER_AGENTS = [
+  'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
+  'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+  'kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984',
+  'Twitterbot/1.0',
+  'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)',
+  'TelegramBot (like TwitterBot)',
+  'LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)',
+  'WhatsApp/2.22.20.72 A',
+] as const;
+
+describe('spa-fallback.js 미리보기 봇 분기', () => {
+  const POST_ID = '805a8e89-ca5b-4800-a50d-fff5c233017f';
+
+  it.each(PREVIEW_BOT_USER_AGENTS)(
+    '미리보기 봇(%s)의 글 주소는 BE 오리진의 OG HTML로 보낸다',
+    (userAgent) => {
+      expect(rewriteAs(userAgent, `/post/${POST_ID}`)).toEqual({
+        uri: `/api/og/post/${POST_ID}`,
+        origins: ['link-sphere-be'],
+      });
+    }
+  );
+
+  it('글 주소 끝에 /가 있어도 BE 주소에는 붙이지 않는다', () => {
+    expect(rewriteAs(PREVIEW_BOT_USER_AGENTS[0], `/post/${POST_ID}/`)).toEqual({
+      uri: `/api/og/post/${POST_ID}`,
+      origins: ['link-sphere-be'],
+    });
+  });
+
+  it.each([
+    [
+      '일반 브라우저',
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+    ],
+    ['검색 봇', 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'],
+  ])('%s의 글 주소는 지금처럼 앱 HTML로 간다', (_, userAgent) => {
+    expect(rewriteAs(userAgent, `/post/${POST_ID}`)).toEqual({ uri: '/index.html', origins: [] });
+  });
+
+  it('미리보기 봇이라도 HEAD 요청은 앱 HTML로 둔다(BE 경로는 GET만 연다)', () => {
+    expect(rewriteAs(PREVIEW_BOT_USER_AGENTS[0], `/post/${POST_ID}`, 'HEAD')).toEqual({
+      uri: '/index.html',
+      origins: [],
+    });
+  });
+
+  it.each([
+    ['/post/submit', '/index.html'],
+    [`/post/edit/${POST_ID}`, '/index.html'],
+    ['/post/abc123', '/index.html'],
+    ['/', '/index.html'],
+    ['/oops', '/404.html'],
+    ['/assets/js/index-abc.js', '/assets/js/index-abc.js'],
+  ])('미리보기 봇이라도 글 상세(UUID)가 아닌 %s는 지금 그대로 %s', (uri, expected) => {
+    expect(rewriteAs(PREVIEW_BOT_USER_AGENTS[0], uri)).toEqual({ uri: expected, origins: [] });
+  });
+});
+
 describe('spa-status.js (viewer-response)', () => {
   function respond(uri: string, headers: Record<string, { value: string }> = {}) {
     const response = { statusCode: 200, statusDescription: 'OK', headers };
@@ -188,8 +287,11 @@ describe('test-cases.json (배포 전 test-function 케이스)', () => {
   describe.each(suites)('$file', ({ file, eventType, cases }) => {
     const handler = loadHandler(file);
 
-    it.each(cases)('$uri (accept-encoding: $acceptEncoding)', (testCase) => {
-      expect(findMismatches(testCase, handler(buildTestEvent(eventType, testCase)))).toEqual([]);
-    });
+    it.each(cases)(
+      '$uri (accept-encoding: $acceptEncoding, user-agent: $userAgent)',
+      (testCase) => {
+        expect(findMismatches(testCase, handler(buildTestEvent(eventType, testCase)))).toEqual([]);
+      }
+    );
   });
 });

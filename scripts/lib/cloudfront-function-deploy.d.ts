@@ -6,6 +6,7 @@ export type FunctionEventType = 'viewer-request' | 'viewer-response';
 export interface FunctionTestCase {
   uri: string;
   acceptEncoding?: string;
+  userAgent?: string;
   responseHeaders?: Record<string, string>;
   expect: {
     uri?: string;
@@ -23,7 +24,7 @@ export interface FunctionTestSuite {
 
 export function buildTestEvent(
   eventType: FunctionEventType,
-  testCase: Pick<FunctionTestCase, 'uri' | 'acceptEncoding' | 'responseHeaders'>
+  testCase: Pick<FunctionTestCase, 'uri' | 'acceptEncoding' | 'userAgent' | 'responseHeaders'>
 ): Record<string, unknown>;
 
 export function findMismatches(

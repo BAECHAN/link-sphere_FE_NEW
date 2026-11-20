@@ -78,6 +78,38 @@
         "uri": "/post/abc123",
         "acceptEncoding": "gzip, deflate, br, zstd",
         "expect": { "uri": "/index.html" }
+      },
+      {
+        "uri": "/post/805a8e89-ca5b-4800-a50d-fff5c233017f",
+        "userAgent": "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+        "expect": { "uri": "/api/og/post/805a8e89-ca5b-4800-a50d-fff5c233017f" }
+      },
+      {
+        "uri": "/post/805a8e89-ca5b-4800-a50d-fff5c233017f/",
+        "userAgent": "kakaotalk-scrap/1.0; +https://devtalk.kakao.com/t/scrap/33984",
+        "expect": { "uri": "/api/og/post/805a8e89-ca5b-4800-a50d-fff5c233017f" }
+      },
+      {
+        "uri": "/post/805a8e89-ca5b-4800-a50d-fff5c233017f",
+        "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "acceptEncoding": "gzip, deflate, br, zstd",
+        "expect": { "uri": "/index.html" }
+      },
+      {
+        "uri": "/post/submit",
+        "userAgent": "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+        "expect": { "uri": "/index.html" }
+      },
+      {
+        "uri": "/post/edit/805a8e89-ca5b-4800-a50d-fff5c233017f",
+        "userAgent": "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+        "expect": { "uri": "/index.html" }
+      },
+      {
+        "uri": "/assets/js/index-abc.js",
+        "userAgent": "Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)",
+        "acceptEncoding": "gzip, deflate, br, zstd",
+        "expect": { "uri": "/assets/js/index-abc.js.br" }
       }
     ]
   }

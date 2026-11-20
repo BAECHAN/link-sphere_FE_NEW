@@ -11,6 +11,14 @@
 
 ### Added
 
+- `post` 메신저에 글 주소를 붙이면 그 글의 제목·설명·썸네일로 미리보기
+  <details><summary>배경·구현</summary>
+
+  글 주소(`/post/<id>`)는 어떤 글이든 같은 앱 HTML이라, 카카오톡·Slack에 붙이면 어느 글이든 사이트 기본 미리보기만 나왔다. 이제 CloudFront Function `spa-fallback`이 링크 미리보기 봇(Slack·Facebook·Discord·WhatsApp·X·카카오·Telegram·LinkedIn, 검색 봇은 제외)의 글 상세 GET만 오리진을 BE로 바꿔 `/api/og/post/<id>`로 보낸다. BE(#225)가 공개 글이면 그 글의 값을, 볼 수 없는 글이면 사이트 이름·소개만 담은 OG 태그 HTML을 5분 캐시로 준다. 사람과 검색 봇이 받는 화면은 그대로다. 오리진 변경은 런타임 `cloudfront-js-2.0`에서만 돼 배포 전에 CloudShell에서 런타임을 바꿨고, 코드 첫 줄에 `import cf from 'cloudfront';`가 생겼다. 배포 시험(`test-function`)은 오리진 선택을 보지 않아, 시험 케이스는 바뀐 주소를, vitest는 `cf` 대역으로 오리진 선택을 확인한다. 봇 UA 토큰마다 근거 문서를 Function 주석에 적었다. 운영 절차는 `docs/DEPLOY.md` "메신저 미리보기 봇", 계획은 [`docs/plans/2026-11-19-post-link-in-app-and-og.md`](docs/plans/2026-11-19-post-link-in-app-and-og.md) Phase 2.
+  (`infra/cloudfront-functions/spa-fallback.js`, `infra/cloudfront-functions/test-cases.json`, `infra/cloudfront/snapshot.json`, `scripts/lib/cloudfront-function-deploy.js`·`.d.ts`, `scripts/deploy-cloudfront-functions.js`, `src/app/routes/cloudfront-functions.test.ts`, `src/test/scripts/cloudfront-function-deploy.test.ts`, `src/shared/api/generated/openapi.json`·`openapi.gen.ts`, `docs/DEPLOY.md`, `docs/SYSTEM-ARCHITECTURE.md`, [PR #669](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/669))
+
+  </details>
+
 - `comment` 공유 버튼으로 복사한 글 링크를 다른 글의 댓글 입력칸에서 한 번 눌러 넣기
   <details><summary>배경·구현</summary>
 

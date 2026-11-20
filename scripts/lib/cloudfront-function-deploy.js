@@ -15,7 +15,7 @@ function toHeaders(values) {
  * 구조: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/functions-event-structure.html
  *
  * @param {'viewer-request' | 'viewer-response'} eventType
- * @param {{ uri: string, acceptEncoding?: string, responseHeaders?: Record<string, string> }} testCase
+ * @param {{ uri: string, acceptEncoding?: string, userAgent?: string, responseHeaders?: Record<string, string> }} testCase
  */
 export function buildTestEvent(eventType, testCase) {
   const event = {
@@ -26,10 +26,12 @@ export function buildTestEvent(eventType, testCase) {
       method: 'GET',
       uri: testCase.uri,
       querystring: {},
-      headers:
-        testCase.acceptEncoding === undefined
+      headers: toHeaders({
+        ...(testCase.acceptEncoding === undefined
           ? {}
-          : toHeaders({ 'accept-encoding': testCase.acceptEncoding }),
+          : { 'accept-encoding': testCase.acceptEncoding }),
+        ...(testCase.userAgent === undefined ? {} : { 'user-agent': testCase.userAgent }),
+      }),
       cookies: {},
     },
   };

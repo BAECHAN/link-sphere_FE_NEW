@@ -4,12 +4,34 @@
 
 ## 구현 결과
 
-> Phase 1: #660 · 2026-11-19 대조 · 이탈 3 · 미구현 1(보완함) — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현". Phase 2는 아직
+> Phase 1: #660 · 2026-11-19 대조 · 이탈 3 · 미구현 1(보완함) — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
 
 - 이탈(단위 테스트의 한계): 댓글 목록 테스트는 다른 글의 `#comment-…`가 아니라 같은 글의 `#comment-…` 스크롤을 확인함. 단위 테스트에서 `CommentList`의 글 id를 바꿀 수 없어서다
 - 이탈(순서): 모킹 녹화를 검사 묶음보다 먼저 했고, 검사 묶음은 리베이스 전에 돌렸다. 리베이스 뒤 `pnpm check`·`pnpm test`·`pnpm check:docs`를 다시 돌려 보완함
 - 미구현 → 보완함: "같은 글 안의 해시 이동은 이탈 가드가 막지 않는다" 단위 테스트
 - 계획에 없던 변경: 같은 글로 가는 링크에 `preventScrollReset`과 함께 `replace`도 줌(FE-ARCHITECTURE §25, `PostCard.tsx`의 댓글 링크 선례)
+
+> Phase 2-1: BE #225 · 2026-11-20 대조 · 이탈 4 · 미구현 0 — 판정 근거(파일:줄)는 BE PR 본문 "계획 대비 구현"
+
+- 이탈(설계): `produces = text/html`을 걸지 않음. 걸면 Accept에 HTML이 없는 요청이 406을 받아(serving-path에서 발견) Content-Type을 응답에서 정하고 Accept와 상관없이 HTML을 준다
+- 이탈(테스트 위치): 토큰 없이 200·`text/html`·Cache-Control 확인을 통합 테스트(`@DataJpaTest`라 HTTP 층이 없음) 대신 컨트롤러 테스트로 옮김
+- 이탈(문서 위치): BE에 글 기능 문서가 없어 README API 표에 적음
+- 이탈(절차): `produces`를 뺀 뒤 integrationTest를 다시 돌리지 않음 → 다시 돌려 보완함
+- 계획에 없던 변경: serving-path 요청 목록에 OG HTML 사례, `<meta name="description">`도 실음, 정식 UUID만 글 id로 보고 아니면 `og:url`을 사이트 주소로
+- 문서 동기화: BE README 파일 트리, `application.yml` 주석, `docs/DEPLOY.md`의 `APP_FRONTEND_URL` 설명
+
+> Phase 2-2: 사용자 CloudShell · 2026-11-20 전환 · 이탈 0 · 미구현 0
+
+- 계획에 없던 변경: 전환·시험·게시를 aws 명령 대신 배포 스크립트의 시험 함수를 그대로 쓰는 1회성 스크립트로 줌(LIVE 코드가 main과 다르면 멈추고, 시험 없이는 게시하지 않음)
+- 참고: 게시 직후 되돌리기 명령이 이어 실행돼 LIVE가 몇 분간 1.0으로 돌아갔다가 다시 2.0으로 게시됨. 게시 상태가 DEPLOYED가 된 것은 조회 권한이 없어 확인하지 못함
+
+> Phase 2-3: #669 · 2026-11-20 대조 · 이탈 1 · 미구현 1(보완함) — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현"
+
+- 이탈(근거 범위): 봇 UA 8종 중 Slack·Facebook·Discord·WhatsApp만 공식 문서로 다시 확인함. X는 재인용, 카카오·Telegram·LinkedIn은 공식 문서를 못 찾아 2차 출처
+- 미구현 → 보완함: 배포 시험 케이스의 "봇 UA라도 /post/edit/<id>·정적 파일은 그대로"
+- 계획에 없던 변경: 시험 이벤트의 UA 단위 테스트, 배포 시험 실패 출력에 UA 표시, DEPLOY.md "메신저 미리보기 봇" 절(되돌리는 순서, 미리보기 반영이 최대 5분 늦음, 배포 시험이 오리진 선택을 보지 않는 한계)
+- 계획에 없던 변경: SYSTEM-ARCHITECTURE의 옛 문장("Function 배포는 AWS CLI로 수동")을 `deploy.yml` 배포로 고침(사용자 승인)
+- 문서 동기화: 계획 색인(PLANS-INDEX)
 
 <!-- plan-result:end -->
 

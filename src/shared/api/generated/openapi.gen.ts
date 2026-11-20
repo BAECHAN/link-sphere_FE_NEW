@@ -666,6 +666,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  '/og/post/{postId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * 글 주소의 OG 태그 HTML
+     * @description CloudFront Function이 미리보기 봇의 `/post/{postId}` 요청만 이리로 보낸다. 항상 비로그인으로 보고, 볼 수 없는 글·없는 글·UUID가 아닌 id면 사이트 이름·소개만 싣는다(200).
+     */
+    get: operations['getPostOgHtml'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   '/post': {
     parameters: {
       query?: never;
@@ -2173,6 +2193,28 @@ export interface operations {
         };
         content: {
           '*/*': components['schemas']['ApiResponseLinkPreviewResponse'];
+        };
+      };
+    };
+  };
+  getPostOgHtml: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        postId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description OK */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          '*/*': string;
         };
       };
     };

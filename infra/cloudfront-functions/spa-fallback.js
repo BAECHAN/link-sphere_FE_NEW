@@ -1,3 +1,9 @@
+import cf from 'cloudfront';
+// 위 줄은 런타임 cloudfront-js-2.0에서 오리진을 바꾸는 cf.selectRequestOriginById를 쓰려면 코드 첫 줄에 있어야 한다
+// (https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/helper-functions-origin-modification.html).
+// 그래서 이 Function은 2.0이다(2026-11-20 CloudShell에서 전환, 런타임은 배포 대상이 아니다 - docs/DEPLOY.md
+// "CloudFront Function"). 1.0으로 되돌리면 이 줄에서 실패한다.
+//
 // SPA 클라이언트 라우팅 폴백. CloudFront 배포(E1ZZPXFS3GSVZ6)의
 // **기본(S3) 비헤이비어 viewer-request에만** 연결한다 — 절대 /api/* 비헤이비어에는 연결하지 않는다.
 // 정적 파일(마지막 경로 세그먼트에 확장자가 있는 요청)은 그대로 통과시키고,
@@ -22,8 +28,15 @@
 // import할 수 없다). 라우트를 추가하면 여기도 고친다 - 빠뜨리면
 // src/app/routes/cloudfront-functions.test.ts가 실패한다.
 //
+// 메신저 링크 미리보기 봇이 글 상세(/post/<UUID>)를 GET하면 오리진을 BE(Lambda)로 바꾸고 주소를
+// /api/og/post/<UUID>로 바꾼다. BE가 그 글의 제목·설명·썸네일을 담은 OG 태그 HTML을 준다(BE PostOgController).
+// 사람과 검색 봇은 지금처럼 /index.html을 받는다 - 검색 봇에 OG만 든 HTML을 주면 앱 본문이 색인되지 않는다.
+// 캐시 키는 바뀐 주소로 잡혀 사람의 /index.html과 섞이지 않는다(FE docs/plans/2026-11-19-post-link-in-app-and-og.md).
+// HEAD는 보내지 않는다 - BE는 이 경로의 GET만 연다.
+//
 // 이 파일을 고친 PR이 병합되면 deploy.yml이 test-cases.json의 케이스를 실제 런타임에서 돌린 뒤 게시한다
-// (scripts/deploy-cloudfront-functions.js, docs/DEPLOY.md "CloudFront Function").
+// (scripts/deploy-cloudfront-functions.js, docs/DEPLOY.md "CloudFront Function"). test-function은 오리진이 바뀌었는지는
+// 보지 않고 코드가 오류 없이 도는지만 본다(위 AWS 문서) - 오리진 선택은 cloudfront-functions.test.ts와 배포 뒤 curl로 확인한다.
 var APP_ROUTES = {
   '/': true,
   '/post': true,
@@ -91,8 +104,53 @@ function acceptsBrotli(request) {
   return false;
 }
 
+// 링크 미리보기 봇의 User-Agent 토큰(대소문자 무시). 근거(2026-11-20 확인):
+// - 공식 문서: Slackbot-LinkExpanding(https://api.slack.com/robots - 같은 문서의 Slack-ImgProxy는 이미지만 받아 넣지 않는다),
+//   facebookexternalhit(https://developers.facebook.com/docs/sharing/webmasters/web-crawlers/ - AI 크롤러 meta-external*는 넣지 않는다),
+//   Discordbot(https://docs.discord.com/developers/link-previews/component-embeds),
+//   WhatsApp/(https://developers.facebook.com/documentation/business-messaging/whatsapp/link-previews/)
+// - X 문서의 문장을 재인용: Twitterbot
+// - 공식 문서를 못 찾아 2차 출처: kakaotalk-scrap(https://devtalk.kakao.com/t/scrap/33984),
+//   TelegramBot(https://bugs.telegram.org/c/61650/18), LinkedInBot(https://radar.cloudflare.com/bots/directory/linkedin)
+// 목록에 없는 서비스는 지금처럼 사이트 기본 미리보기가 나온다
+var PREVIEW_BOT =
+  /slackbot-linkexpanding|facebookexternalhit|discordbot|whatsapp\/|twitterbot|kakaotalk-scrap|telegrambot|linkedinbot/i;
+
+// 글 상세 주소. 끝 /는 허용하고, BE 주소에는 붙이지 않는다(BE 매처가 /og/post/*라 끝 /가 있으면 맞지 않는다)
+var POST_DETAIL =
+  /^\/post\/([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})\/?$/;
+
+// 배포의 BE 오리진 Id(infra/cloudfront/snapshot.json의 Origins)
+var BE_ORIGIN_ID = 'link-sphere-be';
+
+/** 미리보기 봇이 글 상세를 GET한 요청이면 그 글 id, 아니면 null */
+function previewBotPostId(request) {
+  if (request.method !== 'GET') {
+    return null;
+  }
+
+  var userAgent = request.headers['user-agent'];
+
+  if (!userAgent || !PREVIEW_BOT.test(userAgent.value)) {
+    return null;
+  }
+
+  var match = POST_DETAIL.exec(request.uri);
+
+  return match ? match[1] : null;
+}
+
 function handler(event) {
   var request = event.request;
+  var botPostId = previewBotPostId(request);
+
+  if (botPostId) {
+    cf.selectRequestOriginById(BE_ORIGIN_ID);
+    request.uri = '/api/og/post/' + botPostId;
+
+    return request;
+  }
+
   var uri = request.uri;
   var lastSegment = uri.substring(uri.lastIndexOf('/') + 1);
   var hasExtension = lastSegment.indexOf('.') !== -1;
