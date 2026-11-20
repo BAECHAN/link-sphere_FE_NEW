@@ -78,6 +78,14 @@
 
 ### Changed
 
+- `comment` 댓글 입력 폼의 이미지 첨부와 취소·등록 버튼을 한 줄로 합쳐 40px 낮춤
+  <details><summary>배경·구현</summary>
+
+  "글자 수·이미지 첨부·댓글 등록이 줄을 하나씩 차지해 입력 영역이 높다"는 요청이었다. 작성·답글·수정 폼(넓은 화면 인라인·좁은 화면 하단 시트 포함)의 입력칸 아래를 글자 수 → 미리보기 → 첨부 썸네일 → 실패 안내 → 도구 줄(왼쪽 이미지 첨부, 오른쪽 취소·등록) 순서로 바꿨다. 폼 높이는 경우마다 40px 줄었다(빈 폼 196 → 156px, 모킹한 화면에서 측정). 글자 수는 입력칸 바로 아래 그대로다. 글자 수까지 같은 줄에 두는 안, 글자 수와 첨부를 한 줄에 두는 안과 비교해 사용자가 골랐고, 전·후 실제 화면을 나란히 보고 확인했다. 첨부 버튼과 썸네일이 다른 줄로 가야 해서 공용 부품 `ImageAttachmentField`를 `ImageAttachmentButton`·`ImageAttachmentPreviews`로 나눴다. 근거는 `docs/COMMENT.md` §5 "입력칸 아래 순서".
+  (`CommentForm.tsx`, `CommentEditForm.tsx`, `ImageAttachmentButton.tsx`(신규), `ImageAttachmentPreviews.tsx`(신규), `ImageAttachmentField.tsx`(삭제), `ApiContract.test.tsx`, `docs/COMMENT.md`, `docs/DESIGN-SYSTEM-PRINCIPLES.md`, [PR #664](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/664))
+
+  </details>
+
 - `comment` 댓글 목록의 우리 글 링크(카드·본문 주소)를 새 탭 대신 앱 안에서 엶
   <details><summary>배경·구현</summary>
 

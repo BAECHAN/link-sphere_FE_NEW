@@ -527,7 +527,7 @@ a11y 12건, e2e 3건).
 
 ### raw 팔레트 클래스가 공용 UI에 남아 있었다 (2026-09-09)
 
-"하드코딩 색상 금지"가 문서 규칙뿐이던 때, 2026-09-09 감사에서 `src/shared/ui/elements/ImageAttachmentField.tsx`·`SearchInput.tsx`,
+"하드코딩 색상 금지"가 문서 규칙뿐이던 때, 2026-09-09 감사에서 `ImageAttachmentField.tsx`(2026-11-20에 `src/shared/ui/elements/ImageAttachmentButton.tsx`·`ImageAttachmentPreviews.tsx`로 나뉨)·`SearchInput.tsx`,
 `src/shared/ui/layouts/AuthLayout.tsx`·`ErrorLayout.tsx`에 raw gray/zinc 팔레트 클래스가 남아 있는 것을 찾아 같은 날 토큰 기반
 클래스로 고쳤다. 2026-09-13부터 ESLint `custom-tailwind/no-raw-color`가 같은 종류의 회귀를 pre-commit과 `pnpm check`에서 막는다.
 
