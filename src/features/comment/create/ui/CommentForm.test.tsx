@@ -300,7 +300,7 @@ describe('CommentForm - 복사한 글 링크 넣기 제안', () => {
     expect(querySuggestion()).toBeInTheDocument();
   });
 
-  it('입력칸이 포커스를 잃어도 제안이 남는다', async () => {
+  it('입력칸 밖으로 포커스가 나가면 제안이 사라진다', async () => {
     const user = userEvent.setup();
     rememberLink();
 
@@ -309,6 +309,49 @@ describe('CommentForm - 복사한 글 링크 넣기 제안', () => {
     await user.click(document.body);
 
     expect(getTextarea()).not.toHaveFocus();
+    expect(querySuggestion()).not.toBeInTheDocument();
+  });
+
+  it('맨 위 폼을 누른 뒤 답글 폼을 누르면 답글 폼에만 제안이 보인다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderWithProviders(
+      <TooltipProvider>
+        <CommentForm postId={POST_ID} />
+        <CommentForm postId={POST_ID} parentId="comment-1" />
+      </TooltipProvider>
+    );
+    const rootTextarea = getTextarea();
+    const replyTextarea = screen.getByPlaceholderText(TEXTS.comment.form.replyPlaceholder);
+
+    await user.click(rootTextarea);
+
+    expect(screen.getAllByRole('button', { name: SUGGESTION_NAME })).toHaveLength(1);
+
+    await user.click(replyTextarea);
+
+    const suggestions = screen.getAllByRole('button', { name: SUGGESTION_NAME });
+
+    expect(suggestions).toHaveLength(1);
+    expect(replyTextarea.parentElement).toContainElement(suggestions[0] ?? null);
+  });
+
+  it('제안을 마우스로 누르고 있는 동안 입력칸이 포커스를 잃지 않고 제안도 남는다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    const textarea = getTextarea();
+    await user.click(textarea);
+
+    const suggestion = querySuggestion();
+
+    expect(suggestion).toBeInTheDocument();
+
+    await user.pointer({ keys: '[MouseLeft>]', target: suggestion as HTMLElement });
+
+    expect(textarea).toHaveFocus();
     expect(querySuggestion()).toBeInTheDocument();
   });
 
@@ -321,6 +364,21 @@ describe('CommentForm - 복사한 글 링크 넣기 제안', () => {
     await user.tab();
 
     expect(querySuggestion()).toHaveFocus();
+  });
+
+  it('Tab으로 제안에 간 뒤 다시 Tab으로 나가면 제안이 사라진다', async () => {
+    const user = userEvent.setup();
+    rememberLink();
+
+    renderCommentForm();
+    await user.click(getTextarea());
+    await user.tab();
+
+    expect(querySuggestion()).toHaveFocus();
+
+    await user.tab();
+
+    expect(querySuggestion()).not.toBeInTheDocument();
   });
 
   it('제안을 누르면 주소와 공백 한 칸이 들어가고, 포커스가 입력칸으로 돌아오고, 기억과 제안이 사라진다', async () => {

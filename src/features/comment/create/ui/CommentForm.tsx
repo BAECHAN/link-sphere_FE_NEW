@@ -71,8 +71,13 @@ export const CommentFormView = forwardRef(function CommentFormView(
     clearImage,
     clearAllImages,
   } = draft;
-  const { suggestedLink, handleContentFocus, handleContentInput, insertSuggestedLink } =
-    useCopiedPostLinkSuggestion({ postId, form, contentValue });
+  const {
+    suggestedLink,
+    handleContentFocus,
+    handleContentInput,
+    handleSuggestionAreaBlur,
+    insertSuggestedLink,
+  } = useCopiedPostLinkSuggestion({ postId, form, contentValue });
 
   const { register } = form;
 
@@ -139,6 +144,7 @@ export const CommentFormView = forwardRef(function CommentFormView(
           'relative rounded-md transition-shadow duration-300',
           isDraggingOver && 'ring-2 ring-primary ring-offset-2'
         )}
+        onBlur={handleSuggestionAreaBlur}
       >
         {isDraggingOver && (
           <DropTargetOverlay
@@ -195,6 +201,11 @@ export const CommentFormView = forwardRef(function CommentFormView(
               variant="outline"
               size="sm"
               className="pointer-events-auto h-7 min-w-0 max-w-full shrink gap-1 border-info/60 px-2 text-xs text-info hover:bg-info/10 hover:text-info has-[>svg]:px-2 dark:border-info/60 dark:hover:bg-info/15"
+              // 누르는 순간 입력칸 포커스가 빠지지 않게 한다 - 빠지면 포커스가 영역 밖으로 나간 것으로 보고 클릭 전에
+              // 제안을 내린다. Safari는 클릭한 버튼에 포커스를 주지 않아 옮겨 간 곳도 알 수 없다
+              // (https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#clicking_and_focus).
+              // 같은 방식: RecentSearchDropdown.tsx
+              onMouseDown={(e) => e.preventDefault()}
               onClick={handleInsertSuggestedLink}
             >
               <Link2 className="size-3.5" />

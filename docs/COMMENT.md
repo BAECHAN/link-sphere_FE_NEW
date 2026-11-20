@@ -10,7 +10,7 @@
 > 원글의 그 댓글로 이동하는 방식, 복사한 글 링크를 입력칸이 제안하는 조건을 이해하고, 상한·장수·캐시 무효화 범위·실패
 > 문구를 어디서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-19
+> **마지막 검토**: 2026-11-20
 
 게시글 상세(`/post/:id`) 하단의 댓글 섹션과, 내가 쓴 댓글을 모아보는 "내 댓글"
 화면(`/my/comments`)을 다룬다. 게시글 자체(목록·상세·작성)는
@@ -714,6 +714,7 @@ flowchart TD
     F -- "예" --> G["링크 넣기 버튼 표시"]
     G -- "버튼 클릭" --> H["입력칸에 주소 + 공백 삽입<br/>포커스 복귀 · 기억 삭제"]
     G -- "글자 입력" --> I["버튼 숨김<br/>다시 포커스할 때까지"]
+    G -- "포커스가 입력칸·버튼 밖으로" --> I
 ```
 
 | 단계 | 동작                                                                                                                     | 위치                                                                                                                 |
@@ -733,9 +734,18 @@ flowchart TD
 - **글자를 입력하면 내린다** — 입력칸의 `onInput`에서 내리고, 입력칸을 벗어났다 다시 포커스해야 돌아온다. 다 지우거나 등록해
   빈 칸이 돼도 바로 돌아오지 않는다(등록 뒤 `useCreateComment`는 입력칸에 다시 포커스하지 않는다). 한 번 지나친 제안을 등록
   직후 다시 내밀지 않으려는 것이다.
-- **포커스를 잃어도 내리지 않는다** — 버튼을 누르면 입력칸이 먼저 포커스를 잃는다. 그때 내리면 클릭이 닿기 전에 버튼이
-  사라진다. 그래서 한 번 포커스한 입력칸에는 글자를 입력하기 전까지 제안이 남는다. 맨 위 폼에 포커스했다가 답글 폼을 열면
-  두 폼에 함께 보이고, 어느 쪽에서든 넣으면 기억이 지워져 둘 다 사라진다.
+- **포커스가 입력칸·버튼 밖으로 나가면 내린다**(2026-11-19 바꿈) — 입력칸과 버튼을 감싼 `div`의 `onBlur`
+  (`handleSuggestionAreaBlur`)가 `relatedTarget`이 그 `div` 안인지 본다. React의 `onBlur`는 버블링해 자식의 포커스 이동이
+  부모로 온다(_"브라우저의 `blur`와 달리 React의 `onBlur`는 버블링한다"_ (번역,
+  [react.dev](https://react.dev/reference/react-dom/components/common#common-props))). Tab으로 버튼에 가면 남고, 다른 폼·빈
+  곳을 누르거나 창을 바꾸면 내린다. 입력칸을 다시 누르면(창을 바꿨다 돌아오면 브라우저가 포커스를 돌려줘) 다시 켜진다. 그래서
+  맨 위 폼과 답글 폼에 함께 보이지 않는다.
+- **마우스로 누르는 동안 입력칸 포커스를 지킨다** — 버튼의 `onMouseDown`에서 `preventDefault()`한다. 그러지 않으면 누르는
+  순간 입력칸이 포커스를 잃는데, Safari는 클릭한 버튼에 포커스를 주지 않아(_"대부분의 브라우저는 클릭한 버튼에 포커스를 주지만,
+  Safari는 설계상 그렇지 않다"_ (번역, [MDN `<button>`](https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#clicking_and_focus),
+  요약 에이전트를 거쳐 받은 원문)) 포커스가 밖으로 나간 것으로 보여 클릭 전에 버튼이 사라진다. 최근 검색어 드롭다운
+  (`RecentSearchDropdown.tsx`)이 같은 방식이다. 처음(#659)에는 이 문제를 피하려고 포커스를 잃어도 내리지 않았는데, 그러면 두
+  폼에 버튼이 함께 남아 바꿨다.
 - **Enter는 가로채지 않는다** — 이 입력칸의 Enter는 줄바꿈이다. [W3C APG 콤보박스 패턴](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/)은
   Enter로 제안을 받아들이는 경우를 _"자동완성 제안이 팝업에서 선택된 상태"_ (번역)로 한정한다. 이 버튼은 목록에서 고르는
   제안이 아니라 입력칸 옆의 버튼이라, 키보드로는 Tab으로 가서 누른다.
@@ -1014,7 +1024,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 글자 수 문구·자리 바꾸기 | 숫자 뒤 문구는 `TEXTS.comment.form.contentCountSuffix`, 자리는 `CommentForm.tsx`·`CommentEditForm.tsx`의 `<CharacterCount>`를 감싼 줄(두 폼을 함께 고친다). 세는 방법은 `CommentUtil.countHangulEquivalentChars`                                                                                                    |
 | 모바일 시트 높이 바꾸기  | `CommentComposer.tsx`의 `SHEET_MAX_HEIGHT`(시트)·`SHEET_TEXTAREA_MAX_HEIGHT`(입력칸). 입력칸 상한을 올리면 2,001자에서 글자 수·등록 버튼이 시트 밖으로 밀리는지 `e2e/comment-sheet-height.mobile.spec.ts`로 확인한다(§5 "시트 높이")                                                                                |
 | 링크 넣기 문구·모양 변경 | 문구는 `TEXTS.comment.form.insertCopiedLink`·`insertCopiedLinkUntitled`, 색·크기·자리는 `CommentForm.tsx`의 `{suggestedLink && …}` 블록. 색을 바꾸면 라이트·다크 글자 대비를 다시 잰다(§5 "복사한 글 링크 넣기"의 시안 표)                                                                                          |
-| 링크 넣기 제안 조건 변경 | `useCopiedPostLinkSuggestion.ts`의 `suggestedLink` 식과 `handleContentFocus`·`handleContentInput`. 포커스를 잃을 때 내리게 바꾸면 버튼 클릭이 닿기 전에 사라지지 않는지 `e2e/comment-copied-link.spec.ts`로 확인한다                                                                                                |
+| 링크 넣기 제안 조건 변경 | `useCopiedPostLinkSuggestion.ts`의 `suggestedLink` 식과 `handleContentFocus`·`handleContentInput`·`handleSuggestionAreaBlur`. 버튼의 `onMouseDown`을 빼면 Safari에서 클릭 전에 버튼이 사라진다(§5)                                                                                                                  |
 | 링크 기억 대상·범위 변경 | 무엇을 기억할지는 `usePostCard.ts`의 `rememberCopiedLink`, 어디에 둘지는 `copiedPostLink.store.ts`. 새로고침 뒤에도 남기려면 스토어에 `persist`가 필요한데, 탭 안에서만 기억하기로 한 사용자 결정(§5)을 먼저 다시 묻는다                                                                                            |
 | 좋아요 실패 시 안내 추가 | `useLikeCommentMutation`의 `meta.manualErrorHandling`을 빼면 전역 토스트가 뜬다                                                                                                                                                                                                                                     |
 | 모바일 상세에도 맨 위로  | `AppLayout.tsx`에서 상세일 때 붙는 `max-md:hidden`을 뺀다. 버튼이 하단 댓글 바·댓글의 수정·삭제를 가리지 않는지 먼저 확인한다(§5 "맨 위로 버튼")                                                                                                                                                                    |
@@ -1163,6 +1173,20 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
   비공개 글을 복사하면 없음 ⑤ 다크 모드에서 긴 제목은 입력칸 폭 안에서 뒤가 잘림 ⑥ 393px 폭의 하단 시트에서 열자마자 보이고
   넣어짐 ⑦ 맨 위 폼과 답글 폼에 함께 보이다가 한쪽에서 넣으면 둘 다 사라짐.
 - 실제 휴대폰과 Safari·Firefox에서는 보지 않았다(§11).
+
+포커스가 입력칸·버튼 밖으로 나가면 내리는 동작(§5)은 2026-11-20 직접 실행했다. 위 ⑦의 "두 폼에 함께 보임"은 이 변경으로 없어졌다.
+
+- 단위 테스트: `CommentForm.test.tsx`의 "복사한 글 링크 넣기 제안"에서 "포커스를 잃어도 남음"을 "입력칸 밖으로 포커스가 나가면
+  사라짐"으로 바꾸고(요구가 바뀜), 3개를 더했다(맨 위 폼을 누른 뒤 답글 폼을 누르면 답글 폼에만 보임, 버튼을 마우스로 누르고
+  있는 동안 입력칸 포커스와 버튼이 남음, Tab으로 버튼에 간 뒤 다시 Tab으로 나가면 사라짐). 고치기 전에는 이 4개가 실패했다.
+- 구현을 하나씩 깨서 실패하는지 봤다: 버튼의 `onMouseDown`을 빼면 1개, `contains(relatedTarget)` 검사를 빼면 Tab 테스트
+  2개, 감싼 영역의 `onBlur`를 빼면 3개와 e2e가 실패했다.
+- e2e `e2e/comment-copied-link.spec.ts`: 버튼이 보인 뒤 글 제목을 누르면 사라지고 입력칸을 다시 누르면 돌아오는 단계를
+  더했다. Chromium은 클릭한 버튼에 포커스를 주므로 `onMouseDown`을 빼도 e2e는 통과한다 - 그 경우는 단위 테스트가 잡는다.
+- 브라우저 녹화(모킹, 운영 데이터 미사용) 4장면: ① 맨 위 폼을 누른 뒤 답글 폼을 누르면 버튼이 답글 폼에만 남음 ② 글 제목을
+  누르면 사라지고 입력칸을 다시 누르면 돌아옴 ③ Tab으로 버튼에 가면 남고 다시 Tab으로 나가면 사라짐 ④ 마우스로 누르면
+  링크가 들어가고 포커스가 입력칸에 남음.
+- Safari와 iPad처럼 데스크톱 UA로 복사한 뒤의 터치 탭은 보지 않았다(§11).
 
 조회 실패 뒤 다시 들어오기(§5)는 2026-11-03 직접 실행했다. 단위 테스트
 `src/entities/comment/hooks/useRemoveErroredCommentsOnLeave.test.tsx`(2: 떠나면 그 글의 실패한 목록을 지우고 성공한
@@ -1457,8 +1481,9 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
 - **새 탭으로 연 글과 새로고침 뒤에는 제안이 없다**(2026-11-19) — 탭 메모리에만 기억하기로 한 결정이다. 댓글 속 LinkSphere
   링크는 데스크톱에서 새 탭으로 열려(`MarkdownContent.tsx`의 링크 렌더) 그 탭에는 기억이 없다.
 - **링크 넣기 버튼을 Safari·Firefox와 실제 휴대폰에서 보지 않았다**(2026-11-19) — Chromium(Playwright)에서만 확인했다.
-  버튼을 누를 때 입력칸이 포커스를 잃는 순서는 브라우저마다 다를 수 있는데, 포커스를 잃어도 버튼을 내리지 않게 만들어
-  순서에 기대지 않는다. 확인하지 않은 것은 실제 동작이다.
+  버튼을 누르는 동안 `onMouseDown`이 입력칸 포커스를 지켜 브라우저마다 다른 포커스 이동에 기대지 않게 했지만, 확인하지 않은 것은
+  실제 동작이다. 특히 iPad처럼 데스크톱 UA로 복사한 뒤 손가락으로 누를 때 `mousedown`의 `preventDefault()`가 포커스 이동을
+  막는지는 보지 않았다.
 
 ## 12. 용어 사전
 

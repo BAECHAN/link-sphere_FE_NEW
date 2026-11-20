@@ -16,6 +16,7 @@
 - 계획의 테스트 확인 중 "기억 호출 제거"는 단위 테스트에서는 호출을 잘못된 자리(복사 전·공유 시트·원본 링크 복사)에 두는 것으로 바꿔 봤고, 제거는 e2e에서 봤다
 - 계획 승인 뒤 병합된 #653이 `CommentForm.tsx`·`CommentForm.test.tsx`·`docs/COMMENT.md`를 바꿔 그 위로 리베이스했다. 아래 원문의 `파일:줄` 번호는 승인 시점 것이다
 - 대조 뒤 병합된 #658이 `CommentForm`을 상태 없는 화면(`CommentFormView`)과 상태를 갖는 답글 폼으로 나누고 하단 시트를 `CommentComposer`로 옮겨, 그 위로 다시 리베이스했다. 제안 훅은 화면 쪽에서 부르고, 지금 글을 알 수 있게 `CommentFormView`에 `postId` 속성을 더해 `CommentForm`·`CommentComposer`가 넘긴다(`useCreateComment`의 반환 형태는 그대로다)
+- 대체됨(일부): docs/plans/2026-11-19-comment-copied-link-blur-dismiss.md(#663) — 포커스가 입력칸·버튼 밖으로 나가면 제안을 내린다(아래 원문의 "포커스를 잃어도 내리지 않는다" 결정을 뒤집음)
 
 <!-- plan-result:end -->
 
