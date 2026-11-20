@@ -1,4 +1,7 @@
 ### 2026-11-20 (FE)
+- 메신저 미리보기 봇 요청 대응을 위해 메타 데이터 전달 방식을 OG HTML 기반으로 개선 ([#669](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/669))
+
+### 2026-11-20 (FE)
 - 공용 UI 컴포넌트 구조 개선 및 패키지 모듈화
 로그:
 - refactor(ui): 공용 UI 대표 묶음을 저장소 안 패키지로 옮김 ([#665](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/665))
