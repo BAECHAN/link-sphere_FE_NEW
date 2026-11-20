@@ -1,4 +1,9 @@
 ### 2026-11-20 (FE)
+- 공용 UI 컴포넌트 구조 개선 및 패키지 모듈화
+로그:
+- refactor(ui): 공용 UI 대표 묶음을 저장소 안 패키지로 옮김 ([#665](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/665))
+
+### 2026-11-20 (FE)
 - 댓글 컴포넌트 레이아웃 최적화
 로그:
 - fix(comment): 좁은 폰에서 내 댓글이 있으면 글 상세가 가로로 밀리던 문제 ([#666](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/666))
