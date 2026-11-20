@@ -21,6 +21,7 @@ import {
   useFolderSidebar,
   useInlineCreateFolderInput,
 } from '@/widgets/bookmark/folder-nav/hooks/useFolderSidebar';
+import { useFolderNavHiddenGuard } from '@/widgets/bookmark/folder-nav/hooks/useFolderNavHiddenGuard';
 
 interface FolderSidebarProps {
   selectedKey: BookmarkFolderKey;
@@ -218,6 +219,10 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     handleRenameKeyDown,
     handleDelete,
   } = useFolderItem(folder, selected, onDeleted);
+  const { menuOpen, setMenuOpen, handleRenameBlur } = useFolderNavHiddenGuard({
+    shownOn: 'wide',
+    submitRename,
+  });
 
   if (renaming) {
     return (
@@ -233,7 +238,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
             enterKeyHint="done"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            onBlur={submitRename}
+            onBlur={handleRenameBlur}
             onKeyDown={handleRenameKeyDown}
             disabled={isUpdating}
             aria-invalid={nameError !== null}
@@ -331,6 +336,8 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         aria-label={TEXTS.ariaLabels.folderMenu}
         hoverReveal
         triggerClassName="size-11 md:pointer-fine:size-9"
+        open={menuOpen}
+        onOpenChange={setMenuOpen}
         onCloseAutoFocus={handleMenuCloseAutoFocus}
       >
         <DropdownMenuItem onClick={queuePinToggle}>
