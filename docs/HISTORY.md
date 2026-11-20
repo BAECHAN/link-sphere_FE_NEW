@@ -1,4 +1,7 @@
 ### 2026-11-20 (FE)
+- 댓글 입력 폼의 레이아웃을 개선하여 이미지 첨부 및 버튼 UI를 한 줄로 통합함으로써 공간 효율성 및 사용자 편의성 향상 ([#664](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/664))
+
+### 2026-11-20 (FE)
 - 댓글 작성 시 링크 삽입 버튼의 포커스 이탈 시 자동 닫힘 기능 구현 ([#663](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/663))
 
 ### 2026-11-20 (BE)
