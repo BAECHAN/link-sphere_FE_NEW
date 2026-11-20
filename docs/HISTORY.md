@@ -1,3 +1,8 @@
+### 2026-11-20 (BE)
+- 메신저 미리보기 최적화를 위한 OG 태그 HTML 엔드포인트 구현
+로그:
+- feat(post): 메신저 미리보기 봇에 줄 글의 OG 태그 HTML 엔드포인트 추가 ([#225](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/225))
+
 ### 2026-11-20 (FE)
 - 북마크 기능 안정성 개선
   - 뷰포트 전환(768px 브레이크포인트) 시 기존 폴더 이름 및 검색어 상태 유지 로직 적용 ([#662](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/662))
