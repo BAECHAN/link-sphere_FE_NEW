@@ -4,7 +4,8 @@ import { Button } from '@/shared/ui/atoms/button';
 import { cn } from '@/shared/lib/tailwind/utils';
 import { Textarea } from '@/shared/ui/atoms/textarea';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
-import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
+import { ImageAttachmentButton } from '@/shared/ui/elements/ImageAttachmentButton';
+import { ImageAttachmentPreviews } from '@/shared/ui/elements/ImageAttachmentPreviews';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
@@ -254,47 +255,49 @@ export const CommentFormView = forwardRef(function CommentFormView(
       )}
 
       <div className="mt-2 space-y-2">
-        <ImageAttachmentField
-          previewUrls={imagePreviewUrls}
-          count={images.length}
-          maxCount={MAX_COMMENT_IMAGES}
-          onAttach={addFiles}
-          onRemove={clearImage}
-        />
+        <ImageAttachmentPreviews previewUrls={imagePreviewUrls} onRemove={clearImage} />
         {failureMessage && <FormAlert>{failureMessage}</FormAlert>}
-        <div className="flex justify-end gap-2">
-          {onCancel ? (
-            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-              {TEXTS.comment.form.cancel}
-            </Button>
-          ) : (
-            canSubmit && (
-              <Button type="button" variant="ghost" size="sm" onClick={handleClearDraft}>
+        {/* 왼쪽은 내용을 바꾸는 도구(첨부), 오른쪽은 마무리 동작(취소·등록) - 한 줄로 둬 폼 높이를 줄인다 */}
+        <div className="flex items-center justify-between gap-2">
+          <ImageAttachmentButton
+            count={images.length}
+            maxCount={MAX_COMMENT_IMAGES}
+            onAttach={addFiles}
+          />
+          <div className="flex gap-2">
+            {onCancel ? (
+              <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
                 {TEXTS.comment.form.cancel}
               </Button>
-            )
-          )}
-          <TooltipWrapper
-            content={canSubmit ? null : TEXTS.validation.commentOrImageRequired}
-            disabled={!canSubmit}
-          >
-            <Button type="submit" size="sm" className="gap-1.5" disabled={!canSubmit}>
-              {isReply ? TEXTS.comment.form.submitReply : TEXTS.comment.form.submitComment}
-              {!isMobile && (
-                <Kbd
-                  className="font-sans pointer-coarse:hidden"
-                  style={{
-                    backgroundColor: 'var(--kbd-in-primary-bg)',
-                    color: 'var(--kbd-in-primary-color)',
-                  }}
-                >
-                  {PlatformUtil.isMac()
-                    ? TEXTS.shortcuts.commentSubmitMac
-                    : TEXTS.shortcuts.commentSubmit}
-                </Kbd>
-              )}
-            </Button>
-          </TooltipWrapper>
+            ) : (
+              canSubmit && (
+                <Button type="button" variant="ghost" size="sm" onClick={handleClearDraft}>
+                  {TEXTS.comment.form.cancel}
+                </Button>
+              )
+            )}
+            <TooltipWrapper
+              content={canSubmit ? null : TEXTS.validation.commentOrImageRequired}
+              disabled={!canSubmit}
+            >
+              <Button type="submit" size="sm" className="gap-1.5" disabled={!canSubmit}>
+                {isReply ? TEXTS.comment.form.submitReply : TEXTS.comment.form.submitComment}
+                {!isMobile && (
+                  <Kbd
+                    className="font-sans pointer-coarse:hidden"
+                    style={{
+                      backgroundColor: 'var(--kbd-in-primary-bg)',
+                      color: 'var(--kbd-in-primary-color)',
+                    }}
+                  >
+                    {PlatformUtil.isMac()
+                      ? TEXTS.shortcuts.commentSubmitMac
+                      : TEXTS.shortcuts.commentSubmit}
+                  </Kbd>
+                )}
+              </Button>
+            </TooltipWrapper>
+          </div>
         </div>
       </div>
     </form>

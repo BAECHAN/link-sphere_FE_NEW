@@ -366,7 +366,8 @@ const ASSEMBLY_CONTRACTS: Record<string, AssemblyContract> = {
   FormCheckboxGroup: NOTHING,
   GlobalAlertDialogs: NOTHING,
   GlobalImageViewer: NOTHING,
-  ImageAttachmentField: NOTHING,
+  ImageAttachmentButton: { ...NOTHING, props: { count: 0, maxCount: 1, onAttach: noop } },
+  ImageAttachmentPreviews: { ...NOTHING, props: { previewUrls: ['blob:a'], onRemove: noop } },
   ImageViewer: NOTHING,
   RouteAlertDialogs: NOTHING,
 };

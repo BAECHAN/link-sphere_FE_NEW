@@ -654,6 +654,20 @@ flowchart TD
   237px, 입력 뒤 288px → 296px, 늘 시트 높이 + 8px).
 - 펼친 시트는 화면의 70%를 넘지 않고, 그 안의 입력칸은 40%에서 멈춘다(아래 "시트 높이").
 
+### 입력칸 아래 순서 — 첨부와 버튼은 한 줄(2026-11-20)
+
+작성·답글·수정 폼은 입력칸 아래를 이 순서로 그린다: 글자 수 → 미리보기 → 첨부 썸네일 → 실패 안내 → **도구 줄**(왼쪽 이미지
+첨부 버튼, 오른쪽 취소·등록). 전에는 첨부 버튼과 취소·등록 버튼이 줄을 하나씩 차지해 폼이 40px 더 높았다(§9 "입력칸 아래
+도구 줄").
+
+- 도구 줄은 왼쪽에 내용을 바꾸는 도구, 오른쪽에 마무리 동작을 둔다. 첨부는 `ghost`, 등록은 기본 버튼이라 모양이 다르고 양 끝에
+  떨어져 있다.
+- 글자 수는 입력칸 바로 아래 그대로다(`docs/DECISIONS.md` 2026-11-04 "길이 상한이 있는 입력에 글자 수를 늘 보인다"). 글자 수까지
+  도구 줄에 넣는 안과, 글자 수와 첨부를 한 줄에 두는 안은 사용자가 고르지 않았다(비교:
+  [`plans/2026-11-19-comment-form-toolbar-row.md`](./plans/2026-11-19-comment-form-toolbar-row.md)).
+- 썸네일은 도구 줄 위에 둔다. 첨부 버튼 아래(왼쪽 칸)에 두면 좁은 화면에서 취소·등록 버튼 폭만큼 좁아진다. 그래서 공용 부품을
+  첨부 버튼(`ImageAttachmentButton`)과 썸네일 목록(`ImageAttachmentPreviews`)으로 나눠 두 줄에 따로 놓는다.
+
 ### 모바일 시트 높이 — 시트 70%, 입력칸 40%(2026-11-04)
 
 **긴 댓글을 넣어도 펼친 시트가 화면 안에 있고, 글자 수·넘침 안내·등록 버튼이 늘 보인다.** 입력칸은 화면 높이의 40%에서
@@ -666,7 +680,7 @@ flowchart TD
   `SHEET_TEXTAREA_MAX_HEIGHT`(`[&_textarea]:max-h-[40dvh]`). `CommentFormView`는 넓은 화면 인라인 폼·답글도 같이 쓰므로
   입력칸 상한은 시트에서 자식 선택자로만 건다. `overscroll-contain`은 시트를 끝까지 굴렸을 때 뒤의 글 화면이 따라
   스크롤되지 않게 한다. 70%는 북마크 폴더 시트(`SheetDialogContent.tsx`의 `SHEET_MAX_HEIGHT`, [`BOOKMARK.md`](./BOOKMARK.md)
-  §5 "창 높이")와 같은 값이다. 40%는 이 화면에서 입력칸 아래 줄(글자 수·미리보기 접힘·이미지 첨부·버튼)이 다 보이도록 골랐다.
+  §5 "창 높이")와 같은 값이다. 40%는 이 화면에서 입력칸 아래 줄(글자 수·미리보기 접힘·이미지 첨부·버튼)이 다 보이도록 골랐다. 2026-11-20부터 첨부와 버튼이 한 줄이라 그 줄들은 40px 줄었다.
 - **입력칸만 막으면 안 된다** — 입력칸 밖에도 미리보기(펼치면 본문 전체)와 첨부 이미지가 시트를 키운다. 그래서 시트 상한도
   같이 둔다. #515의 북마크 시트가 얻은 교훈과 같은 이유다(안쪽만 막으면 고정 줄이 더해져 넘친다).
 
@@ -989,6 +1003,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 댓글이 오는 중인 자리(뼈대)     | `src/widgets/comment/comment-list/ui/CommentItemSkeleton.tsx`                                                                                  |
 | 작성 검증·제출·복원             | `src/features/comment/create/hooks/useCreateComment.ts`의 `getCommentSubmitError`·`useCreateComment`                                           |
 | 작성 폼 UI                      | `src/features/comment/create/ui/CommentForm.tsx`의 `CommentFormView`(화면)·`CommentForm`(답글용, 상태를 직접 가짐)                             |
+| 첨부 버튼·썸네일·도구 줄        | `src/shared/ui/elements/ImageAttachmentButton.tsx`, `ImageAttachmentPreviews.tsx`, 두 폼의 `flex items-center justify-between` 줄              |
 | 등록 단축키·조합 중 예약        | `src/features/comment/create/ui/CommentForm.tsx`의 `submitByShortcut`·`<Textarea>`의 `onKeyDown`·`onCompositionEnd`                            |
 | 최상위 작성 칸(인라인·바·시트)  | `src/features/comment/create/ui/CommentComposer.tsx`의 `CommentComposerSession`·`CommentComposer`, 상태는 `hooks/useCommentComposer.ts`        |
 | 복사한 글 링크 기억             | `src/widgets/post/post-card/hooks/usePostCard.ts`의 `rememberCopiedLink`, `src/shared/store/copiedPostLink.store.ts`                           |
@@ -1228,6 +1243,21 @@ e2e(이번에 다시 돌리지 않았다, 파일 기준):
 - 구현을 일부러 깨서 테스트가 잡는지 봤다. 다른 키가 와도 예약을 풀지 않으면 ③이, 예약이 없어도 `compositionend`에서 제출하면 ③·④가, 조합 중이 아닌 단축키가 제출하지 않으면 ②와 "빈 폼에서 Ctrl+Enter"가 실패했다.
 - 이 테스트는 `fireEvent`로 이벤트를 직접 보낸다. 실제 입력기가 보내는 순서는 고치기 전 측정(§10)으로 확인했다.
 - 고친 코드는 사용자가 실제 한글 자판으로 확인했다(2026-11-19, macOS, 운영 API에 연결한 로컬 화면). 최상위 댓글과 답글에 한글을 치고 ⌘+Enter를 한 번 눌러, 댓글이 1개만 등록되고 입력란이 비며 빈 입력 안내가 뜨지 않는지를 봤다. macOS에서는 Ctrl+Enter의 Enter 키가 페이지에 오지 않아(§11 측정) Ctrl+Enter로는 확인할 수 없었다.
+
+**입력칸 아래 도구 줄**(2026-11-20 직접 측정, §5 "입력칸 아래 순서"). 모킹한 글 상세(e2e 모킹 도구, 운영 API 미사용)에서 폼
+`<form>`의 `getBoundingClientRect().height`를 바꾸기 전·뒤로 쟀다. 데스크톱은 1280×800, 모바일은 393×727 하단 시트다. 라이트·다크
+값은 같았다.
+
+| 경우                                  | 전    | 뒤    |
+| ------------------------------------- | ----- | ----- |
+| 빈 작성 폼(데스크톱·모바일)           | 196px | 156px |
+| 글 + 썸네일 2장 + 실패 안내, 데스크톱 | 466px | 426px |
+| 같은 내용, 모바일 시트                | 443px | 403px |
+| 수정 폼(데스크톱)                     | 275px | 235px |
+
+- 전·후 화면을 나란히 붙여 사용자가 보고 확인했다.
+- 바꾼 뒤 360×727 시트(댓글 없는 글)에서도 도구 줄이 한 줄에 들어가고 높이가 같았다(빈 폼 156px, 첨부·실패 상태 403px).
+- 실제 휴대폰에서는 보지 않았다.
 
 ## 10. 시행착오
 

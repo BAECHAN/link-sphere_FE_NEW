@@ -4,7 +4,8 @@ import { Textarea } from '@/shared/ui/atoms/textarea';
 import { X, Check } from 'lucide-react';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
-import { ImageAttachmentField } from '@/shared/ui/elements/ImageAttachmentField';
+import { ImageAttachmentButton } from '@/shared/ui/elements/ImageAttachmentButton';
+import { ImageAttachmentPreviews } from '@/shared/ui/elements/ImageAttachmentPreviews';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { TooltipWrapper } from '@/shared/ui/elements/TooltipWrapper';
 import { DropTargetOverlay } from '@/shared/ui/elements/DropTargetOverlay';
@@ -142,47 +143,49 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
         </div>
       )}
       <div className="space-y-2">
-        <ImageAttachmentField
-          previewUrls={imagePreviewUrls}
-          count={imagePreviewUrls.length}
-          maxCount={MAX_COMMENT_IMAGES}
-          onAttach={addFiles}
-          onRemove={clearImage}
-        />
+        <ImageAttachmentPreviews previewUrls={imagePreviewUrls} onRemove={clearImage} />
         {failureMessage && <FormAlert>{failureMessage}</FormAlert>}
-        <div className="flex justify-end gap-2">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onCancel}
-            className="h-8 px-2 text-xs"
-          >
-            <X className="mr-1 h-3 w-3" />
-            {TEXTS.comment.form.cancel}
-          </Button>
-          <TooltipWrapper
-            content={!canSubmit && !isUpdating ? TEXTS.validation.commentOrImageRequired : null}
-            disabled={!canSubmit}
-          >
-            <Button type="submit" size="sm" disabled={!canSubmit} className="h-8 px-2 text-xs">
-              <Check className="mr-1 h-3 w-3" />
-              {isUpdating ? TEXTS.comment.form.saving : TEXTS.comment.form.save}
-              {!isMobile && (
-                <Kbd
-                  className="font-sans pointer-coarse:hidden"
-                  style={{
-                    backgroundColor: 'var(--kbd-in-primary-bg)',
-                    color: 'var(--kbd-in-primary-color)',
-                  }}
-                >
-                  {PlatformUtil.isMac()
-                    ? TEXTS.shortcuts.commentSubmitMac
-                    : TEXTS.shortcuts.commentSubmit}
-                </Kbd>
-              )}
+        {/* 작성 폼(CommentForm)과 같은 도구 줄 - 왼쪽 첨부, 오른쪽 취소·저장 */}
+        <div className="flex items-center justify-between gap-2">
+          <ImageAttachmentButton
+            count={imagePreviewUrls.length}
+            maxCount={MAX_COMMENT_IMAGES}
+            onAttach={addFiles}
+          />
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
+              className="h-8 px-2 text-xs"
+            >
+              <X className="mr-1 h-3 w-3" />
+              {TEXTS.comment.form.cancel}
             </Button>
-          </TooltipWrapper>
+            <TooltipWrapper
+              content={!canSubmit && !isUpdating ? TEXTS.validation.commentOrImageRequired : null}
+              disabled={!canSubmit}
+            >
+              <Button type="submit" size="sm" disabled={!canSubmit} className="h-8 px-2 text-xs">
+                <Check className="mr-1 h-3 w-3" />
+                {isUpdating ? TEXTS.comment.form.saving : TEXTS.comment.form.save}
+                {!isMobile && (
+                  <Kbd
+                    className="font-sans pointer-coarse:hidden"
+                    style={{
+                      backgroundColor: 'var(--kbd-in-primary-bg)',
+                      color: 'var(--kbd-in-primary-color)',
+                    }}
+                  >
+                    {PlatformUtil.isMac()
+                      ? TEXTS.shortcuts.commentSubmitMac
+                      : TEXTS.shortcuts.commentSubmit}
+                  </Kbd>
+                )}
+              </Button>
+            </TooltipWrapper>
+          </div>
         </div>
       </div>
     </form>
