@@ -1,4 +1,9 @@
 ### 2026-11-20 (FE)
+- 댓글 컴포넌트 레이아웃 최적화
+로그:
+- fix(comment): 좁은 폰에서 내 댓글이 있으면 글 상세가 가로로 밀리던 문제 ([#666](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/666))
+
+### 2026-11-20 (FE)
 - 댓글 입력 폼의 레이아웃을 개선하여 이미지 첨부 및 버튼 UI를 한 줄로 통합함으로써 공간 효율성 및 사용자 편의성 향상 ([#664](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/664))
 
 ### 2026-11-20 (FE)
