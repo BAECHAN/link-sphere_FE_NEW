@@ -42,6 +42,11 @@ reports/
 *storybook.log
 storybook-static
 
+# === Next.js 예제 앱(examples/next) 빌드 산출물 ===
+.next/
+next-env.d.ts
+*.tsbuildinfo
+
 # === Playwright e2e 산출물 ===
 test-results/
 playwright-report/

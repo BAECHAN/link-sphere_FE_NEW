@@ -19,8 +19,14 @@
     "./styles.css": "./src/styles/tokens.css"
   },
   "peerDependencies": {
+    "@types/react": ">=18",
     "react": ">=18",
     "react-dom": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    }
   },
   "dependencies": {
     "@radix-ui/react-dismissable-layer": "1.2.1",
