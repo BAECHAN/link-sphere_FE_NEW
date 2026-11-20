@@ -12,7 +12,8 @@ import { mockPost, mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 
 // 글 카드의 공유 버튼(위젯)이 기억한 링크를 다른 글의 댓글 입력칸(기능)이 제안하는 연결과, 제안을 누를 때
-// 실제 브라우저의 blur → click 순서를 본다(docs/COMMENT.md §5). 조건별 동작은 CommentForm.test.tsx가 맡는다.
+// 실제 브라우저에서 바깥을 누르면 내려가고 제안을 누르면 클릭이 닿는지(mousedown이 입력칸 포커스를 지키는지) 본다
+// (docs/COMMENT.md §5). 조건별 동작은 CommentForm.test.tsx가 맡는다.
 const COPIED_POST: Post = { ...mockPost, id: 'e2e-copied-post', title: 'E2E Copied Post' };
 const COMMENTED_POST: Post = { ...mockPost, id: 'e2e-commented-post', title: 'E2E Commented Post' };
 const POSTS = [COPIED_POST, COMMENTED_POST];
@@ -63,6 +64,13 @@ test.describe('복사한 글 링크를 댓글에 넣기', () => {
     });
 
     await expect(textarea).toBeVisible();
+    await expect(suggestion).toHaveCount(0);
+
+    await textarea.click();
+    await expect(suggestion).toBeVisible();
+
+    // 입력칸 밖(글 제목)을 누르면 내려가고, 입력칸을 다시 누르면 돌아온다
+    await page.getByRole('heading', { name: COMMENTED_POST.title }).click();
     await expect(suggestion).toHaveCount(0);
 
     await textarea.click();
