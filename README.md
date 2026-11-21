@@ -25,6 +25,16 @@ https://baechan.github.io/link-sphere_BE_NEW/api-docs/
 
 BE 저장소가 main 병합마다 OpenAPI 스펙을 만들어 GitHub Pages에 올리는 읽기 전용 문서입니다("Try it out" 없음).
 
+# 코드 지도
+
+[![코드 지도 첫 화면](pages-site/floorplan/preview.png)](https://baechan.github.io/link-sphere_FE_NEW/floorplan/)
+
+https://baechan.github.io/link-sphere_FE_NEW/floorplan/
+
+FE·BE 저장소의 모듈·파일·API가 무엇을 하고 서로 어떻게 이어지는지 쉬운 말로 그린 지도입니다(AWS 설정 저장소는
+빠져 있습니다). 손으로 다시 만들어 올리므로 최신 코드보다 늦을 수 있고, 만든 날짜는 지도 왼쪽 위 "Exported"에
+보입니다. 갱신 방법은 [`docs/DEPLOY.md`](docs/DEPLOY.md) "Storybook 공개 배포"의 "코드 지도"를 참고하세요.
+
 ## 데모 계정
 
 누구나 써 볼 수 있는 공개 계정입니다. 링크 등록·댓글·북마크·좋아요는 그대로 해 볼 수 있고, 계정 설정(닉네임·사진
