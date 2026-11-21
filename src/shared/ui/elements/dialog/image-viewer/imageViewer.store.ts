@@ -38,6 +38,33 @@ export const useImageViewerStore = create<ImageViewerStore>()(
   )
 );
 
+function holdsAnyOf(images: ImageViewerImage[], urls: string[]): boolean {
+  return images.some((image) => urls.includes(image.src));
+}
+
+/**
+ * 임시 주소(`blob:`)를 해제한다. 확대 창이 그중 하나라도 들고 있으면 다른 이미지로 바뀔 때까지 미룬다 -
+ * 업로드 중인 댓글 이미지를 확대해 보는 동안 등록이 끝나도, 해제된 주소를 새로 읽다 깨지지 않게 한다.
+ * 스토어는 닫혀도 images를 비우지 않으므로 해제는 다음에 다른 이미지로 확대 창을 열 때 일어난다.
+ */
+export function revokeObjectUrlsWhenUnused(urls: string[]) {
+  const revokeAll = () => urls.forEach((url) => URL.revokeObjectURL(url));
+
+  if (!holdsAnyOf(useImageViewerStore.getState().images, urls)) {
+    revokeAll();
+    return;
+  }
+
+  const unsubscribe = useImageViewerStore.subscribe((state) => {
+    if (holdsAnyOf(state.images, urls)) {
+      return;
+    }
+
+    unsubscribe();
+    revokeAll();
+  });
+}
+
 /**
  * 이미지 뷰어(라이트박스)를 열기 위한 Hook
  * 열림 상태는 히스토리 엔트리로 관리되어(useBackClosableOverlay), 뒤로가기로 자연스럽게 닫힌다.

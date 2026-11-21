@@ -21,6 +21,7 @@ import { mockComment } from '@/mocks/fixtures/comment.fixtures';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockAccount, mockOtherAccount } from '@/mocks/fixtures/account.fixtures';
 import type { Comment } from '@/entities/comment/model/comment.schema';
+import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import {
   prefetchComments,
   seedEmptyComments,
@@ -381,6 +382,73 @@ describe('useCreateReplyMutation', () => {
 
     expect(received[0]).toBeTruthy();
     expect(received[1]).toBe(received[0]);
+  });
+});
+
+// 업로드 중인 이미지를 확대 창으로 보다가 등록이 끝나면, 보던 임시 주소(blob:)가 해제돼 다음 쪽부터 깨졌다
+describe('등록이 끝날 때 임시 이미지 주소 해제', () => {
+  const IMAGE = new File(['aaa'], 'a.png', { type: 'image/png' });
+  let revokeSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    useImageViewerStore.setState({ images: [], currentIndex: 0 });
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:temp-1');
+    revokeSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('확대 창 없이 등록하면 응답 뒤 바로 해제한다', async () => {
+    queryClient.setQueryData(commentKeys.list(POST_ID), []);
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ images: [IMAGE], author: AUTHOR });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(revokeSpy).toHaveBeenCalledWith('blob:temp-1');
+  });
+
+  it('댓글: 확대 창이 임시 이미지를 보고 있으면 다른 이미지로 바뀔 때까지 해제하지 않는다', async () => {
+    queryClient.setQueryData(commentKeys.list(POST_ID), []);
+    useImageViewerStore.getState().setImages([{ src: 'blob:temp-1', alt: '1' }]);
+    const { result } = renderHook(() => useCreateCommentMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ images: [IMAGE], author: AUTHOR });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(revokeSpy).not.toHaveBeenCalledWith('blob:temp-1');
+
+    act(() => {
+      useImageViewerStore.getState().setImage({ src: 'https://cdn.example.com/x.png', alt: 'x' });
+    });
+
+    expect(revokeSpy).toHaveBeenCalledWith('blob:temp-1');
+  });
+
+  it('답글: 확대 창이 임시 이미지를 보고 있으면 다른 이미지로 바뀔 때까지 해제하지 않는다', async () => {
+    const parent: Comment = { ...mockComment, id: 'parent-comment', replies: [] };
+    queryClient.setQueryData(commentKeys.list(POST_ID), [parent]);
+    useImageViewerStore.getState().setImages([{ src: 'blob:temp-1', alt: '1' }]);
+    const { result } = renderHook(() => useCreateReplyMutation(POST_ID), { wrapper: Wrapper });
+
+    act(() => {
+      result.current.mutate({ commentId: 'parent-comment', images: [IMAGE], author: AUTHOR });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(revokeSpy).not.toHaveBeenCalledWith('blob:temp-1');
+
+    act(() => {
+      useImageViewerStore.getState().setImage({ src: 'https://cdn.example.com/x.png', alt: 'x' });
+    });
+
+    expect(revokeSpy).toHaveBeenCalledWith('blob:temp-1');
   });
 });
 

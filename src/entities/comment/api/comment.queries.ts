@@ -28,6 +28,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { ApiError } from '@/shared/types/common.type';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { IdempotencyKeyUtil } from '@/shared/utils/idempotency-key.util';
+import { revokeObjectUrlsWhenUnused } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 
 // 서버 응답을 기다리는 동안 목록에 즉시 꽂아 넣는 임시 댓글을 만든다.
 // content 조립 규칙은 BE CommentService.buildFinalContent와 동일하게 맞춘다 - 텍스트 뒤에
@@ -246,7 +247,7 @@ export const useCreateCommentMutation = (postId: string) => {
       }
     },
     onSettled: (_data, _err, _variables, context) => {
-      context?.blobUrls.forEach((url) => URL.revokeObjectURL(url));
+      revokeObjectUrlsWhenUnused(context?.blobUrls ?? []);
     },
   });
 };
@@ -325,7 +326,7 @@ export const useCreateReplyMutation = (postId: string) => {
       }
     },
     onSettled: (_data, _err, _variables, context) => {
-      context?.blobUrls.forEach((url) => URL.revokeObjectURL(url));
+      revokeObjectUrlsWhenUnused(context?.blobUrls ?? []);
     },
   });
 };
