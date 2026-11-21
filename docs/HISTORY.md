@@ -1,3 +1,6 @@
+### 2026-11-21 (FE)
+- 이미지 미리보기 모달의 레이아웃 깨짐 현상 수정 ([#670](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/670))
+
 ### 2026-11-20 (FE)
 - 메신저 미리보기 봇 요청 대응을 위해 메타 데이터 전달 방식을 OG HTML 기반으로 개선 ([#669](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/669))
 
