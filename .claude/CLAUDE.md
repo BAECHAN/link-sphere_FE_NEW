@@ -557,6 +557,27 @@ UI 동작이 바뀌는 변경을 커밋하기 전, Playwright MCP로 실제 브�
 
 ---
 
+## 코드 지도 (floorplan)
+
+이 개발 기계에는 FE·BE·infra를 함께 그린 코드 지도가 저장소 바깥(세 저장소의 상위 폴더 `floorplan/`)에 있다. git에
+들어가지 않아 클라우드 세션·다른 기계에는 없다 — 아래 명령이 파일을 못 찾으면 이 절을 건너뛴다. "X가 어디 있나",
+"Y가 어떻게 동작하나", "Z를 누가 쓰나"는 코드를 찾기 전에 먼저 조회한다. 경로는 메인 체크아웃·워크트리 어디서든
+같은 곳을 가리키도록 git 공용 디렉터리에서 계산한다:
+
+```bash
+FP="$(git rev-parse --path-format=absolute --git-common-dir)/../../floorplan"
+node "$FP/query.mjs" find "<단어>"      # 맞는 모듈·파일·엔드포인트
+node "$FP/query.mjs" show "<파일 경로 | 모듈 id | GET /path>"   # 무엇이고, 무엇을 쓰고, 누가 쓰나
+node "$FP/query.mjs" path "<from>" "<to>"   # 둘이 어떻게 이어지나
+node "$FP/query.mjs" overview           # 전체 한눈에
+```
+
+지도는 최근 수정보다 늦을 수 있으니 고치기 전에 코드로 확인한다. 지도 갱신은 floorplan skill("평면도 업데이트해줘",
+바뀐 파일만 다시 읽는다)이 하고, 공개본(Pages `/floorplan/`)을 다시 올리는 순서는 `docs/DEPLOY.md` "Storybook 공개
+배포"의 "코드 지도"에 있다.
+
+---
+
 ## 코드 스타일 레퍼런스
 
 새 기능 구현 전 아래 파일들을 읽어 스타일을 학습한다. 위 섹션의 패턴 예시가 추상적으로 느껴질 때 이 파일들을 직접 읽으면 된다.

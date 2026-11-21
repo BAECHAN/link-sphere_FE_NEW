@@ -268,7 +268,7 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
   배포로 `/storybook/`에 올렸다 — 바꾼 이유와 비교한 대안은 [`DECISIONS.md`](DECISIONS.md) 2026-10-30 항목.
 - **주소 구조**: 저장소 하나에 Pages 사이트는 하나뿐이라, 문서마다 하위 경로(`storybook/`)를 쓰고 루트에는
   첫 화면 [`pages-site/index.html`](../pages-site/index.html)을 둔다. 첫 화면은 FE·BE 저장소 Pages의 문서(Storybook,
-  BE API 문서)를 카드로 함께 보여 주고, BE 저장소 첫 화면도 같은 목록이다 — 그래서 문서를 더하거나 옮기면 두 저장소의
+  코드 지도, BE API 문서)를 카드로 함께 보여 주고, BE 저장소 첫 화면도 같은 목록이다 — 그래서 문서를 더하거나 옮기면 두 저장소의
   `pages-site/index.html`을 같이 고친다(저장소를 넘는 링크는 `pnpm check:docs`가 검사하지 못한다). 2026-10-31 전까지는
   첫 화면이 `storybook/`으로 바로 넘겼다. 그때 루트에 Storybook이 있던 2026-10-30 첫 배포 때의 링크(`?path=…`)는 이제
   넘기지 않고 첫 화면을 보여 준다(2026-10-31 사용자 결정). Pages
@@ -291,6 +291,14 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
   `vite.config.ts`를 자동으로 읽어 병합하지만 `base`만은 `'./'`로 덮어쓴다(설치된
   builder-vite 소스로 직접 확인, 2026-10-05) — 그래서 정적 빌드는 상대경로(`./assets/...`)를 생성하고
   `/link-sphere_FE_NEW/storybook/` 같은 하위 경로에서도 그대로 동작한다. 별도 `base` 설정이 필요 없다.
+- **코드 지도**(`/floorplan/`, 2026-11-21): FE·BE 코드를 쉬운 말로 그린 지도(floorplan 플러그인 공유용 내보내기본)를
+  [`pages-site/floorplan/index.html`](../pages-site/floorplan/index.html)에 커밋해 두면 "사이트 조립" 단계가
+  `pages-site/`를 통째로 복사하면서 함께 올라간다(빌드 단계 없음). README의 스크린샷은 같은 폴더의 `preview.png`다.
+  3.6MB 생성물이라 `.prettierignore`에서 뺐다. 원본(설명·구조 파일)은 저장소 바깥, 이 개발 기계의 세 저장소 상위
+  폴더(`floorplan/`)에만 있어 CI가 다시 만들 수 없다 — 갱신은 그 기계에서 지도를 새로 고친 뒤 **비공개 infra 저장소의
+  칸을 뺀 설정으로** 빌드·내보내기(`node floorplan/serve.mjs --export`)해 두 파일을 바꾸는 PR로 한다. 내보내기본에는
+  질문 창·로컬 경로·보안 점검 목록이 빠지고 파일 이름과 설명은 실린다. 내보낸 HTML을 손으로 고치면 지도 데이터가
+  깨져 "No data"만 보인다(2026-11-21 직접 확인).
 - **롤백**: 되돌릴 PR을 revert해 main에 병합하면 다시 게시된다. revert가 경로 필터에 걸리지 않으면
   `gh workflow run "Storybook Deploy (GitHub Pages)" --ref main`으로 수동 실행한다(수동 실행은 main 최신 커밋을
   빌드한다). 공개를 멈추려면 저장소 Settings → Pages에서 끄거나 `gh api -X DELETE repos/BAECHAN/link-sphere_FE_NEW/pages`.
