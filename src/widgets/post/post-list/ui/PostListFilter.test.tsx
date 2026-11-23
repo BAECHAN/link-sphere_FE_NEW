@@ -6,6 +6,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { TEXTS } from '@/shared/config/texts';
 import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
 
@@ -29,6 +30,11 @@ function BackButton() {
       test-back
     </button>
   );
+}
+
+/** 범위 칩을 켜려면 로그인이 필요하다 - 켜는 동작을 보는 테스트가 렌더 전에 부른다(정리는 src/test/setup.ts) */
+function signIn() {
+  useAuthStore.getState().setAuth('token');
 }
 
 function renderSearch(...initialEntries: string[]) {
@@ -86,6 +92,7 @@ describe('PostListFilter — 조건 N개 적용 중 카운트', () => {
 
   // SCOPE_FILTERS에 키가 빠지면 이 칩만 켠 상태에서 카운트가 안 뜨고 초기화도 early return한다
   it('"좋아요한" 칩은 카운트에 잡히고, 초기화하면 URL에서 빠진다', async () => {
+    signIn();
     const user = userEvent.setup();
     renderSearch('/');
 
@@ -119,6 +126,7 @@ describe('PostListFilter — 조건 N개 적용 중 카운트', () => {
 // 켜짐을 색으로만 보여 주면 화면 읽기 프로그램 사용자는 지금 무엇이 걸려 있는지 알 수 없다.
 describe('PostListFilter — 칩 켜짐 상태 전달', () => {
   it('범위 칩을 켜면 눌림 상태가 된다', async () => {
+    signIn();
     const user = userEvent.setup();
     renderSearch('/');
 
@@ -127,6 +135,20 @@ describe('PostListFilter — 칩 켜짐 상태 전달', () => {
     expect(
       await screen.findByRole('button', { name: TEXTS.buttons.likedOnly, pressed: true })
     ).toBeInTheDocument();
+  });
+
+  // 로그인해야 뜻이 있는 조건이라, 로그아웃 상태에서는 켜지 않고 로그인 창을 띄운다(usePostListFilter.test.tsx)
+  it('로그아웃 상태에서 범위 칩을 눌러도 눌림 상태가 되지 않고 주소가 그대로다', async () => {
+    const user = userEvent.setup();
+    renderSearch('/');
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.likedOnly, pressed: false }));
+
+    expect(
+      screen.getByRole('button', { name: TEXTS.buttons.likedOnly, pressed: false })
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('location-search')).toHaveTextContent('');
+    expect(screen.queryByText(/조건 \d+개 적용 중/)).not.toBeInTheDocument();
   });
 
   it('켜진 범위 칩을 끄면 눌림 상태가 풀린다', async () => {

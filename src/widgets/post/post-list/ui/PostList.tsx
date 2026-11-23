@@ -1,10 +1,11 @@
 import { Fragment, type ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 import {
   usePostList,
   usePostListApplying,
   usePostListErrorReset,
 } from '@/widgets/post/post-list/hooks/usePostList';
+import { usePostListLoginGate } from '@/widgets/post/post-list/hooks/usePostListLoginGate';
 import { PostListSkeleton } from '@/widgets/post/post-list/ui/PostCardSkeleton';
 import { Post } from '@/entities/post/model/post.schema';
 import { useRemoveErroredPostListsOnLeave } from '@/entities/post/hooks/useRemoveErroredPostListsOnLeave';
@@ -15,6 +16,7 @@ import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { LoadMoreError } from '@/shared/ui/elements/LoadMoreError';
+import { Button } from '@link-sphere/ui/atoms/button';
 import { Spinner } from '@link-sphere/ui/atoms/spinner';
 import { usePullToRefresh } from '@/shared/hooks/usePullToRefresh';
 import { TEXTS } from '@/shared/config/texts';
@@ -33,8 +35,14 @@ interface PostListProps {
 export function PostList({ renderPost, grid }: PostListProps) {
   const { resetKeys, onReset } = usePostListErrorReset();
   const isApplying = usePostListApplying();
+  const { needsLogin, handleSignIn } = usePostListLoginGate();
   // 에러 경계 밖에서 불러야 목록이 에러를 던진 채로 떠나도 정리가 돈다
   useRemoveErroredPostListsOnLeave();
+
+  // 로그아웃 상태에서 주소에 로그인 전용 범위 필터가 남아 있으면 목록을 요청하지 않고 로그인을 안내한다
+  if (needsLogin) {
+    return <PostListLoginNotice onSignIn={handleSignIn} />;
+  }
 
   // 덮개는 absolute가 아니라 grid 같은 칸에 겹친다 - 이 래퍼를 relative로 두면 가상 스크롤이
   // 목록 위치를 재는 offsetTop(useWindowGridVirtualizer.ts의 useScrollMargin)의 기준이 이 래퍼로
@@ -75,6 +83,31 @@ export function PostList({ renderPost, grid }: PostListProps) {
         </div>
       )}
     </div>
+  );
+}
+
+interface PostListLoginNoticeProps {
+  onSignIn: () => void;
+}
+
+function PostListLoginNotice({ onSignIn }: PostListLoginNoticeProps) {
+  return (
+    <EmptyState className="border rounded-lg bg-muted/10 px-4">
+      <div className="flex flex-col items-center gap-4">
+        <span className="inline-flex items-center justify-center rounded-full bg-muted p-3">
+          <Lock aria-hidden="true" className="size-6" />
+        </span>
+
+        <div className="flex flex-col items-center gap-1">
+          <h2 className="text-section-title text-foreground">
+            {TEXTS.post.list.loginRequired.title}
+          </h2>
+          <p className="text-sm">{TEXTS.post.list.loginRequired.description}</p>
+        </div>
+
+        <Button onClick={onSignIn}>{TEXTS.buttons.login}</Button>
+      </div>
+    </EmptyState>
   );
 }
 

@@ -154,8 +154,8 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 
 ### 라우트
 
-`src/app/routes/AppRoutes.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:271-287`), 작성·수정은
-`ProtectedLayout` 그룹(`:289-313`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/PostFeedPage.tsx`는
+`src/app/routes/AppRoutes.tsx`에서 피드·상세는 비로그인도 볼 수 있는 그룹(`:284-300`), 작성·수정은
+`ProtectedLayout` 그룹(`:302-326`)에 있다. 각 페이지 컴포넌트는 얇다 — `pages/post/PostFeedPage.tsx`는
 제목·"링크 공유" 버튼(`useProtectedNavigate`)·`PostListFilter`·`PostList`를 배치하고, `PostList`에 카드를
 그리는 함수(`renderFeedPost` — `backSource="feed"`, 첫 행만 `priorityThumbnail`)와 카드 치수(`POST_CARD_GRID`)를
 넘긴다([`FE-ARCHITECTURE.md`](./FE-ARCHITECTURE.md) §26 위층 조립). `PostEditPage`는 수정 폼을 그대로 렌더하고,
@@ -177,12 +177,12 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - **중복 제거**: 같은 쿼리의 `select`가 모든 페이지를 평탄화하면서 이미 본 `id`를 걸러
   `posts`를 만든다. cursor는 등록·삭제로 밀리지 않지만, 검색 점수처럼 정렬 값이 쪽 사이에 바뀌면 같은 글이 또 올 수 있어
   남겼다.
-- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:184-193`)가
+- **가상화**: `usePostList`(`src/widgets/post/post-list/hooks/usePostList.ts:210-219`)가
   컨테이너 실측 폭으로 열 수(최대 3, 최소 카드 폭 292px)를 정하고, 게시글을 열 수만큼 묶은
   **행** 단위로 가상화한다. `PostList.tsx`의 `PostListContent`(`virtualizer.getVirtualItems().map` 행 렌더)가 보이는 행만 `translateY`로 배치한다.
 - **다음 페이지 트리거**: 마지막으로 렌더된 가상 행 번호가 `rows.length - 5` 이상이고, 이 목록에 진행 중인
   요청이 없고(`!isFetching`), 직전 요청이 실패하지 않았으면(`!failureReason`) `fetchNextPage()`
-  (`usePostList.ts:202-215`). IntersectionObserver 센티넬은 가상화 도입 때 이 방식으로 바뀌었다.
+  (`usePostList.ts:228-241`). IntersectionObserver 센티넬은 가상화 도입 때 이 방식으로 바뀌었다.
 - **다음 페이지 실패**: 자동으로 다시 받지 않고, 스피너 자리에 "더 불러오지 못했어요. [다시 시도]" 행
   (`src/shared/ui/elements/LoadMoreError.tsx`)을 둔다. 버튼을 누르거나 재조회(창 포커스·당겨서 새로고침)가
   성공하면 다시 자동으로 받는다. 요청이 도는 동안은 행 대신 스피너다. 북마크·내 댓글 목록도 같은 규칙이다
@@ -193,16 +193,16 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   `refetch`를 부른다.
 - **조회 실패**: 같은 `AsyncBoundary`가 에러 문구(`TEXTS.messages.error.fetchPosts`)를 띄운다.
   검색 조건(q·filter·봇 숨기기)이 바뀌면 에러 상태를 풀고 다시 조회한다(`resetKeys`,
-  `usePostListErrorReset`, `usePostList.ts:106-116`). 풀 때 실패한 목록 쿼리를 캐시에서 지워,
+  `usePostListErrorReset`, `usePostList.ts:131-141`). 풀 때 실패한 목록 쿼리를 캐시에서 지워,
   실패했던 조건을 나중에 다시 골라도 새로 요청한다. 경위는 [`SEARCH.md`](./SEARCH.md) §10
   2026-10-14 항목. 피드를 떠날 때도 같은 함수로 지운다 — 아래 "조회에 실패한 화면에 다시 들어오기"(2026-11-03).
   둘 다 데이터 없이 실패한 목록만 지우고, 1쪽이 있고 다음 쪽만 실패한 목록은 남긴다.
 - **조건을 바꾼 뒤 응답 대기**: 목록은 새 응답이 올 때까지 이전 결과를 유지한다(스켈레톤 없음).
   0.5초가 지나도 응답이 없으면 `PostList.tsx`의 `isApplying` 덮개가 이전 목록을 흐리게 덮고 "결과를 불러오는
-  중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:131-157`). 판정과 근거는
+  중이에요."를 띄운다(`usePostListApplying`, `usePostList.ts:157-182`). 판정과 근거는
   [`SEARCH.md`](./SEARCH.md) §5.
 - **봇 글 숨기기**: URL이 아니라 localStorage 설정(`useHideBotsStore`)을 `filter`에
-  `excludeBots`로 합쳐 보낸다(`src/widgets/post/post-list/utils/post-list-payload.ts:7-18`). 칩·검색 파라미터 자체는
+  `excludeBots`로 합쳐 보낸다(`src/widgets/post/post-list/utils/post-list-payload.ts:28-39`). 칩·검색 파라미터 자체는
   [`SEARCH.md`](./SEARCH.md).
 
 #### 다음 페이지 실패 처리 (2026-11-03, #491)
@@ -296,7 +296,7 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
 - `usePostDetail`(`src/pages/post/hooks/usePostDetail.ts:75-114`)이
   `useSuspenseFetchPostDetailQuery`로 조회한다. 이 쿼리는 `retry: false`다(`post.queries.ts`)
   — 404는 재시도해도 같고 안내 화면만 늦어진다.
-- **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/AppRoutes.tsx:251`)가 lazy 페이지 청크를 요청하는
+- **미리 받기**: 상세 라우트(`PostDetailRoute`, `src/app/routes/AppRoutes.tsx:264`)가 lazy 페이지 청크를 요청하는
   같은 렌더에서 게시글(`usePrefetchPostDetail`)과 댓글(`usePrefetchComments`)을 요청한다. 게시글은 상세 조회와
   같은 옵션 묶음(`postDetailQueryOptions`)을 써 `retry: false`까지 같다. 진행 중인 요청은 먼저 시작한 쪽 옵션으로
   돌기 때문이다. 카드·내 댓글 hover의 `prefetchPostDetail`도 같은 옵션 묶음을 쓴다(2026-10-27 전에는 `retry`가
@@ -757,7 +757,7 @@ post는 `@x` 표기로 무효화 래퍼를 공개하고(`src/entities/post/@x/`)
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 피드 페이지 배치             | `src/pages/post/PostFeedPage.tsx`                                                                                                                                                                                    |
 | 피드·상세 미리 받기          | `src/app/routes/AppRoutes.tsx`의 `PostFeedRoute`·`PostDetailRoute`, `src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts`, 조건 계산은 `src/widgets/post/post-list/utils/post-list-payload.ts`                   |
-| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:164-236`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
+| 목록 조회·가상화·다음 페이지 | `src/widgets/post/post-list/hooks/usePostList.ts:189-263`, `src/widgets/post/post-list/ui/PostList.tsx`                                                                                                              |
 | 카드 UI / 카드 동작          | `src/widgets/post/post-card/ui/PostCard.tsx`, `src/widgets/post/post-card/hooks/usePostCard.ts`                                                                                                                      |
 | 상세 / 404                   | `src/pages/post/PostDetailPage.tsx:65-104`                                                                                                                                                                           |
 | 조회 기록·조회수 반영        | `src/pages/post/hooks/usePostDetail.ts:87-96`, `src/entities/post/api/post.queries.ts:274-316`의 `applyRecordedViewCount`·`recordPostView`, `src/entities/post/api/post.api.ts:82-84`                                |

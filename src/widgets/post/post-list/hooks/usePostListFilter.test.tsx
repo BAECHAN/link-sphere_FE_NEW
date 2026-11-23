@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, render, waitFor } from '@testing-library/react';
 import {
   RouterProvider,
@@ -14,11 +14,19 @@ import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { createTestQueryClient } from '@/test/utils';
 import { usePostListFilter } from '@/widgets/post/post-list/hooks/usePostListFilter';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
+import { useAuthStore } from '@/shared/store/auth.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { RouterEvents } from '@/shared/lib/router/router-events';
 
 const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 type FilterHook = ReturnType<typeof usePostListFilter>;
+type TestRouter = ReturnType<typeof createMemoryRouter>;
+
+/** 범위 칩을 켜려면 로그인이 필요하다 - 켜는 동작을 보는 테스트가 렌더 전에 부른다(정리는 src/test/setup.ts) */
+function signIn() {
+  useAuthStore.getState().setAuth('token');
+}
 
 beforeEach(() => {
   useHideBotsStore.setState({ hideBots: false });
@@ -182,6 +190,7 @@ describe('usePostListFilter', () => {
   });
 
   it('범위 필터를 누르면 칩이 켜지고 URL에 반영되며, 다시 누르면 꺼진다', async () => {
+    signIn();
     const { latest, router } = renderFilter('/');
 
     act(() => {
@@ -204,6 +213,7 @@ describe('usePostListFilter', () => {
   });
 
   it('다른 필터가 켜져 있어도 하나를 끄면 나머지는 유지되고, 켜면 함께 쌓인다', async () => {
+    signIn();
     const { latest, router } = renderFilter('/?filter=isBookmarked,isMyPosts');
 
     act(() => {
@@ -280,6 +290,7 @@ describe('usePostListFilter', () => {
   });
 
   it('범위 필터 칩은 URL이 따라오기 전에 먼저 켜진다', () => {
+    signIn();
     const { latest, renders } = renderFilter('/');
 
     act(() => {
@@ -337,6 +348,160 @@ describe('usePostListFilter', () => {
 
     await waitFor(() => {
       expect(router.state.location.search).toBe('');
+    });
+  });
+
+  // 범위 칩 4개는 로그인해야 뜻이 있다. 로그아웃 상태에서 켜려고 누르면 주소를 바꾸지 않고(= 목록을 요청하지 않고)
+  // 로그인 창을 띄우며, 로그인하면 그 칩을 켠다(useAuthGuard의 resumeAfterLogin). 로그인 창을 여는 쪽이 라우터가
+  // 가 있는 위치를 읽으므로(useBackClosableOverlay) 앱처럼 라우터를 RouterEvents에 주입한다.
+  describe('로그아웃 상태의 범위 칩', () => {
+    afterEach(() => {
+      useLoginDialogStore.getState().setOnSuccess(undefined);
+      useLoginDialogStore.getState().setPendingAction(undefined);
+    });
+
+    function renderFilterOnAppRouter(initialEntry: string) {
+      const handles = renderFilter(initialEntry);
+
+      RouterEvents.setSource(handles.router);
+
+      return handles;
+    }
+
+    function isLoginDialogOpen(router: TestRouter) {
+      const state = router.state.location.state as { loginDialogOpen?: boolean } | null;
+
+      return Boolean(state?.loginDialogOpen);
+    }
+
+    /** 로그인 창이 하는 일을 순서대로 흉내 낸다 - 로그인 성공 → 창 닫힘(뒤로) → 재개 액션 실행(useLoginDialog.ts) */
+    async function completeLogin(router: TestRouter) {
+      act(() => {
+        signIn();
+      });
+      await act(async () => {
+        await router.navigate(-1);
+      });
+      act(() => {
+        useLoginDialogStore.getState().pendingAction?.();
+      });
+    }
+
+    it('꺼진 칩을 누르면 칩과 주소는 그대로 두고 로그인 창을 연다', async () => {
+      const { latest, router } = renderFilterOnAppRouter('/');
+
+      act(() => {
+        latest.current.handleToggleFilter('isMyPosts');
+      });
+
+      await waitFor(() => {
+        expect(isLoginDialogOpen(router)).toBe(true);
+      });
+      expect(latest.current.isClickedMyPosts).toBe(false);
+      expect(latest.current.appliedCount).toBe(0);
+      expect(router.state.location.search).toBe('');
+    });
+
+    it('로그인하면 눌렀던 칩이 켜지고 주소에 필터가 붙는다', async () => {
+      const { latest, router } = renderFilterOnAppRouter('/');
+
+      act(() => {
+        latest.current.handleToggleFilter('isMyPosts');
+      });
+      await waitFor(() => {
+        expect(isLoginDialogOpen(router)).toBe(true);
+      });
+
+      await completeLogin(router);
+
+      expect(latest.current.isClickedMyPosts).toBe(true);
+      await waitFor(() => {
+        expect(router.state.location.search).toBe('?filter=isMyPosts');
+      });
+      expect(isLoginDialogOpen(router)).toBe(false);
+    });
+
+    it('로그인하지 않고 창을 닫으면 칩과 주소가 그대로다', async () => {
+      const { latest, router } = renderFilterOnAppRouter('/');
+
+      act(() => {
+        latest.current.handleToggleFilter('isMyPosts');
+      });
+      await waitFor(() => {
+        expect(isLoginDialogOpen(router)).toBe(true);
+      });
+
+      await act(async () => {
+        await router.navigate(-1);
+      });
+
+      expect(latest.current.isClickedMyPosts).toBe(false);
+      expect(router.state.location.search).toBe('');
+    });
+
+    it('칩을 누른 뒤 검색어가 바뀐 채 로그인해도 검색어는 남고 필터가 붙는다', async () => {
+      const { latest, router } = renderFilterOnAppRouter('/');
+      // 조건을 바꾼 전환이 끝나기 전에 누른 칩 - 누른 순간의 핸들러는 바뀌기 전 주소를 기억하고 있다
+      const handleToggleFilterBeforeSearch = latest.current.handleToggleFilter;
+
+      await act(async () => {
+        await router.navigate(`/?q=${encodeURIComponent('리액트')}`);
+      });
+      act(() => {
+        handleToggleFilterBeforeSearch('isMyPosts');
+      });
+      await waitFor(() => {
+        expect(isLoginDialogOpen(router)).toBe(true);
+      });
+
+      await completeLogin(router);
+
+      await waitFor(() => {
+        const params = new URLSearchParams(router.state.location.search);
+
+        expect(params.get('filter')).toBe('isMyPosts');
+        expect(params.get('q')).toBe('리액트');
+      });
+      expect(latest.current.isClickedMyPosts).toBe(true);
+    });
+
+    it('재개할 때 그 칩이 이미 켜져 있으면 끄지 않는다', async () => {
+      const { latest, router } = renderFilterOnAppRouter('/');
+
+      act(() => {
+        latest.current.handleToggleFilter('isMyPosts');
+      });
+      await waitFor(() => {
+        expect(isLoginDialogOpen(router)).toBe(true);
+      });
+
+      await act(async () => {
+        await router.navigate('/?filter=isMyPosts');
+      });
+      act(() => {
+        signIn();
+      });
+      act(() => {
+        useLoginDialogStore.getState().pendingAction?.();
+      });
+
+      expect(latest.current.isClickedMyPosts).toBe(true);
+      expect(router.state.location.search).toBe('?filter=isMyPosts');
+    });
+
+    it('켜진 칩은 로그인 없이 끌 수 있다', async () => {
+      const { latest, router } = renderFilterOnAppRouter('/?filter=isBookmarked,isMyPosts');
+
+      act(() => {
+        latest.current.handleToggleFilter('isMyPosts');
+      });
+
+      expect(latest.current.isClickedMyPosts).toBe(false);
+      expect(latest.current.isClickedBookmark).toBe(true);
+      await waitFor(() => {
+        expect(router.state.location.search).toBe('?filter=isBookmarked');
+      });
+      expect(isLoginDialogOpen(router)).toBe(false);
     });
   });
 

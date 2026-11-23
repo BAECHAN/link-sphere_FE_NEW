@@ -81,6 +81,30 @@ export const usePostListParams = () => {
     });
   };
 
+  // 로그인 뒤 재개 전용 "켜기"(usePostListFilter) - 토글이 아니라서 이미 켜져 있으면 그대로 둔다.
+  // 재개는 로그인 창이 닫히는 뒤로가기 직후에 불리는데, 뒤로가기는 pending을 비운다(useSearchParamsDraft).
+  // 그때 목록 응답을 기다리느라 커밋된 주소가 아직 옛 값이면 draft가 그 옛 주소에서 시작해, 로그인 직전에 고른
+  // 조건(라벨·검색어)이 주소에서 빠진다 - 그래서 draft를 라우터가 지금 가 있는 주소로 맞춘 뒤에 켠다.
+  const turnFilterOn = (targetFilter: string) => {
+    const latestLocation = RouterEvents.getLocation();
+
+    updateSearchParams((draft) => {
+      if (latestLocation) {
+        Array.from(draft.keys()).forEach((key) => draft.delete(key));
+        new URLSearchParams(latestLocation.search).forEach((value, key) => {
+          draft.append(key, value);
+        });
+      }
+
+      const currentFilter = draft.get('filter') || '';
+      const filters = currentFilter ? currentFilter.split(',') : [];
+
+      if (!filters.includes(targetFilter)) {
+        draft.set('filter', [...filters, targetFilter].join(','));
+      }
+    });
+  };
+
   const clearSearch = () => {
     clearSearchParams();
   };
@@ -93,6 +117,7 @@ export const usePostListParams = () => {
     search,
     toggleSearchTag,
     toggleFilter,
+    turnFilterOn,
     clearSearch,
   };
 };

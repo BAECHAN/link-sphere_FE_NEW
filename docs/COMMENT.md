@@ -520,7 +520,7 @@ flowchart LR
 
 - **기다림 줄이기(2026-10-14)** — 게시글을 기다리며 멈추는 `PostDetailContent` 안에 `CommentList`가
   있어, 게시글이 와야 댓글을 요청하는 순차 요청이었다. 두 가지로 줄였다.
-  - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/AppRoutes.tsx:251`)가
+  - 상세 진입: 상세 라우트(`PostDetailRoute`, `src/app/routes/AppRoutes.tsx:264`)가
     `usePrefetchComments`(`src/entities/comment/api/comment.queries.ts:162`)를 불러 댓글을
     게시글과 동시에 요청한다. 처음엔 `PostDetailPage`가 경계 바깥에서 불렀다. 2026-10-26부터는 lazy 페이지
     청크도 기다리지 않도록 라우트로 옮겼다([`PERFORMANCE.md`](./PERFORMANCE.md) "LCP 데이터 요청 시점").

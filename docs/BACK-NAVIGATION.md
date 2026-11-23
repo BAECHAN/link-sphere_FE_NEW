@@ -205,7 +205,7 @@ sequenceDiagram
     화면을 덮고 있었다. 지금은 누르자마자 닫히고, 흐려진 이전 목록 위에 "결과를 불러오는 중이에요"가 보인다.
   - **새 화면의 코드를 받아 와야 하는 이동**(메뉴의 [북마크], 로그인 창의 [회원가입]) — 전과 같다. 전에도 지금도
     누르자마자 닫히고 새 화면 자리에 스피너가 보인다. 라우트마다 지연 로딩 화면을 `Suspense`로 감싸는데
-    (`src/app/routes/AppRoutes.tsx:80-84`), react.dev는 _"Transition은 모든 콘텐츠가 로드되기를 기다리지 않는다.
+    (`src/app/routes/AppRoutes.tsx:81-85`), react.dev는 _"Transition은 모든 콘텐츠가 로드되기를 기다리지 않는다.
     이미 드러난 콘텐츠를 숨기지 않을 만큼만 기다린다"_ 고 쓰고 새로 생긴 `Suspense` 경계는 기다리지 않는다고
     설명한다(번역, 이 세션에서 받은 발췌,
     [Suspense](https://react.dev/reference/react/Suspense#preventing-already-revealed-content-from-hiding)).

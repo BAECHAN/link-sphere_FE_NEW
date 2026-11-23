@@ -1,11 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, RouterProvider, createMemoryRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
-import { createTestQueryClient, userEvent } from '@/test/utils';
+import {
+  createTestQueryClient,
+  renderWithDataRouter,
+  userEvent,
+  waitRenderingEachStep,
+} from '@/test/utils';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { mockPostListResponse } from '@/mocks/fixtures/post.fixtures';
 import { TEXTS } from '@/shared/config/texts';
 import { PostList } from '@/widgets/post/post-list/ui/PostList';
@@ -354,6 +360,11 @@ describe('PostList — 봇 글 숨기기를 바꾼 뒤 응답을 기다리는 �
 describe('PostList — 좋아요 필터가 최근 좋아요만 봤을 때의 안내', () => {
   const notice = TEXTS.post.search.likedFilterLimited(10000);
 
+  // "좋아요한" 칩은 로그인해야 켜진다(정리는 src/test/setup.ts)
+  beforeEach(() => {
+    useAuthStore.getState().setAuth('token');
+  });
+
   function mockLikedLimit(content: typeof mockPostListResponse.content) {
     server.use(
       http.get(url(API_ENDPOINTS.post.base), ({ request }) => {
@@ -397,5 +408,129 @@ describe('PostList — 좋아요 필터가 최근 좋아요만 봤을 때의 안
 
     expect(await screen.findByText(notice)).toBeInTheDocument();
     expect(screen.getByText(TEXTS.messages.info.noPosts)).toBeInTheDocument();
+  });
+});
+
+// 범위 칩 4개(북마크한·좋아요한·내가 작성한·나만 볼 수 있는)는 로그인해야 뜻이 있다. 칩을 켠 채 로그아웃했거나
+// 그 주소로 바로 들어오면 주소에 필터가 남는데, 그대로 요청하면 BE가 조건을 버리고 전체 피드를 주거나(지금)
+// 401로 거절한다(BE 변경 뒤). 그래서 로그아웃 상태에서는 요청하지 않고 목록 자리에 로그인 안내를 둔다.
+describe('PostList — 로그아웃 상태에서 주소에 로그인 전용 필터가 남아 있을 때', () => {
+  const loginNotice = TEXTS.post.list.loginRequired;
+
+  // 봇 글 숨기기가 켜져 있으면 요청의 filter에 excludeBots가 붙는다 - 주소의 필터만 보려고 끈다
+  beforeEach(() => {
+    useHideBotsStore.setState({ hideBots: false });
+  });
+
+  /** 목록 요청의 filter를 기록하고 빈 목록을 돌려준다 */
+  function mockRecordedPostList(requestedFilters: (string | null)[]) {
+    server.use(
+      http.get(url(API_ENDPOINTS.post.base), ({ request }) => {
+        requestedFilters.push(new URL(request.url).searchParams.get('filter'));
+
+        return HttpResponse.json(
+          {
+            status: 200,
+            message: 'ok',
+            data: { ...mockPostListResponse, content: [] },
+            timestamp: '',
+          },
+          { status: 200 }
+        );
+      })
+    );
+  }
+
+  function renderList(initialEntry: string) {
+    return renderWithDataRouter(<PostList renderPost={renderTestPost} grid={TEST_GRID} />, {
+      wrapperOptions: { initialEntries: [initialEntry] },
+    });
+  }
+
+  /** 요청이 나갔다면 목 핸들러에 닿았을 시간 - "요청하지 않았다"를 단언하기 전에 기다린다 */
+  function waitForStrayRequests() {
+    return waitRenderingEachStep(100);
+  }
+
+  it('목록 대신 로그인 안내를 띄우고 목록을 요청하지 않는다', async () => {
+    const requestedFilters: (string | null)[] = [];
+    mockRecordedPostList(requestedFilters);
+
+    renderList('/?filter=isMyPosts');
+
+    expect(await screen.findByRole('heading', { name: loginNotice.title })).toBeInTheDocument();
+    expect(screen.getByText(loginNotice.description)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: TEXTS.buttons.login })).toBeInTheDocument();
+
+    await waitForStrayRequests();
+    expect(requestedFilters).toEqual([]);
+    expect(screen.queryByText(TEXTS.messages.info.noPosts)).not.toBeInTheDocument();
+  });
+
+  it('주소의 필터 값 앞뒤에 공백이 있어도 로그인 전용으로 본다', async () => {
+    const requestedFilters: (string | null)[] = [];
+    mockRecordedPostList(requestedFilters);
+
+    renderList(`/?filter=${encodeURIComponent(' isPrivate')}`);
+
+    expect(await screen.findByRole('heading', { name: loginNotice.title })).toBeInTheDocument();
+
+    await waitForStrayRequests();
+    expect(requestedFilters).toEqual([]);
+  });
+
+  it('안내의 로그인 버튼을 누르면 로그인 창을 연다', async () => {
+    mockRecordedPostList([]);
+    const user = userEvent.setup();
+
+    const { router } = renderList('/?filter=isMyPosts');
+
+    await user.click(await screen.findByRole('button', { name: TEXTS.buttons.login }));
+
+    await waitFor(() => {
+      const state = router.state.location.state as { loginDialogOpen?: boolean } | null;
+
+      expect(state?.loginDialogOpen).toBe(true);
+    });
+    expect(router.state.location.search).toBe('?filter=isMyPosts');
+  });
+
+  it('안내가 떠 있는 채 로그인하면 그 조건으로 목록을 요청해 그린다', async () => {
+    const requestedFilters: (string | null)[] = [];
+    mockRecordedPostList(requestedFilters);
+
+    renderList('/?filter=isMyPosts');
+    await screen.findByRole('heading', { name: loginNotice.title });
+
+    act(() => {
+      useAuthStore.getState().setAuth('token');
+    });
+
+    expect(await screen.findByText(TEXTS.messages.info.noPosts)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: loginNotice.title })).not.toBeInTheDocument();
+    expect(requestedFilters).toEqual(['isMyPosts']);
+  });
+
+  it('로그인 상태면 안내 없이 그 조건으로 목록을 요청한다', async () => {
+    const requestedFilters: (string | null)[] = [];
+    mockRecordedPostList(requestedFilters);
+    useAuthStore.getState().setAuth('token');
+
+    renderList('/?filter=isMyPosts');
+
+    expect(await screen.findByText(TEXTS.messages.info.noPosts)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: loginNotice.title })).not.toBeInTheDocument();
+    expect(requestedFilters).toEqual(['isMyPosts']);
+  });
+
+  it('로그인 전용이 아닌 조건만 있으면 로그아웃 상태에서도 목록을 그린다', async () => {
+    const requestedFilters: (string | null)[] = [];
+    mockRecordedPostList(requestedFilters);
+
+    renderList(`/?q=${encodeURIComponent('리액트')}`);
+
+    expect(await screen.findByText(TEXTS.messages.info.noPosts)).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: loginNotice.title })).not.toBeInTheDocument();
+    expect(requestedFilters).toHaveLength(1);
   });
 });

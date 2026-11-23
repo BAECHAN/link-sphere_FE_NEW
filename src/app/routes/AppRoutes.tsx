@@ -12,6 +12,7 @@ import { useRemoveErroredCommentsOnLeave } from '@/entities/comment/hooks/useRem
 import { usePrefetchPostDetail } from '@/entities/post/api/post.queries';
 import { useRemoveErroredPostDetailOnLeave } from '@/entities/post/hooks/useRemoveErroredPostDetailOnLeave';
 import { usePostFeedPrefetch } from '@/widgets/post/post-list/hooks/usePostFeedPrefetch';
+import { usePostListLoginGate } from '@/widgets/post/post-list/hooks/usePostListLoginGate';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ChunkReloadUtil } from '@/shared/utils/chunk-reload.util';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
@@ -120,8 +121,20 @@ function RootRedirect() {
  * 피드 목록 첫 페이지 요청을 페이지 청크와 같은 렌더에서 시작한다. URL과 봇 숨기기 설정을 구독하므로
  * PostFeedRoute가 아니라 따로 둔 이 컴포넌트에서 부른다 - PostFeedRoute가 구독하면 오버레이 열기처럼
  * 위치만 바뀌어도 페이지 전체가 다시 렌더된다(지금은 페이지 안에서 구독하는 컴포넌트만 렌더된다).
+ * 로그아웃 상태에서 주소에 로그인 전용 범위 필터가 남아 있으면 목록이 요청하지 않고 로그인을 안내하므로
+ * 미리 받기도 하지 않는다. 훅을 조건부로 부를 수 없어 미리 받는 쪽을 안쪽 컴포넌트로 나눴다.
  */
 function PostFeedPrefetch() {
+  const { needsLogin } = usePostListLoginGate();
+
+  if (needsLogin) {
+    return null;
+  }
+
+  return <PostFeedPrefetchRequest />;
+}
+
+function PostFeedPrefetchRequest() {
   usePostFeedPrefetch();
 
   return null;

@@ -3,7 +3,7 @@
 > 독립 기능 문서(서사형)입니다.
 > 대상 독자: 이 레포의 인증 코드를 처음 보거나, 인증 관련 화면/코드에서 이상한 동작을 발견해 원인을 추적해야 하는 개발자(AI 에이전트 포함).
 > 읽고 나면: 로그인부터 로그아웃까지 상태가 어디에 저장되고 언제 사라지는지, 만료된 토큰이 왜 서로 다른 두 곳에서 두 번 처리되는지, 그중 어느 쪽이 실제 보안 경계인지, 그리고 로그인한 사람도 글을 못 쓸 때가 있는 이유를 설명할 수 있게 됩니다. 비밀번호를 새로 만드는 폼이 입력 중에 언제 무엇을 보여주는지와 비밀번호 칸에서 붙여넣기를 막지 않는 이유(§8-G), 로그인이 만료되거나 다른 탭에서 로그아웃해도 쓰던 화면에 남는 방식(§8-I)도 여기서 다룹니다.
-> **마지막 검토**: 2026-11-17
+> **마지막 검토**: 2026-11-23 (§1 그림의 문지기 C 라벨, §5 게이트 C 문단, §8-D 사용처, `AppRoutes.tsx` 줄 번호만. 그 전 검토는 2026-11-17)
 
 ---
 
@@ -52,7 +52,7 @@ flowchart TD
     Check401 -->|"INVALID_TOKEN<br/>(토큰을 보냈음)"| InPlace
     Check401 -->|"NOT_LOGGED_IN<br/>(토큰 없이 보냄)"| ClearB["AuthUtil.clearAll()<br/>/auth/login으로 replace"]
 
-    Anon["비로그인 사용자가<br/>좋아요·북마크·댓글 클릭"] --> GuardC["useAuthGuard<br/>(문지기 C, 사전 유도)"]
+    Anon["비로그인 사용자가<br/>좋아요·북마크·댓글·범위 칩 클릭"] --> GuardC["useAuthGuard<br/>(문지기 C, 사전 유도)"]
     GuardC -->|"요청 자체를 안 보냄"| Modal["로그인 모달 오픈<br/>(제자리 유지)"]
 
     Children --> WriteClick{"글쓰기·댓글쓰기<br/>버튼 클릭"}
@@ -104,7 +104,9 @@ flowchart TD
 
 **왜 나뉘어 있나**: 게이트 A는 성능 결정([`docs/DECISIONS.md`](DECISIONS.md) 2026-07-25 항목)의 짝입니다 — `AuthProvider`가 라우터 렌더를 막지 않도록 바꾼 대가로, 복원이 끝나기 전 첫 페인트에서 로그인 사용자가 보호 페이지 새로고침 시 피드로 튕기는 걸 막는 화면 분기 장치로 도입됐습니다. 게이트 B는 "리프레시 토큰은 httpOnly라 JS가 존재·유효성을 전혀 모른다"는 사실에서 나옵니다 — 실제로 요청을 보내 401을 받아봐야 압니다. 게이트 C는 A·B 둘 다 못 막는 상황(비로그인 사용자가 공개 피드에 머문 채 좋아요를 누르는 것)을 막습니다: A는 페이지 단위라 이 상황에 개입 못 하고, B는 요청을 실제로 보내야 발동하는데 그러면 401 → `clearAll()` → 페이지 이탈로 사용자 문맥이 깨집니다. 게이트 D의 1차안은 "이메일 미인증이면 로그인 자체를 막는다"였지만, [GitHub 사례 조사](https://github.com/kamp-us/phoenix/issues/7485)에서 _"쓰기 권한(게시글·댓글)은 인증된 이메일에 게이팅되고, 마찰은 도착이 아니라 첫 '쓰기' 시점에 발생한다"_(번역)는 걸 확인하고 뒤집혔습니다 — 로그인·읽기까지 막으면 가입 직후 이탈이 너무 커진다는 판단입니다. 확정 경위는 `docs/plans/2026-09-28-auth-hardening.md`의 "확정된 결정들" 표를 참고하세요.
 
-### 라우트 그룹 구성 (`src/app/routes/AppRoutes.tsx`의 `appRoutes`, `:265-369`)
+**게이트 C가 클릭 말고도 서는 자리(2026-11-23)**: 피드의 범위 칩(북마크한·좋아요한·내가 작성한·나만 볼 수 있는)은 로그아웃 상태에서 켜려고 누르면 요청 없이 로그인 창을 띄웁니다. 그런데 칩을 켠 채 로그아웃하거나 그 주소로 바로 들어오면 클릭이 없어도 같은 요청이 나갑니다. 그래서 주소에 그 필터가 남은 로그아웃 상태에서는 목록과 미리 받기를 그리지 않고 로그인 안내를 둡니다(`usePostListLoginGate.ts`의 `needsLogin`). 판단 근거는 다른 게이트 C와 같이 클라이언트 상태뿐이고 보안 효과는 없습니다. 동작과 근거는 [`SEARCH.md`](SEARCH.md) §5에 있습니다.
+
+### 라우트 그룹 구성 (`src/app/routes/AppRoutes.tsx`의 `appRoutes`, `:278-382`)
 
 ```
 RootLayout
@@ -116,9 +118,9 @@ RootLayout
 
 `ProtectedLayout.tsx:4-9`가 `ProtectedRoute`로 `AppShellLayout`을 감쌉니다. **이건 React Router의 레이아웃 라우트라, 보호 그룹 안에서 페이지를 오갈 때(`/post/submit` ↔ `/bookmark`)는 언마운트되지 않습니다.** 게이트 A가 실제로 재평가되는 유일한 순간은 공개/게스트 그룹에서 보호 그룹으로 **처음 진입**할 때뿐입니다.
 
-`GuestGuard`(`routes/AppRoutes.tsx`의 `GuestGuard` 함수, `:96-109`)는 반대 방향 가드입니다 — 로그인 상태로 `/auth/login`에 오면 이전 경로(`location.state.from.pathname`) 또는 `HOME`으로 돌려보냅니다.
+`GuestGuard`(`routes/AppRoutes.tsx`의 `GuestGuard` 함수, `:97-110`)는 반대 방향 가드입니다 — 로그인 상태로 `/auth/login`에 오면 이전 경로(`location.state.from.pathname`) 또는 `HOME`으로 돌려보냅니다.
 
-`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/AppRoutes.tsx:343-346`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
+`/auth/verify-email`은 어느 가드에도 속하지 않고 `routes/AppRoutes.tsx:356-359`에서 `AuthLayout`만 직접 씌워 별도 라우트로 둡니다 — 로그인·비로그인 양쪽 모두 접근 가능해야 하기 때문입니다(로그인 상태면 인증 완료만 안내, 비로그인이면 로그인 유도).
 
 그래서 이 화면(`VerifyEmailStatus.tsx`)은 로그인 여부를 스스로 판단합니다. 기준은 게이트 A와 같은 `useAuthStore.isAuthenticated`이고, 계정 프로필(`useAccount()`의 `account`)은 쓰지 않습니다. 프로필은 로그인한 뒤 `/auth/account`로 따로 받아 오므로, 조회 전이나 조회 실패 때 로그인 사용자가 비로그인으로 보여 "로그인하러 가기" 버튼이 뜹니다(2026-11-03 수정 전 동작). 게이트 밖이라 복원 전에도 렌더되므로, `isAuthResolved`가 될 때까지는 확인 요청이 먼저 끝나도 "확인 중" 화면을 유지하고 버튼을 정하지 않습니다.
 
@@ -631,7 +633,7 @@ effect(`:58-74`, #228로 `features/auth/login`에서 이 경로로 이동)가 �
 클로저의 `account`가 재개 시점엔 비어 있어 조용히 무반응이 됩니다. 자세한 근거는
 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-11 항목 참고.
 
-**사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `useBookmarkPostButton.ts`(북마크, `resumeAfterLogin: true`), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글·답글 제출, 재개 안 함), `useCreatePost.ts`·`useUpdatePost.ts`·`useUpdateComment.ts`(글 등록·수정, 댓글 수정 제출, 재개 안 함 — 로그인이 풀린 채 그 화면에 남았을 때만 막힌다, §8-I)에서 씁니다. 로그인이 풀린 채 쓰던 화면에 남아 있으면(`auth.store`의 `signedOutInPlace`) 기본 문구 대신 그 이유의 창("로그인이 만료됐어요"·"다른 탭에서 로그아웃했어요")을 같은 주소 위에 엽니다(`AuthUtil.openSignInDialogInPlace`) — 창을 닫은 뒤 어느 폼에서 제출하든, 좋아요를 누르든 같은 창이 다시 뜹니다(2026-10-28). `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)과 피드 화면의 등록 버튼(`pages/post/PostFeedPage.tsx`)에서 씁니다.
+**사용처**: `useAuthGuard`는 `LikePostButton.tsx`(좋아요, 재개 안 함), `useBookmarkPostButton.ts`(북마크, `resumeAfterLogin: true`), `usePostListFilter.ts`(피드의 범위 칩을 켤 때, `resumeAfterLogin: true` — 재개는 토글이 아니라 "켜기"라 로그인 뒤 상태와 상관없이 그 칩이 켜진다), `usePostListLoginGate.ts`(주소에 범위 필터가 남은 로그아웃 상태의 로그인 안내 버튼, 재개할 일이 없다 — 둘 다 [`SEARCH.md`](SEARCH.md) §5), `LikeCommentButton.tsx`(댓글 좋아요, 재개 안 함), `useCreateComment.ts`(댓글·답글 제출, 재개 안 함), `useCreatePost.ts`·`useUpdatePost.ts`·`useUpdateComment.ts`(글 등록·수정, 댓글 수정 제출, 재개 안 함 — 로그인이 풀린 채 그 화면에 남았을 때만 막힌다, §8-I)에서 씁니다. 로그인이 풀린 채 쓰던 화면에 남아 있으면(`auth.store`의 `signedOutInPlace`) 기본 문구 대신 그 이유의 창("로그인이 만료됐어요"·"다른 탭에서 로그아웃했어요")을 같은 주소 위에 엽니다(`AuthUtil.openSignInDialogInPlace`) — 창을 닫은 뒤 어느 폼에서 제출하든, 좋아요를 누르든 같은 창이 다시 뜹니다(2026-10-28). `useProtectedNavigate`는 사이드바·하단 탭바의 "등록"·"북마크" 항목(`nav-items.ts:34`, `:41`의 `requiresAuth: true`)과 피드 화면의 등록 버튼(`pages/post/PostFeedPage.tsx`)에서 씁니다.
 
 **바깥 클릭 닫기**: 로그인 모달은 이메일·비밀번호를 **직접 입력했을 때만** 바깥(오버레이) 클릭으로 닫히지 않습니다 — 닫히면 입력이 사라지기 때문입니다. 저장된 이메일로 미리 채워진 값은 입력으로 보지 않습니다(react-hook-form `dirtyFields` 기준). `useLogin`의 `onInputDirtyChange` 옵션 → `LoginForm` → `useLoginDialog`의 `hasUserInput` → `DialogContent`의 `dismissOnOutsideClick` 순으로 전달됩니다. 첫 단계(`useLogin`의 보고)는 `useLayoutEffect`라 입력이 화면에 보이기 전에 모달까지 반영됩니다 — `useEffect`일 때는 입력 직후의 바깥 클릭이 옛 값으로 모달을 닫았습니다(2026-10-13, [`docs/UNSAVED-CHANGES-GUARD.md`](UNSAVED-CHANGES-GUARD.md) §10). ESC·X·뒤로가기는 입력이 있어도 그대로 닫힙니다. 정책 전체와 근거는 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-30 "바깥 클릭 닫기 정책" 항목 참고.
 

@@ -9,7 +9,7 @@
 > `#닉네임` 태그가 어떻게 분해되는지 이해하고, 검색 관련 동작(유지·초기화·오타 보정)을
 > 어느 파일에서 바꾸는지 안다.
 >
-> **마지막 검토**: 2026-11-18 (§5 범위 칩의 좋아요 필터 범위 안내와 §8 코드 지도 한 행만. 같은 날 앞서 §1·§8·§9·§10의 X 버튼 서술만. 그 전 검토는 2026-11-10)
+> **마지막 검토**: 2026-11-23 (§5 범위 칩의 로그아웃 동작, §8 코드 지도의 범위 칩·목록 행과 줄 번호, §9·§10·§11의 해당 항목만. 그 전 검토는 2026-11-18)
 
 ## 1. 쉬운 설명
 
@@ -137,11 +137,36 @@ React가 보는 `location.search`는 API 응답이 올 때까지 안 바뀌는�
 
 **범위 칩은 "북마크한·좋아요한·내가 작성한·나만 볼 수 있는" 4개다.** 켜진 값은 URL `filter`에
 콤마로 이어 붙고(`?filter=isBookmarked,isLiked`), BE `GET /post`가 AND로 묶는다. 칩 키 목록은
-[`usePostListFilter.ts:10`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L10)의
-`SCOPE_FILTERS` 하나이고, "조건 N개" 카운트와 초기화가 이 배열을 본다. 새 칩을 추가하면서 여기
-빠뜨리면 그 칩만 켠 상태에서 카운트가 안 뜨고 초기화도 아무 일을 하지 않는다
-(`PostListFilter.test.tsx`가 "좋아요한"으로 이를 검증한다). BE는 모르는 `filter` 값을 조용히
-무시하므로, 새 값은 BE를 먼저 배포한다.
+[`post-list-payload.ts:9`](../src/widgets/post/post-list/utils/post-list-payload.ts#L9)의
+`SCOPE_FILTERS` 하나이고, "조건 N개" 카운트·초기화(`usePostListFilter.ts`)와 로그아웃 상태의 요청
+차단(아래 문단)이 이 배열을 본다. 새 칩을 추가하면서 여기 빠뜨리면 그 칩만 켠 상태에서 카운트가 안
+뜨고 초기화도 아무 일을 하지 않는다(`PostListFilter.test.tsx`가 "좋아요한"으로 이를 검증한다). BE는
+모르는 `filter` 값을 조용히 무시하므로, 새 값은 BE를 먼저 배포한다.
+
+**범위 칩은 로그인해야 쓴다(2026-11-23).** 네 값 모두 "내" 북마크·좋아요·글을 가리켜 로그인이 있어야 뜻이
+있다. 토큰 없이 그대로 요청하면 BE가 조건을 버리고 전체 공개 글을 주거나("나만 볼 수 있는"은 빈 목록) 해서,
+사용자는 왜 그런 결과가 나왔는지 알 수 없었다(2026-11-23 운영에서 토큰 없는 요청 5건으로 재현 — 표와 업계
+비교는 [계획 문서](./plans/2026-11-23-login-only-filter-chips.md)). 그래서 로그아웃 상태에서는 이 필터가 붙은
+목록을 요청하지 않는다.
+
+- **꺼진 칩을 누르면** 칩과 주소를 바꾸지 않고 로그인 창을 띄운다(`usePostListFilter.ts`의
+  `handleToggleFilter`가 [`useAuthGuard`](./AUTH.md)를 `resumeAfterLogin`으로 부른다). 로그인하면 창이 닫힌 뒤
+  그 칩이 켜지고, 로그인하지 않고 닫으면 아무 일도 없다. 켜진 칩을 끄는 데는 로그인이 필요 없다 — 칩을 켠 채
+  로그아웃한 뒤에도 끌 수 있어야 한다.
+- **주소에 필터가 남아 있으면**(칩을 켠 채 로그아웃·로그인 만료, 그 주소로 바로 진입) 목록 자리에 로그인 안내와
+  [로그인] 버튼을 둔다(`PostList.tsx`의 `PostListLoginNotice`). 판정은
+  [`usePostListLoginGate.ts`](../src/widgets/post/post-list/hooks/usePostListLoginGate.ts)의 `needsLogin`이고,
+  목록과 라우트의 미리 받기(`AppRoutes.tsx`의 `PostFeedPrefetch`)가 함께 본다. 로그인하면 그 조건의 목록이 바로
+  나오고, 칩을 끄거나 초기화하면 일반 목록으로 돌아간다.
+- 주소의 `filter`는 쉼표로 나눈 값의 앞뒤 공백을 떼고 본다(`post-list-payload.ts`의 `hasLoginOnlyFilter`). BE가
+  같은 방식으로 읽어(BE `PostService.kt`의 `getPostsByCursor`) 손으로 친 주소(`?filter=%20isMyPosts`)도 같은 조건이다.
+  공백을 떼는 것은 이 판정뿐이라, 그런 주소에서는 안내는 뜨는데 칩이 꺼져 보이고 초기화가 듣지 않는다(§11).
+- **남는 요청 한 건**: 칩을 켠 채 로그아웃하는 순간, 아직 떠 있던 목록이 토큰 없이 한 번 다시 요청한다
+  (`AuthUtil.clearQueries`의 `resetQueries`, [AUTH.md](./AUTH.md) §8-E). 화면은 곧 로그인 안내로 바뀌어 그 응답을
+  쓰지 않는다. 인증 공용 코드는 고치지 않고 두었다(§9에 측정).
+- 안내의 모양(자물쇠·제목·설명·버튼)과 문구(켜진 칩과 상관없는 한 가지)는 실제 스타일 시안 네 가지를 나란히 보고
+  사용자가 골랐다(2026-11-23). 고르지 않은 안: 문구 한 줄+버튼, 제목·설명 두 줄+버튼, 칩 이름을 넣은 문구.
+- 로그인 뒤 재개는 클릭이 아니라 로그인 창이 닫힌 뒤에 불려, 주소를 쓰는 경로가 클릭 때와 다르다(§10).
 
 "좋아요한"(2026-10-14)은 좋아요한 글을 다시 찾을 방법이 없던 빈 곳을 메운다. "내 댓글"을
 좋아요·북마크까지 담는 "내 활동" 페이지로 넓히는 안(종류별 탭, 한 목록에 섞는 타임라인)과
@@ -296,12 +321,14 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 드롭다운 목록 마크업(헤더 고정·행·삭제 버튼) 바꾸기          | [`RecentSearchDropdown.tsx`](../src/widgets/layout/navbar/ui/RecentSearchDropdown.tsx)                                                                                                                                                                                                                                                                                                          |
 | 카드의 카테고리 칩을 눌렀을 때 동작 바꾸기                   | [`usePostCard.ts`](../src/widgets/post/post-card/hooks/usePostCard.ts) — `handleCategoryClick`, 칩 마크업은 [`ActionChip.tsx`](../src/shared/ui/elements/ActionChip.tsx), 쓰는 곳은 [`PostCard.tsx:303`](../src/widgets/post/post-card/ui/PostCard.tsx#L303) 이하                                                                                                                               |
 | `@카테고리`/`#닉네임`/키워드 분해 규칙 바꾸기                | [`search-parser.ts`](../src/widgets/post/post-list/utils/search-parser.ts) — `parseSearchQuery`                                                                                                                                                                                                                                                                                                 |
-| 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListFilter.tsx:48-80`](../src/widgets/post/post-list/ui/PostListFilter.tsx#L48-L80) — 칩 마크업, 키는 [`usePostListFilter.ts:10`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L10) `SCOPE_FILTERS`에도 넣는다                                                                                                                                                                |
-| "조건 N개 적용 중" 카운트 로직                               | [`usePostListFilter.ts:13-30`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L13-L30) — `computeAppliedFilterCount`                                                                                                                                                                                                                                                                  |
+| 범위 칩(북마크한·좋아요한 등) 추가·순서·색 바꾸기            | [`PostListFilter.tsx:48-80`](../src/widgets/post/post-list/ui/PostListFilter.tsx#L48-L80) — 칩 마크업, 키는 [`post-list-payload.ts:9`](../src/widgets/post/post-list/utils/post-list-payload.ts#L9) `SCOPE_FILTERS`에도 넣는다(로그인 전용으로 취급된다)                                                                                                                                        |
+| 로그아웃 상태에서 범위 칩을 눌렀을 때 동작 바꾸기            | [`usePostListFilter.ts:77-96`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L77-L96) — `handleToggleFilter`의 가드, 로그인 뒤 재개는 같은 파일의 `turnFilterOnAfterLogin`과 [`usePostList.ts:88-106`](../src/widgets/post/post-list/hooks/usePostList.ts#L88-L106) `turnFilterOn`                                                                                                   |
+| 로그아웃 상태의 로그인 안내 조건·모양·문구 바꾸기            | 조건은 [`usePostListLoginGate.ts`](../src/widgets/post/post-list/hooks/usePostListLoginGate.ts)의 `needsLogin`(목록과 `AppRoutes.tsx`의 `PostFeedPrefetch`가 함께 본다), 모양은 [`PostList.tsx:93-112`](../src/widgets/post/post-list/ui/PostList.tsx#L93-L112) `PostListLoginNotice`, 문구는 `TEXTS.post.list.loginRequired`                                                                   |
+| "조건 N개 적용 중" 카운트 로직                               | [`usePostListFilter.ts:14-31`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L14-L31) — `computeAppliedFilterCount`                                                                                                                                                                                                                                                                  |
 | 라벨(@카테고리) 칩을 눌렀을 때 새 검색어 계산 규칙 바꾸기    | [`usePostList.ts:46-62`](../src/widgets/post/post-list/hooks/usePostList.ts#L46-L62) — `toggleSearchTag`(pending 포함 draft 기준). 칩 미러 갱신은 [`usePostListFilter.ts`](../src/widgets/post/post-list/hooks/usePostListFilter.ts)의 `toggleCategoryTagInSearch`                                                                                                                              |
-| 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListFilter.ts:88-103`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L88-L103)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)                                 |
-| 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:106-116`](../src/widgets/post/post-list/hooks/usePostList.ts#L106-L116) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                                                 |
-| 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:131-157`](../src/widgets/post/post-list/hooks/usePostList.ts#L131-L157) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 봇 숨기기 늦춘 값 비교, 0.5초 지연)                                                                                                                                                                                                              |
+| 뒤로/앞으로 가기 때 칩·pending 정리 바꾸기                   | [`router-events.ts`](../src/shared/lib/router/router-events.ts)(POP 감지), [`usePostListFilter.ts:117-132`](../src/widgets/post/post-list/hooks/usePostListFilter.ts#L117-L132)(칩 미러), [`useSearchParamsDraft.ts:59-65`](../src/shared/hooks/useSearchParamsDraft.ts#L59-L65)(pending), 주입은 [`RouterProvider.tsx`](../src/app/providers/RouterProvider.tsx)                               |
+| 목록 조회 실패 화면이 풀리는 조건 바꾸기                     | [`usePostList.ts:131-141`](../src/widgets/post/post-list/hooks/usePostList.ts#L131-L141) — `usePostListErrorReset`(리셋 키), 실패한 목록 캐시 삭제는 [`post.keys.ts`](../src/entities/post/api/post.keys.ts)의 `postRemoveQueries.erroredLists`                                                                                                                                                 |
+| 정지 구간 "불러오는 중" 표시 조건·지연 바꾸기                | [`usePostList.ts:157-182`](../src/widgets/post/post-list/hooks/usePostList.ts#L157-L182) — `usePostListApplying`(최신 위치와 커밋된 위치 비교, 봇 숨기기 늦춘 값 비교, 0.5초 지연)                                                                                                                                                                                                              |
 | 정지 구간 "불러오는 중" 덮개 모양 바꾸기                     | [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `isApplying` 분기 — 덮개·알약, 문구는 `TEXTS.post.search.applying`                                                                                                                                                                                                                                                            |
 | 초기화 버튼(필터+검색어 전체 리셋)                           | [`usePostListFilter.ts`](../src/widgets/post/post-list/hooks/usePostListFilter.ts) — `handleClearSearch`                                                                                                                                                                                                                                                                                        |
 | 오타 보정 문구                                               | `TEXTS.post.search.corrected`, 표시는 [`PostList.tsx`](../src/widgets/post/post-list/ui/PostList.tsx)의 `PostListContent`(`correctedSearch` 분기)                                                                                                                                                                                                                                               |
@@ -310,8 +337,8 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
 | 검색 중 하단 댓글바 숨김 동작 바꾸기                         | [`useCommentComposer.ts`](../src/features/comment/create/hooks/useCommentComposer.ts)의 `useBackClosableOverlay('mobileSearchOpen')` 구독부, [`CommentComposer.tsx`](../src/features/comment/create/ui/CommentComposer.tsx)의 시트·접힌 바 두 곳 `cn(...)` 조건부 `hidden`                                                                                                                      |
 | 검색 중 배경 클릭·포커스 차단 범위 바꾸기                    | [`AppLayout.tsx`](../src/app/layouts/app-layout/AppLayout.tsx) — `main` ref에 건 `inert` 동기화 `useLayoutEffect`                                                                                                                                                                                                                                                                               |
 | "검색어와 의미가 비슷한 글이에요" 안내 문구·표시 조건 바꾸기 | [`PostCard.tsx:208-216`](../src/widgets/post/post-card/ui/PostCard.tsx#L208-L216) — `post.isSemanticMatch`, 문구는 `TEXTS.post.card.semanticMatch`                                                                                                                                                                                                                                              |
-| 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/AppRoutes.tsx:234`](../src/app/routes/AppRoutes.tsx#L234) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                                         |
-| 목록 첫 페이지 미리 받기 바꾸기                              | [`usePostFeedPrefetch.ts`](../src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts)(라우트의 `PostFeedPrefetch`가 부른다). 조건 계산은 목록과 같은 [`post-list-payload.ts`](../src/widgets/post/post-list/utils/post-list-payload.ts)의 `toPostListPayload`를 써야 키가 같다                                                                                                                 |
+| 필터 카드 카테고리 칩 미리 받기 바꾸기                       | [`src/app/routes/AppRoutes.tsx:247`](../src/app/routes/AppRoutes.tsx#L247) — `PostFeedRoute`(페이지 청크 요청과 같은 렌더에서 요청), 훅은 [`category.queries.ts:24`](../src/entities/category/api/category.queries.ts#L24) `usePrefetchCategoryOptions`                                                                                                                                         |
+| 목록 첫 페이지 미리 받기 바꾸기                              | [`usePostFeedPrefetch.ts`](../src/widgets/post/post-list/hooks/usePostFeedPrefetch.ts)(라우트의 `PostFeedPrefetch`가 부른다 — 로그아웃 상태에서 주소에 범위 필터가 있으면 부르지 않는다). 조건 계산은 목록과 같은 [`post-list-payload.ts`](../src/widgets/post/post-list/utils/post-list-payload.ts)의 `toPostListPayload`를 써야 키가 같다                                                     |
 | 카테고리 응답 캐시 시간 바꾸기                               | BE `CategoryController.kt`의 `CATEGORY_LIST_CACHE_CONTROL`(BE #102)                                                                                                                                                                                                                                                                                                                             |
 
 ## 9. 검증 결과
@@ -379,6 +406,37 @@ https://claude.ai/artifact/EWPPK41PnY3AVQhtWNjpAw).
   - 단위 `NavbarSearch.test.tsx` 3건(X 뒤에도 뒤로가기로 바뀐 `q`를 따라간다, `q`가 없을 때 X를 눌러도 따라간다, X 뒤
     다시 검색했다가 뒤로가기로 `q`가 없어지면 입력창도 비워진다). 표식을 내리는 줄을 빼면 세 번째가 실패했다.
     `MobileNavbarSearch.test.tsx`의 X 테스트는 기대값을 "`q` 삭제"에서 "`q` 그대로"로 바꿨다(요구 변경).
+- 로그아웃 상태의 범위 칩(2026-11-23, §5·§10):
+  - 단위: `src/widgets/post/post-list` 8개 파일 98건과 `src/app/routes/AppRoutes.test.tsx` 3건 통과. 먼저 쓴 테스트
+    20건은 구현 전 코드에서 실패했다(`post-list-payload.test.ts` 8건, `usePostListFilter.test.tsx` 5건,
+    `PostList.test.tsx` 5건, `PostListFilter.test.tsx` 1건, `usePostList.test.tsx` 시나리오 G 1건). 시나리오 G·H는
+    구현 뒤에 실제 `useLoginDialog` 훅을 끼운 지금 형태로 다시 썼고(§10), 지금 형태는 ref를 뺀 변형에서 실패하는
+    것으로 확인했다. 구현을 일부러 깬 변형(ref를 빼고 누를 때의 함수로 재개, 이미 켜진 칩 확인을 빼거나 켜기를
+    토글로 바꿈, 칩 표시를 켜지 않음, 공백 떼기 제거, 라우터 주소로 맞추기 제거)마다 해당 테스트가 실패했다.
+  - 미리 받기·목록 안내·칩 가드를 하나씩 뺀 변형: 라우트의 미리 받기 조건을 빼면 `AppRoutes.test.tsx` 1건
+    (`expected [ 'isPrivate' ] to deeply equal []`)과 e2e 직접 진입 1건이 실패했다. 목록 안내 조건을 빼면
+    `PostList.test.tsx` 4건과 e2e 4건(직접 진입, 안내에서 칩 끄기, 칩을 켠 채 로그아웃, 안내의 버튼으로 다시
+    로그인)이, 칩 클릭 가드를 빼면 e2e 2건(칩 클릭 → 로그인 창, 로그인 뒤 칩 적용)이 실패했다. e2e는 chromium에서
+    해당 테스트만 돌렸다. 로그인 복원 전 요청 0건을 보는 e2e는 미리 받기 조건을 빼도 통과했다 — 그 구간을 막는
+    것은 복원 스피너다(`AppShellLayout.tsx`).
+  - e2e `guest-guard.spec.ts`에 7건(모킹한 로컬 브라우저, 목은 토큰 없는 범위 필터 요청에 401 `NOT_LOGGED_IN`을
+    준다): 꺼진 칩 클릭 → 로그인 창이 뜨고 필터가 붙은 요청 0건 / 로그인 → `filter=isMyPosts`, 칩 켜짐, 그 조건의
+    요청이 모두 토큰과 함께 / `/post?filter=isPrivate` 직접 진입 → 안내, 목록 요청 0건 / 안내에서 칩을 끄면 일반
+    목록 / 칩을 켠 채 로그아웃 → 안내, 주소 그대로, 에러 안내 없음 / 안내의 버튼으로 다시 로그인 → 목록 / 로그인
+    복원이 끝나기 전에는 요청 0건이고 끝난 뒤 요청은 모두 토큰과 함께.
+  - 칩을 켠 채 로그아웃하는 순간의 요청 수: 위 목이 받은 목록 요청을 기록해 3회 반복했고, 세 번 모두
+    `isMyPosts` 요청이 토큰 있는 것 1건(로그아웃 전) 뒤에 토큰 없는 것 1건이었다 — §5의 "남는 요청 한 건"이다.
+    스펙은 "토큰 없는 범위 필터 요청 1건 이하"로 고정했다.
+  - 기존 테스트 가운데 로그인 준비 없이 범위 칩을 켜거나 범위 필터 주소로 들어가던 것
+    (`usePostListFilter.test.tsx`·`PostListFilter.test.tsx`·`usePostList.test.tsx`·`PostList.test.tsx`·
+    `e2e/post-list-filters.spec.ts`)은 단언을 그대로 두고 입력만 로그인 상태로 바꿨다(요구 변경). e2e의 두 테스트는
+    로그인 fixture를 쓰는 describe로 옮겼다.
+  - 가장자리 두 가지를 일회용 스펙으로 한 번씩 재현했다(모킹한 로컬 브라우저, 관찰값을 그대로 출력). ① 로그아웃
+    상태로 `/post?filter=%20isMyPosts`에 들어가면 안내가 뜨고 목록 요청은 0건인데, "내가 작성한" 칩은
+    `aria-pressed="false"`이고 "조건 N개"가 없으며, 초기화를 눌러도 주소와 안내가 그대로였다. ② 토큰이 없어도 200을
+    주는 목(지금 BE와 같은 응답)에서 칩을 켠 채 로그아웃한 뒤 안내의 버튼으로 다시 로그인하면, 로그아웃 순간에
+    받아 둔 조건 없는 공개 글이 새 응답이 올 때까지 그려졌다(토큰 응답을 0.8초 늦춘 목에서 관찰 시작 뒤
+    510~724ms에 보임, 끝에는 0건). 둘 다 §11에 남겼다.
 
 ## 10. 시행착오
 
@@ -744,6 +802,26 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
   동작이 다르다. 고르지 않은 안: 위 `state` 싣기(되살아남), 닫기 경로까지 고치기(뒤로가기 표준을 건드려 범위가
   큼), 지금 그대로 두기.
 
+**로그인 뒤 재개한 범위 칩이 직전에 고른 조건을 지움(2026-11-23).** 로그아웃 상태의 범위 칩에 로그인 창을
+붙이다(§5), 계획에 추정으로만 적어 둔 가장자리를 재현해 병합 전에 고쳤다.
+
+- 증상(단위 테스트, 실제 `useLoginDialog` 훅을 끼워 재현): 로그아웃 상태에서 라벨 칩(`@백엔드`)을 누르고 그
+  목록 응답이 오기 전에 범위 칩을 눌러 로그인하면, 주소에서 `q=@백엔드`가 빠지고 `filter=isMyPosts`만 남았다.
+  라벨 칩은 켜진 채라 화면과 주소가 어긋났다.
+- 원인: 로그인 창은 히스토리 칸으로 열리고, 닫힐 때 뒤로가기를 한다. 뒤로가기는 pending 의도를 비운다
+  (`useSearchParamsDraft`의 `RouterEvents.onPop`). 재개는 그 직후, React가 새 위치를 커밋하기 전에 불려
+  (`useLoginDialog`의 `isOpen`이 라우터의 최신 위치를 읽는다) 주소 초안이 커밋된 옛 주소에서 시작했다.
+- 수정: 재개 전용 `turnFilterOn`(`usePostList.ts`)이 초안을 라우터가 지금 가 있는 주소
+  (`RouterEvents.getLocation()`)로 맞춘 뒤 그 칩을 켠다. 토글이 아니라서 로그인 전에 이미 켜져 있던 칩은 그대로다.
+- ref를 쓰는 이유: 재개에 칩을 누른 렌더의 함수를 쓰면, 재개 직후 응답 전에 다른 범위 칩을 눌렀을 때 그 칩만
+  남고 재개한 칩이 지워졌다(`?filter=isBookmarked`). 누를 때의 함수는 그때의 위치에 묶여 있어 재개가 쓴 초안이
+  "지금 위치의 초안"으로 남지 않는다. 그래서 마지막으로 커밋된 `turnFilterOn`을 ref로 읽고, ref는 effect에서
+  갱신한다 — react.dev는 _"초기화를 빼면 렌더링 중에 `ref.current`를 쓰거나 읽지 마라"_ (번역, 조회 도구가 옮긴
+  문장의 재인용, [useRef 주의사항](https://react.dev/reference/react/useRef#caveats))고 쓴다.
+- 테스트가 놓쳤던 것: 처음에는 로그인 창을 손으로 흉내 냈다(로그인 상태로 바꿈 → 뒤로가기 → 재개 함수 호출).
+  이 테스트는 ref를 뺀 변형을 통과시켰다. 실제 `useLoginDialog` 훅을 끼운 시나리오 G·H(`usePostList.test.tsx`)로
+  바꾼 뒤에야 그 변형이 실패했다 — 재개가 불리는 시점을 손으로 맞추지 못한 것으로 본다(추정).
+
 ## 11. 남은 것
 
 - **첫 방문이나 7일 넘게 지난 재방문에서 카테고리 응답이 게시글보다 늦으면 칩은 여전히 늦게 들어와 밀린다.**
@@ -762,6 +840,21 @@ LCP 전체 측정과 다른 개선 후보는 [`PERFORMANCE.md`](./PERFORMANCE.md
   `CategoryRepository.findAllByIdIn`).
 - 헤더 검색창 입력값은 정지 구간에 뒤로가기를 해도 사용자가 친 값이 그대로 남는다
   (`useNavbarSearch`) — 직접 타이핑한 값이라 의도적으로 그대로 둔다.
+- **정지 구간에 다른 오버레이를 열었다 닫은 뒤 칩을 누르면 직전에 고른 조건이 빠질 수 있다**(코드 추적만, 재현하지
+  않음). 닫는 뒤로가기가 pending 의도를 비워, 다음 칩의 주소 초안이 커밋된 옛 주소에서 시작한다. 로그인 뒤 재개만
+  2026-11-23에 고쳤다(§10) — 공용 훅 `useSearchParamsDraft`를 고쳐야 하는 일반 경로는 그대로다.
+- **BE는 아직 토큰 없는 범위 필터 요청에 200을 준다**(2026-11-23). 401 `NOT_LOGGED_IN`으로 거절하는 BE 변경이 이
+  변경 뒤에 이어진다([계획 문서](./plans/2026-11-23-login-only-filter-chips.md) Phase 2). 화면은 그 요청을 보내지
+  않으므로 응답과 무관하게 동작한다. 예외는 §5의 "남는 요청 한 건"이다 — BE가 200을 주는 동안에는 그 응답(조건
+  없는 공개 글)이 캐시에 남아, 그 자리에서 다시 로그인하면 새 응답이 올 때까지 잠깐 보인다(§9에 재현). BE가 401을
+  주면 그 캐시는 실패로 남고 로그인할 때 지워져 보이지 않는다(e2e "로그인 안내의 버튼으로 다시 로그인하면"이 401
+  목으로 본다).
+- **공백이 낀 손 입력 주소(`?filter=%20isMyPosts`)에서는 안내와 칩이 어긋난다**(2026-11-23, §9에 재현). 로그인 전용
+  판정만 값의 앞뒤 공백을 떼고(`hasLoginOnlyFilter`), 칩 표시·"조건 N개"·초기화(`usePostListFilter.ts`)는 값을
+  그대로 비교한다. 로그아웃 상태로 그 주소에 들어오면 안내는 뜨는데 칩이 꺼져 보이고 초기화가 아무 일도 하지
+  않는다 — 벗어나려면 로그인하거나 다른 화면으로 간다. 앱이 만드는 주소에는 공백이 없다. 맞추려면 `filter`를 읽는
+  곳(칩 표시·카운트, `usePostList.ts`의 `toggleFilter`·`turnFilterOn`)이 같은 방식으로 공백을 떼야 하고, 그러면
+  로그인 사용자가 그 주소에서 보는 칩 표시도 함께 바뀐다.
 
 - **이 문서는 "검색어가 어떻게 URL·입력창을 오가는지"만 다룬다.** 2026-09-28부터 BE가
   키워드뿐 아니라 의미(임베딩 코사인 거리) 기반으로도 결과를 찾고, 키워드로는 안 걸렸지만
