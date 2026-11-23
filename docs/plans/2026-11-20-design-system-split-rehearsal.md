@@ -4,7 +4,8 @@
 
 ## 구현 결과
 
-> #665(Phase 1) · 2026-11-20 대조 · 이탈 8 · 미구현 1(PR 전에 보완) — 판정 근거(파일:줄)는 PR 본문 "계획 대비 구현". Phase 2·3은 다음 PR에서 덧붙인다
+> #665(Phase 1) · 2026-11-20 대조 · 이탈 8 · 미구현 1(PR 전에 보완) — 판정 근거(파일:줄)는 각 PR 본문 "계획 대비 구현"
+> Phase 2·3: #673 · 2026-11-23 대조 · 이탈 2 · 미구현 0 — 답으로 생긴 코드 변경은 마무리 계획(`2026-11-23-design-system-split-rehearsal-wrapup.md`)에서 다뤘다
 
 - 이탈(워크스페이스 범위): `pnpm-workspace.yaml`에 `packages/*`만 넣었다. `examples/*`는 그 폴더가 생기는 Phase 2에서 더한다
 - 이탈(타입 검사): 루트 `tsconfig.json`의 `references`에 패키지를 넣지 않았다. composite 설정에서 TS2742가 나서 패키지는 자기 `tsc --noEmit`으로 따로 검사하고, 루트 `type-check`·`build`가 이어서 부른다(Turborepo의 패키지별 검사 방식)
@@ -18,6 +19,12 @@
 - 계획에 없던 변경: Stryker 설정에 패키지 별칭을 더했다(샌드박스에서 문구 Provider 모듈이 두 벌로 읽혀 context가 갈렸다). 그 밖에 패키지 `devDependencies`, 패키지 Vitest 설정의 `tsconfig.node.json` 등록, 의존성 검사의 devDependency 금지 범위를 패키지로 넓힘, `jsdom` 하위 의존성의 lockfile 갱신, CLAUDE.md 타입 검사 안내 보완, shadcn 설정(`components.json`)의 `cn` 경로가 있다. 패키지 `lib/`의 `cn`·토스트 래퍼에도 공용 UI API 규칙 2개가 걸린다(패키지 전체를 그 블록에 넣은 결과이고 위반은 없다). 원칙 문서 §1.5는 새 Critical Rules 줄이 정본으로 가리켜야 해서 Phase 2보다 먼저 만들었다
 - 계획에 없던 변경(테스트, 단언은 그대로): 옮긴 테스트 둘이 `renderWithProviders` 대신 `render`를 쓴다. 글자 크기 토큰 대조 테스트의 이름과 CSS 경로 계산을 바꿨고, 경계 린트 테스트의 실패 사례 입력 하나를 옮긴 모듈 대신 남은 모듈 경로로 바꿨다
 - 문서 동기화: 옮긴 파일 경로와 토큰 위치를 skill 넷, `/new-feature` 명령, docs 문서 일곱 개, `FE-ARCHITECTURE.md` §2 린트 표, e2e 주석 네 곳, 스토리·설정 주석에서 고쳤다
+- 이탈(Phase 2, 버전): 예제 앱 TypeScript를 최신 안정판(7.0.2)이 아니라 루트와 같은 5.9.3으로 고정했다. 저장소 안 TypeScript를 한 벌로 두려는 것이고, Next.js 16.4가 7을 받는지는 확인하지 않았다
+- 이탈(Phase 2, 무시 목록): `.prettierignore`는 고치지 않았다. 설치본 Prettier 3.9.10이 `.gitignore`도 무시 목록으로 읽어서, `.gitignore`에 넣은 `.next/`·`next-env.d.ts`가 서식 검사에도 걸린다(`.next`가 있는 상태에서 `pnpm format:check` 통과)
+- 계획에 없던 변경(Phase 2, 설치 방식): 실행 중 React는 Next 해석만으로 한 벌이었다(계획의 첫째 대응). 대신 링크 설치에서 타입(`@types/react` 18과 19)과 `next-themes`가 두 벌이 돼, 계획이 React용 둘째 대응으로 적어 둔 복사본 설치(`dependenciesMeta.injected`)를 여기에 썼다. 딸려서 예제 앱의 `transpilePackages`, 패키지의 `@types/react` 선택 peer, 예제 앱 `incremental: false`가 더해졌다
+- 계획에 없던 변경(Phase 2): 예제 앱에 둘째 클라이언트 경계 파일(`showcase.tsx`)과 견본 이미지, `next-themes`·`postcss`·`tailwindcss`·`@types/node` 선언을 더했다. `.gitignore`에 `*.tsbuildinfo`를 더했다. CI 단계는 수동 실행이면 늘 빌드한다. Phase 1에서 미룬 `examples/*` 워크스페이스 등록을 넣었다
+- Phase 2에서 넘긴 확인: Dependabot이 워크스페이스 안 `package.json`을 고치는지는 문서로 알 수 없었다. 예제 앱 단계가 앱만 바뀐 PR에서 건너뛰는지와 함께 병합 뒤 확인 이슈로 넘겼다. 예제 앱에는 루트 린트의 기본 규칙만 걸리고 Next.js용 린트 규칙을 둘지는 정하지 않았다(원칙 문서 §1.5 "예제 앱")
+- Phase 3: 미뤄 둔 세 항목에 더해 애니메이션 CSS, 버전 어긋남, 패키지 이름을 사용자 답으로 정해 원칙 문서 §1.5에 적었다. 코드를 바꾸는 답 둘(애니메이션 CSS, 버전 맞춤 테스트)은 마무리 계획으로 같은 PR에 넣었고, `LinkThumbnail`의 `className`과 패키지 이름은 별도 계획·PR이다
 
 <!-- plan-result:end -->
 

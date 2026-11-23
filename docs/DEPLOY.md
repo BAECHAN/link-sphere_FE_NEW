@@ -226,6 +226,10 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
 - 일부러 고정한 패키지는 `ignore`의 `versions`로 뺀다. 지금은 lint-staged `>=17.6.0` 하나다 — 17.6부터 스테이징 범위가
   넓어져 17.5.1에 고정해 뒀다([CI-CHECK-GATE.md](CI-CHECK-GATE.md) §9.8). 2026-11-13 첫 묶음 PR(#615)에 17.6.0이 들어온 뒤
   더했다. 커밋 훅에서만 쓰는 개발 도구라 `ignore`가 보안 업데이트까지 막아도 운영 영향이 없다.
+- 공용 UI 패키지의 `dependencies`(`packages/ui/package.json`) 가운데 루트 `package.json`도 선언한 패키지는 두 곳을 같은 버전으로
+  올린다. 한쪽만 올리면 `src/test/workspace-shared-deps.test.ts`가 실패한다(2026-11-23, 이유는
+  [DESIGN-SYSTEM-PRINCIPLES.md](DESIGN-SYSTEM-PRINCIPLES.md) §1.5 "알게 된 것"). Dependabot이 워크스페이스 안의 `package.json`
+  (`packages/ui`, `examples/next`)까지 고치는지는 아직 보지 못했다 — 2026-12 실행에서 확인한다.
 - `pnpm-lock.yaml`은 pnpm이 쓰는 서식 그대로 둔다(`.prettierignore`). 그 전에는 Prettier 서식이라 pnpm이나
   Dependabot이 lockfile을 다시 쓰면 수천 줄이 바뀌고 `format:check`가 실패했다. 서식을 바꾼 날 두 파일을
   YAML로 읽어 비교해 내용이 같은 것을 확인했다.
