@@ -1,5 +1,5 @@
 import { Check, Circle, X, type LucideIcon } from 'lucide-react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { PASSWORD_REQUIREMENTS, type PasswordRequirement } from '@/entities/auth/config/auth.const';
 import type { PasswordRequirementState } from '@/entities/auth/utils/auth.util';

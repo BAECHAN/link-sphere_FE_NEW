@@ -10,7 +10,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { type ReactNode } from 'react';
 import { useConfirmPasswordReset } from '@/features/auth/password-reset/hooks/useConfirmPasswordReset';
 
-vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
+vi.mock('@baechan/ui/lib/toast/toast', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 

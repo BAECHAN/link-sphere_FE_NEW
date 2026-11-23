@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { APP_UI_TEXTS } from '@/app/providers/UiTextsProvider';
-import { KO_UI_TEXTS } from '@link-sphere/ui/texts/ko-ui-texts';
-import type { UiTexts } from '@link-sphere/ui/texts/ui-texts';
+import { KO_UI_TEXTS } from '@baechan/ui/texts/ko-ui-texts';
+import type { UiTexts } from '@baechan/ui/texts/ui-texts';
 
 // 같은 문구가 앱 문구 파일(texts.ts)과 패키지의 한국어 묶음(ko-ui-texts.ts) 두 곳에 있다. 이 앱은 묶음을
 // 쓰지 않지만, 묶음을 그대로 넘기는 다른 프로젝트가 이 앱과 다른 글자를 보지 않도록 여기서 잡는다.

@@ -16,11 +16,11 @@ import { DelayedFallback } from '@/shared/ui/elements/DelayedFallback';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { ErrorState } from '@/shared/ui/elements/ErrorState';
 import { LoadMoreError } from '@/shared/ui/elements/LoadMoreError';
-import { Button } from '@link-sphere/ui/atoms/button';
-import { Spinner } from '@link-sphere/ui/atoms/spinner';
+import { Button } from '@baechan/ui/atoms/button';
+import { Spinner } from '@baechan/ui/atoms/spinner';
 import { usePullToRefresh } from '@/shared/hooks/usePullToRefresh';
 import { TEXTS } from '@/shared/config/texts';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 interface PostListProps {
   /**

@@ -33,8 +33,8 @@ ruleTester.run('no-app-import-in-generic-ui', noAppImportInGenericUiRule, {
     "import { Button } from '@/shared/ui/atoms/button';",
     "import { useUiTexts } from '@/shared/ui/texts/UiTextsProvider';",
     // 공용 UI 패키지(packages/ui)도 앱 밖 패키지다 - 패키지로 옮긴 보조 모듈은 허용 목록에서 빠졌다
-    "import { cn } from '@link-sphere/ui/lib/tailwind/utils';",
-    "import { toast } from '@link-sphere/ui/lib/toast/toast';",
+    "import { cn } from '@baechan/ui/lib/tailwind/utils';",
+    "import { toast } from '@baechan/ui/lib/toast/toast';",
     // 통째로 허용한 보조 모듈
     "import { useMergedRef } from '@/shared/hooks/useMergedRef';",
     "import { ScrollUtil } from '@/shared/utils/scroll.util';",

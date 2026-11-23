@@ -1,4 +1,4 @@
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 
 import { Showcase } from './showcase';
 
@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <main className="mx-auto flex max-w-2xl flex-col gap-8 p-8">
       <header className="flex flex-col gap-2">
-        <h1 className="text-screen-title">@link-sphere/ui 예제 (Next.js + React 19)</h1>
+        <h1 className="text-screen-title">@baechan/ui 예제 (Next.js + React 19)</h1>
         <p className="text-sm text-muted-foreground">
           저장소 안 공용 UI 패키지를 다른 앱에서 그려 보는 화면이다.
         </p>

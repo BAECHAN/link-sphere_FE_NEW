@@ -1,4 +1,4 @@
-// 패키지 타입 검사(`pnpm --filter @link-sphere/ui type-check` = `tsc --noEmit`). 루트 `pnpm type-check`·`pnpm build`가 함께
+// 패키지 타입 검사(`pnpm --filter @baechan/ui type-check` = `tsc --noEmit`). 루트 `pnpm type-check`·`pnpm build`가 함께
 // 부른다. 루트 tsconfig.json의 references(composite)로 묶지 않는다 - composite는 선언 파일 검사를 켜서, 스토리의 추론
 // 타입이 pnpm 저장소 경로를 가리킨다는 TS2742로 실패한다(2026-11-20 리허설, docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5).
 // 패키지마다 `tsc --noEmit`을 두는 것은 Turborepo가 권하는 방식이다(https://turborepo.dev/docs/guides/tools/typescript)

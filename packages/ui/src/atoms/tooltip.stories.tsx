@@ -4,8 +4,8 @@ import {
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
-} from '@link-sphere/ui/atoms/tooltip';
-import { Button } from '@link-sphere/ui/atoms/button';
+} from '@baechan/ui/atoms/tooltip';
+import { Button } from '@baechan/ui/atoms/button';
 
 const meta = {
   title: 'Shared/UI/Atoms/Tooltip',

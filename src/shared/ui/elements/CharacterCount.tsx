@@ -1,4 +1,4 @@
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { CommonUtil } from '@/shared/utils/common.util';
 
 export interface CharacterCountProps {

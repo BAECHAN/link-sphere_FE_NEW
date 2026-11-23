@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/shared/ui/atoms/select';
-import { Tooltip, TooltipProvider, TooltipTrigger } from '@link-sphere/ui/atoms/tooltip';
+import { Tooltip, TooltipProvider, TooltipTrigger } from '@baechan/ui/atoms/tooltip';
 
 // 공용 UI 부품이 ref·className·나머지 속성을 어디로 넘기는지 고정한다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4).
 // - atoms: 폴더를 훑어 내보낸 부품을 모두 그린다. 표에 적지 않은 새 부품도 단독으로 그려 검사한다.

@@ -1,11 +1,11 @@
 import { createElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast as sonnerToast } from 'sonner';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import {
   INLINE_ACTION_CLASS_NAMES,
   STACKED_ACTION_CLASS_NAMES,
-} from '@link-sphere/ui/lib/toast/toast-layout';
+} from '@baechan/ui/lib/toast/toast-layout';
 import { TEXTS } from '@/shared/config/texts';
 
 // sonner는 src/test/setup.ts에서 모킹돼 있어, 래퍼가 sonner에 넘긴 인자를 그대로 확인할 수 있다

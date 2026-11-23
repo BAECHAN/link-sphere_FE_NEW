@@ -1,6 +1,6 @@
 /*
- * @link-sphere/ui의 범용 토큰. 쓰는 앱은 `@import 'tailwindcss'` 바로 다음 줄에서 이 파일을 가져온다
- * (`@import '@link-sphere/ui/styles.css'`). 앱 전용 토큰(카테고리 색, 사이드바, 글꼴, 앱 배치 높이 등)은
+ * @baechan/ui의 범용 토큰. 쓰는 앱은 `@import 'tailwindcss'` 바로 다음 줄에서 이 파일을 가져온다
+ * (`@import '@baechan/ui/styles.css'`). 앱 전용 토큰(카테고리 색, 사이드바, 글꼴, 앱 배치 높이 등)은
  * 그 앱의 CSS에 둔다 - 이 앱은 src/app/globals.css(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5).
  * 값과 주석은 2026-11-20 분리 리허설 때 src/app/globals.css에서 그대로 옮겼다.
  */

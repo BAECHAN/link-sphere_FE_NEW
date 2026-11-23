@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { LinkThumbnail } from '@link-sphere/ui/atoms/link-thumbnail';
+import { LinkThumbnail } from '@baechan/ui/atoms/link-thumbnail';
 
 const meta = {
   title: 'Shared/UI/Atoms/LinkThumbnail',

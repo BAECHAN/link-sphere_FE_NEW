@@ -1,7 +1,7 @@
-import { LinkThumbnail } from '@link-sphere/ui/atoms/link-thumbnail';
+import { LinkThumbnail } from '@baechan/ui/atoms/link-thumbnail';
 import { Skeleton } from '@/shared/ui/atoms/skeleton';
 import { TEXTS } from '@/shared/config/texts';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import type { LinkPreviewState } from '@/entities/post/hooks/useLinkPreview';
 
 interface LinkPreviewCardProps {

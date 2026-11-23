@@ -4,7 +4,7 @@ import * as SelectPrimitive from '@radix-ui/react-select';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { CLICK_GUARD_MS } from '@/shared/hooks/useClickGuard';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { forwardRef, useRef, useState } from 'react';
 
 /**

@@ -1,6 +1,6 @@
 import { forwardRef } from 'react';
 
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 const Kbd = forwardRef<HTMLElement, React.ComponentPropsWithoutRef<'kbd'>>(
   ({ className, ...props }, ref) => (

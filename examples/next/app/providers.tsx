@@ -5,10 +5,10 @@
 import type { ReactNode } from 'react';
 import { ThemeProvider } from 'next-themes';
 
-import { Toaster } from '@link-sphere/ui/atoms/sonner';
-import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
-import { KO_UI_TEXTS } from '@link-sphere/ui/texts/ko-ui-texts';
-import { UiTextsProvider } from '@link-sphere/ui/texts/UiTextsProvider';
+import { Toaster } from '@baechan/ui/atoms/sonner';
+import { TooltipProvider } from '@baechan/ui/atoms/tooltip';
+import { KO_UI_TEXTS } from '@baechan/ui/texts/ko-ui-texts';
+import { UiTextsProvider } from '@baechan/ui/texts/UiTextsProvider';
 
 export function Providers({ children }: { children: ReactNode }) {
   return (

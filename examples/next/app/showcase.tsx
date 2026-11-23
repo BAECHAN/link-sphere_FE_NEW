@@ -2,12 +2,12 @@
 
 import { useTheme } from 'next-themes';
 
-import { Button } from '@link-sphere/ui/atoms/button';
-import { LinkThumbnail } from '@link-sphere/ui/atoms/link-thumbnail';
-import { Spinner } from '@link-sphere/ui/atoms/spinner';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@link-sphere/ui/atoms/tooltip';
-import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { Button } from '@baechan/ui/atoms/button';
+import { LinkThumbnail } from '@baechan/ui/atoms/link-thumbnail';
+import { Spinner } from '@baechan/ui/atoms/spinner';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@baechan/ui/atoms/tooltip';
+import { TooltipWrapper } from '@baechan/ui/elements/TooltipWrapper';
+import { toast } from '@baechan/ui/lib/toast/toast';
 
 const BUTTON_VARIANTS = [
   'default',

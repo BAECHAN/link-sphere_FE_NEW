@@ -13,7 +13,7 @@ import {
   type QueryKey,
 } from '@tanstack/react-query';
 import { postApi } from '@/entities/post/api/post.api';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import {
   MUTATION_ERROR_POLICY,
   resolveErrorToast,

@@ -12,7 +12,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useCopiedPostLinkStore } from '@/shared/store/copiedPostLink.store';
-import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
+import { TooltipProvider } from '@baechan/ui/atoms/tooltip';
 import { accountKeys } from '@/entities/account/api/account.keys';
 import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { mockAccount } from '@/mocks/fixtures/account.fixtures';

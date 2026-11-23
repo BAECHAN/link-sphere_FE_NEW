@@ -1,4 +1,4 @@
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { Card } from '@/shared/ui/atoms/card';
 import { Switch } from '@/shared/ui/atoms/switch';
 import { FilterChip } from '@/shared/ui/elements/FilterChip';

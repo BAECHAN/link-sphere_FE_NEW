@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@link-sphere/ui/atoms/tooltip';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@baechan/ui/atoms/tooltip';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
+import { toast } from '@baechan/ui/lib/toast/toast';
 
 // 연속 탭으로 같은 이유 토스트가 쌓이지 않도록 고정 id를 준다.
 const REASON_TOAST_ID = 'tooltip-wrapper-reason';

@@ -1,7 +1,7 @@
 import { Check, Loader2, X } from 'lucide-react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { Input } from '@/shared/ui/atoms/input';
 import { CharacterCount } from '@/shared/ui/elements/CharacterCount';
 import { EditButton } from '@/shared/ui/elements/EditButton';

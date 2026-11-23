@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { createTestQueryClient } from '@/test/utils';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';

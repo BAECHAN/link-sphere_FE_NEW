@@ -1,4 +1,4 @@
 @import 'tailwindcss';
 /* 토큰과 열림·닫힘 애니메이션 CSS(tw-animate-css)까지 이 한 줄로 온다 - 받는 쪽은 Tailwind에 패키지 경로를 등록하지 않는다
    (docs/DESIGN-SYSTEM-PRINCIPLES.md §2) */
-@import '@link-sphere/ui/styles.css';
+@import '@baechan/ui/styles.css';

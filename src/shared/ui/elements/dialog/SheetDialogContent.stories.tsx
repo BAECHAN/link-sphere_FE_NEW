@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/atoms/dialog';
 import { SheetDialogContent } from '@/shared/ui/elements/dialog/SheetDialogContent';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 
 const meta = {
   title: 'Shared/UI/Elements/Dialog/SheetDialogContent',

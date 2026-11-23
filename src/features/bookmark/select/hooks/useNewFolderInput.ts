@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { useCreateBookmarkFolderMutation } from '@/entities/bookmark/folder/api/bookmark-folder.queries';

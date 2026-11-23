@@ -230,7 +230,7 @@ jobs:
             fi
           fi
 
-          pnpm --filter @link-sphere/example-next build
+          pnpm --filter @baechan/ui-example build
 
   e2e:
     runs-on: ubuntu-latest

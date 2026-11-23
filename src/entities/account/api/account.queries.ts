@@ -13,7 +13,7 @@ import { STALE_TIME_ONE_DAY } from '@/shared/config/const';
 import { TEXTS } from '@/shared/config/texts';
 import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
 import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { AuthUtil } from '@/shared/utils/auth.util';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';

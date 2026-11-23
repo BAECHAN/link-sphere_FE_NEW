@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { useImageViewerStore } from '@/shared/ui/elements/dialog/image-viewer/imageViewer.store';
 import { NavigationService } from '@/shared/lib/router/navigation';

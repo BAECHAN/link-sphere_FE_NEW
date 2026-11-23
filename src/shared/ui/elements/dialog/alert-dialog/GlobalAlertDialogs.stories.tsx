@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, waitFor, within } from 'storybook/test';
 import { GlobalAlertDialogs } from '@/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs';
 import { useAlertDialog } from '@/shared/ui/elements/dialog/alert-dialog/alertDialog.store';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 
 const meta = {
   title: 'Shared/UI/Elements/Dialog/AlertDialog/GlobalAlertDialogs',

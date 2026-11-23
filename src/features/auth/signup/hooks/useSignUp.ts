@@ -16,7 +16,7 @@ import { useAvailabilityCheck } from '@/features/auth/signup/hooks/useAvailabili
 import { useUnsavedChanges } from '@/shared/hooks/useUnsavedChanges';
 import { usePendingSubmit } from '@/shared/hooks/usePendingSubmit';
 import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { NavigationService } from '@/shared/lib/router/navigation';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';

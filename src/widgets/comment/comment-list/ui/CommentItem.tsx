@@ -10,14 +10,14 @@ import { CommentForm } from '@/features/comment/create/ui/CommentForm';
 import { CommentEditForm } from '@/features/comment/update/ui/CommentEditForm';
 import { MessageSquare, Pencil, Trash } from 'lucide-react';
 import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { ActionButton } from '@/shared/ui/elements/ActionButton';
 import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
-import { LinkThumbnail } from '@link-sphere/ui/atoms/link-thumbnail';
+import { LinkThumbnail } from '@baechan/ui/atoms/link-thumbnail';
 import { useDeleteComment } from '@/features/comment/delete/hooks/useDeleteComment';
 
 const LINK_CARD_CLASS =

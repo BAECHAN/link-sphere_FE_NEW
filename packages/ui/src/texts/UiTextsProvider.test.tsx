@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 // Provider가 없는 상태를 그려야 해서 Testing Library의 render를 감싸지 않고 그대로 쓴다
 import { render, screen } from '@testing-library/react';
-import { Spinner } from '@link-sphere/ui/atoms/spinner';
-import { KO_UI_TEXTS } from '@link-sphere/ui/texts/ko-ui-texts';
-import { UiTextsProvider } from '@link-sphere/ui/texts/UiTextsProvider';
+import { Spinner } from '@baechan/ui/atoms/spinner';
+import { KO_UI_TEXTS } from '@baechan/ui/texts/ko-ui-texts';
+import { UiTextsProvider } from '@baechan/ui/texts/UiTextsProvider';
 
 describe('UiTextsProvider', () => {
   it('Provider 없이 그리면 부품이 오류를 낸다', () => {

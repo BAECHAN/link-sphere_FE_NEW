@@ -9,7 +9,7 @@ import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { mockPost } from '@/mocks/fixtures/post.fixtures';
 import { mockComment } from '@/mocks/fixtures/comment.fixtures';
-import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
+import { TooltipProvider } from '@baechan/ui/atoms/tooltip';
 
 const DELETED_POST_PATH = '/post/deleted-post-id';
 

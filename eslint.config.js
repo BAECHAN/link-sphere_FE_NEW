@@ -795,11 +795,11 @@ export default [
               type: 'problem',
               docs: {
                 description:
-                  '일반 파일은 절대 경로(@/, 공용 UI 패키지 안은 @link-sphere/ui/) 사용 강제, 상대 경로(./, ../) 금지',
+                  '일반 파일은 절대 경로(@/, 공용 UI 패키지 안은 @baechan/ui/) 사용 강제, 상대 경로(./, ../) 금지',
               },
               messages: {
                 relativeImport:
-                  './ 대신 절대 경로 import를 사용해주세요(앱은 @/, 공용 UI 패키지 packages/ui 안은 @link-sphere/ui/).',
+                  './ 대신 절대 경로 import를 사용해주세요(앱은 @/, 공용 UI 패키지 packages/ui 안은 @baechan/ui/).',
               },
             },
             create(context) {
@@ -820,11 +820,11 @@ export default [
               type: 'problem',
               docs: {
                 description:
-                  "'sonner'에서 toast를 직접 import 금지. @link-sphere/ui/lib/toast/toast 를 사용해야 카테고리별 위치 정책(성공=하단, 오류=상단)이 적용됨",
+                  "'sonner'에서 toast를 직접 import 금지. @baechan/ui/lib/toast/toast 를 사용해야 카테고리별 위치 정책(성공=하단, 오류=상단)이 적용됨",
               },
               messages: {
                 sonnerDirectImport:
-                  "'sonner'에서 toast를 직접 import할 수 없습니다. @link-sphere/ui/lib/toast/toast 를 사용해주세요. (카테고리별 위치 정책 적용)",
+                  "'sonner'에서 toast를 직접 import할 수 없습니다. @baechan/ui/lib/toast/toast 를 사용해주세요. (카테고리별 위치 정책 적용)",
               },
             },
             create(context) {
@@ -908,7 +908,7 @@ export default [
               },
               messages: {
                 needsInteractiveElement:
-                  '"{{tag}}"에 onClick만 달려 있습니다. @link-sphere/ui/atoms/button 의 Button(또는 <button>)을 사용하거나, 불가피하면 role="button"과 키보드 핸들러(onKeyDown)를 함께 지정해주세요.',
+                  '"{{tag}}"에 onClick만 달려 있습니다. @baechan/ui/atoms/button 의 Button(또는 <button>)을 사용하거나, 불가피하면 role="button"과 키보드 핸들러(onKeyDown)를 함께 지정해주세요.',
               },
             },
             create(context) {
@@ -1850,7 +1850,7 @@ export default [
     },
   },
 
-  // 공용 UI 패키지(packages/ui): 앱 코드(@/) import 불가. 패키지 안끼리는 @link-sphere/ui/…로 가리킨다. shared 블록의
+  // 공용 UI 패키지(packages/ui): 앱 코드(@/) import 불가. 패키지 안끼리는 @baechan/ui/…로 가리킨다. shared 블록의
   // 레이어 목록보다 넓게 막아(앱의 모든 레이어) 그 목록을 따로 두지 않는다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)
   {
     files: ['packages/ui/src/**/*.{ts,tsx}'],
@@ -1862,7 +1862,7 @@ export default [
             {
               group: ['@/**'],
               message:
-                '공용 UI 패키지(packages/ui)는 앱 코드(@/)를 import할 수 없습니다. 패키지 안 파일은 @link-sphere/ui/…로 가져오고, 앱이 정할 값(문구·링크·이동)은 속성이나 Provider로 받습니다. (근거: docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)',
+                '공용 UI 패키지(packages/ui)는 앱 코드(@/)를 import할 수 없습니다. 패키지 안 파일은 @baechan/ui/…로 가져오고, 앱이 정할 값(문구·링크·이동)은 속성이나 Provider로 받습니다. (근거: docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5)',
             },
           ],
         },

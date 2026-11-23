@@ -1,4 +1,4 @@
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
 import { useProtectedNavigate } from '@/entities/auth/hooks/useProtectedNavigate';

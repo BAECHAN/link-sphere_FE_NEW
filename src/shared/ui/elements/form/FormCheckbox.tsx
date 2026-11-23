@@ -1,7 +1,7 @@
 import { useController, useFormContext, type FieldValues } from 'react-hook-form';
 import { Checkbox } from '@/shared/ui/atoms/checkbox';
 import { Label } from '@/shared/ui/atoms/label';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 export interface FormCheckboxProps {
   name: string;

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Sparkles } from 'lucide-react';
-import { Toaster } from '@link-sphere/ui/atoms/sonner';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { Toaster } from '@baechan/ui/atoms/sonner';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import {
   Dialog,
   DialogContent,

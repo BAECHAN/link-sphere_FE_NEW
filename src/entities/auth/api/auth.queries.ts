@@ -15,7 +15,7 @@ import { AuthUtil } from '@/shared/utils/auth.util';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { useNavigate } from 'react-router-dom';
 import {

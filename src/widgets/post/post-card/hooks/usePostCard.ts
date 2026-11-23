@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useIsMutating, useQueryClient } from '@tanstack/react-query';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { Post } from '@/entities/post/model/post.schema';
 import { useFetchAccountQuery } from '@/entities/account/api/account.queries';
 import { prefetchComments, seedEmptyComments } from '@/entities/comment/api/comment.queries';
