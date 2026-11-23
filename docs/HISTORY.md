@@ -1,3 +1,6 @@
+### 2026-11-23 (FE)
+- 공용 UI 패키지 내 Next.js 예제 앱 구축 및 패키지 분리를 위한 사전 환경 구성 완료 ([#673](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/673))
+
 ### 2026-11-21 (FE)
 - 이미지 미리보기 모달의 레이아웃 깨짐 현상 수정 ([#670](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/670))
 
