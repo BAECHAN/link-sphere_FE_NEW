@@ -118,7 +118,7 @@ flowchart TD
 | `custom-tailwind/no-classname-template-literal`                                                                | `className`에 템플릿 리터럴(백틱) 사용 금지 — `cn()` 경유 강제                                                                                                                                                                                                                                                                                                                           |
 | `import/no-default-export`                                                                                     | default export 금지                                                                                                                                                                                                                                                                                                                                                                      |
 | `custom-filename/no-non-ascii-filename`                                                                        | 파일명에 비-ASCII 문자(한글 등) 사용 금지                                                                                                                                                                                                                                                                                                                                                |
-| `custom-import/no-sonner-toast-direct-import`                                                                  | `sonner` 직접 import — `@link-sphere/ui/lib/toast/toast` 경유 강제                                                                                                                                                                                                                                                                                                                       |
+| `custom-import/no-sonner-toast-direct-import`                                                                  | `sonner` 직접 import — `@baechan/ui/lib/toast/toast` 경유 강제                                                                                                                                                                                                                                                                                                                           |
 | `no-restricted-imports` (`src/mocks/handlers/**`)                                                              | MSW 기본 핸들러에서 `msw`의 `http`·`HttpResponse` import 금지 — 스펙 타입 `http`(`src/mocks/http.ts`)와 `MockEnvelopeUtil`만 허용, 스펙 밖 요청은 `http.untyped`(`docs/OPENAPI-CODEGEN.md` §5-5)                                                                                                                                                                                         |
 | `custom-import/no-relative-import-except-styles`                                                               | 상대 경로 import(`../`) 금지, `.styles.ts` 파일만 예외                                                                                                                                                                                                                                                                                                                                   |
 | `no-restricted-syntax` (Zustand·날짜·클래스 컴포넌트·빈 본문·smooth 스크롤)                                    | 스토어 `getState()` 직접 호출 금지(셀렉터 훅 강제), `new Date()`/`.getTime()` 직접 사용 금지(`dayjs` 강제), 클래스 컴포넌트 금지, `apiClient.post/put/patch/delete`에 빈 본문 `{}` 넘기기 금지, `behavior: 'smooth'` 직접 쓰기 금지(`ScrollUtil.getBehavior()` 강제 — 동작 줄이기 설정 존중)                                                                                             |
@@ -348,13 +348,13 @@ src/
     └── utils/                     # auth, auth-epoch, build-info, chunk-reload, common, date, error, form, logout-grace, scroll, storage, url, version (.util.ts)
 ```
 
-공용 UI 일부는 `src` 밖의 저장소 안 패키지 `packages/ui`(`@link-sphere/ui`)에 있다(2026-11-20 분리 리허설). 앱은
-`@link-sphere/ui/<폴더>/<파일>`로 import하고, 패키지 안에서는 `@/`와 앱 코드를 import하지 않는다(경계와 옮긴 기준은
+공용 UI 일부는 `src` 밖의 저장소 안 패키지 `packages/ui`(`@baechan/ui`)에 있다(2026-11-20 분리 리허설). 앱은
+`@baechan/ui/<폴더>/<파일>`로 import하고, 패키지 안에서는 `@/`와 앱 코드를 import하지 않는다(경계와 옮긴 기준은
 [DESIGN-SYSTEM-PRINCIPLES.md](DESIGN-SYSTEM-PRINCIPLES.md) §1.5).
 
 ```
 packages/ui/
-├── package.json                 # @link-sphere/ui — 빌드 없이 TS 소스를 내보낸다(exports), private
+├── package.json                 # @baechan/ui — 빌드 없이 TS 소스를 내보낸다(exports), private
 ├── vitest.config.ts             # 앱 setup 없이 도는 패키지 전용 테스트 프로젝트(src/test/setup.ts)
 └── src/
     ├── atoms/                   # Button, Spinner, Tooltip, Toaster(sonner.tsx), LinkThumbnail
@@ -370,9 +370,9 @@ packages/ui/
 "예제 앱"이 정본이다.
 
 ```
-examples/next/                   # @link-sphere/example-next — Next.js App Router + React 19
-├── package.json                 # @link-sphere/ui를 복사본으로 깐다(dependenciesMeta.injected)
-├── next.config.ts               # transpilePackages에 @link-sphere/ui
+examples/next/                   # @baechan/ui-example — Next.js App Router + React 19
+├── package.json                 # @baechan/ui를 복사본으로 깐다(dependenciesMeta.injected)
+├── next.config.ts               # transpilePackages에 @baechan/ui
 └── app/
     ├── globals.css              # tailwindcss 다음에 패키지 CSS 한 줄
     ├── layout.tsx, page.tsx     # 서버 컴포넌트(Button만 직접 그린다)
@@ -1308,7 +1308,7 @@ suspense 쿼리(`useSuspenseQuery`·`useSuspenseInfiniteQuery`)가 데이터 없
 ## 14. Toast 알림 (Sonner)
 
 Sonner를 직접 import하지 않는다 — ESLint `custom-import/no-sonner-toast-direct-import`가
-막는다. 항상 래퍼 `@link-sphere/ui/lib/toast/toast`의 `toast`를 사용한다 (성공/액션 확인은
+막는다. 항상 래퍼 `@baechan/ui/lib/toast/toast`의 `toast`를 사용한다 (성공/액션 확인은
 하단, 오류/경고는 상단으로 위치를 분리해서 정책을 캡슐화하고 있다).
 
 래퍼는 문자열 메시지의 문장 끝(한글 바로 뒤 `.` `?` `!`) 다음 공백을 줄바꿈으로 바꾸고, `Toaster`
@@ -1701,7 +1701,7 @@ pnpm test:mutation  # StrykerJS 변이 테스트 (stryker.config.json, docs/TEST
 pnpm perf:lh        # Lighthouse CI — 공개 페이지 (lighthouserc.cjs, docs/PERFORMANCE.md)
 pnpm perf:lh:auth   # Lighthouse CI — 로그인 필요 페이지 (lighthouserc.auth.cjs, LH_TEST_PASSWORD 필요)
 pnpm storybook      # Storybook (port 6006, 공개본은 https://baechan.github.io/link-sphere_FE_NEW/storybook/)
-pnpm --filter @link-sphere/example-next build  # 공용 UI 패키지 예제 앱(examples/next) next build — 패키지를 고쳤으면 먼저 pnpm install
+pnpm --filter @baechan/ui-example build  # 공용 UI 패키지 예제 앱(examples/next) next build — 패키지를 고쳤으면 먼저 pnpm install
                     # (복사본 설치라서다. docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5 "예제 앱")
 ```
 

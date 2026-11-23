@@ -94,9 +94,9 @@
   `dismissKey`). ESLint `custom-design-system/no-app-import-in-generic-ui`가 허용 목록 밖 import를 막는다. 이 앱에서만 쓰는
   부품이면 `eslint.config.js`의 그 규칙 블록 예외 목록에 더하고 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §5 분류표에 "앱 전용"으로
   적는다. 글자를 더하는 순서는 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 같은 문서 §1.1·§1.2
-- **Never** 공용 UI 패키지(`packages/ui`, `@link-sphere/ui`) 안에서 `@/` 경로(앱 코드)를 import하거나, 패키지 파일이 쓰는 외부
+- **Never** 공용 UI 패키지(`packages/ui`, `@baechan/ui`) 안에서 `@/` 경로(앱 코드)를 import하거나, 패키지 파일이 쓰는 외부
   패키지를 `packages/ui/package.json`에 선언하지 않는다 → 패키지 안 파일끼리는 패키지 이름으로 가리키고
-  (`@link-sphere/ui/lib/tailwind/utils`), 앱도 옮긴 모듈을 같은 경로로 import한다. ESLint `no-restricted-imports`(패키지 블록)와
+  (`@baechan/ui/lib/tailwind/utils`), 앱도 옮긴 모듈을 같은 경로로 import한다. ESLint `no-restricted-imports`(패키지 블록)와
   `custom-design-system/no-app-import-in-generic-ui`가 앱 import를, dependency-cruiser `no-non-package-json`(`pnpm check:deps`)이
   선언 누락을 막는다. 3단계 전까지 새 범용 부품은 `src/shared/ui`에 만든다. 경계와 옮긴 기준은
   `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.5

@@ -11,6 +11,7 @@
 - 계획에 없던 변경(문서): 원칙 문서 §1.5 "패키지의 경계"에 "앱과 함께 선언한 의존성" 줄을, "알게 된 것"에 "복사본은 패키지를 고쳐도 따라오지 않는다"·"의존성 검사는 CSS `@import`를 보지 않는다" 줄을, "예제 앱"에 린트 범위를 더했다. `DEPLOY.md`에 Dependabot이 워크스페이스 안 `package.json`을 고치는지 아직 보지 못했다는 문장을 더했다
 - 대조 뒤 보완(문서): 버전 맞춤 테스트의 범위를 문서에서 "패키지 `dependencies` 가운데 루트도 선언한 것"으로 좁혀 코드와 맞췄다(패키지 `devDependencies`는 대조하지 않는다). 원칙 문서 §1.4 계약 테스트 설명에 남아 있던 "`LinkThumbnail`은 분리 리허설 계획에서 정한다"를 고쳤다
 - 문서 동기화: 원칙 문서 §1.4 "다시 볼 조건"의 `LinkThumbnail` 줄과 토큰 기준 문단, 앱 CSS·예제 앱 CSS의 주석, `.gitignore`의 `*.tsbuildinfo` 주석, `FE-ARCHITECTURE.md` §19의 `pnpm build`·`pnpm type-check` 설명(#665에서 패키지 타입 검사를 더하고 고치지 않은 것)
+- 이름 변경: 패키지 이름이 `@link-sphere/ui`에서 `@baechan/ui`로 바뀌었다(#676, [계획](./2026-11-23-design-system-package-rename.md)). 아래 원문의 옛 이름은 당시 기록이라 그대로 둔다
 
 <!-- plan-result:end -->
 
