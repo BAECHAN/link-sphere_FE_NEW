@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 /* 범용 토큰(색·반경·z-index·글자 크기·다크 변형·기본 커서·동작 줄이기)은 공용 UI 패키지에 있다
-   (packages/ui/src/styles/tokens.css, docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5). 이 파일에는 이 앱 전용 토큰만 둔다 */
+   (packages/ui/src/styles/tokens.css, docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5). 이 파일에는 이 앱 전용 토큰만 둔다.
+   열림·닫힘 애니메이션 CSS(tw-animate-css)도 그 파일이 가져온다 */
 @import '@link-sphere/ui/styles.css';
-@import 'tw-animate-css';
 @import 'nprogress/nprogress.css';
 
 /*

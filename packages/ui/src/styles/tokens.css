@@ -5,6 +5,11 @@
  * 값과 주석은 2026-11-20 분리 리허설 때 src/app/globals.css에서 그대로 옮겼다.
  */
 
+/* 부품의 열림·닫힘 애니메이션 클래스(animate-in 등)를 만든다. 쓰는 앱이 따로 가져오지 않도록 여기서 가져오고
+   패키지 dependencies에 선언했다 - 빠뜨리면 오류 없이 애니메이션만 사라진다(2026-11-23,
+   docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5). @import는 다른 규칙보다 앞에 와야 해서 맨 위에 둔다 */
+@import 'tw-animate-css';
+
 /* 이 패키지의 부품 클래스를 쓰는 앱의 Tailwind가 훑게 한다. 경로는 이 파일 기준이다(src/). 쓰는 앱의
    자동 탐지는 node_modules 아래를 읽지 않는다(https://tailwindcss.com/docs/detecting-classes-in-source-files) */
 @source '..';

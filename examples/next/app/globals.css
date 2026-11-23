@@ -1,5 +1,4 @@
 @import 'tailwindcss';
-@import '@link-sphere/ui/styles.css';
-/* 툴팁 열림·닫힘 애니메이션 클래스(animate-in 등)를 만든다 - 패키지 CSS가 가져오지 않아 받는 쪽이 함께 가져온다
+/* 토큰과 열림·닫힘 애니메이션 CSS(tw-animate-css)까지 이 한 줄로 온다 - 받는 쪽은 Tailwind에 패키지 경로를 등록하지 않는다
    (docs/DESIGN-SYSTEM-PRINCIPLES.md §2) */
-@import 'tw-animate-css';
+@import '@link-sphere/ui/styles.css';
