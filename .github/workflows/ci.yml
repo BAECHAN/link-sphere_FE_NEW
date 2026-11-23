@@ -212,6 +212,26 @@ jobs:
         # PR 단계에서 빌드가 되는지 확인한다.
         run: pnpm build-storybook
 
+      - name: 예제 앱 빌드 (examples/next)
+        # 공용 UI 패키지(packages/ui)를 React 19 + Next.js에서도 빌드할 수 있는지 확인한다(2026-11-20 분리 리허설,
+        # docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5). next build는 타입 검사와 서버 렌더링(프리렌더)까지 해서, 부품이
+        # 서버 컴포넌트 경계나 React 19 타입에서 깨지면 여기서 실패한다. 패키지·예제 앱·설치 설정이 바뀐 PR에서만
+        # 돌리고(앱만 바뀐 PR에 Next 빌드 시간을 더하지 않는다), 수동 실행(workflow_dispatch)이면 늘 돌린다.
+        # 필수 검사 목록(저장소 규칙셋)을 바꾸지 않도록 잡이 아니라 이 잡의 스텝으로 둔다.
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = 'pull_request' ]; then
+            mapfile -t changed < <(git diff --name-only HEAD^1 HEAD -- packages examples pnpm-lock.yaml pnpm-workspace.yaml)
+
+            if [ ${#changed[@]} -eq 0 ]; then
+              echo "패키지·예제 앱·설치 설정이 바뀌지 않아 건너뛴다."
+              exit 0
+            fi
+          fi
+
+          pnpm --filter @link-sphere/example-next build
+
   e2e:
     runs-on: ubuntu-latest
     steps:

@@ -42,6 +42,12 @@ reports/
 *storybook.log
 storybook-static
 
+# === Next.js 예제 앱(examples/next) 빌드 산출물 ===
+.next/
+next-env.d.ts
+# 예제 앱 tsconfig의 incremental을 다시 켜면 생기는 증분 캐시다(지금은 꺼 둬 만들어지지 않는다 - examples/next/tsconfig.json 주석)
+*.tsbuildinfo
+
 # === Playwright e2e 산출물 ===
 test-results/
 playwright-report/

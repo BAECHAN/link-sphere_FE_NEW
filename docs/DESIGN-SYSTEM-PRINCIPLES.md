@@ -10,7 +10,7 @@
 > 이유, 부품의 속성 이름과 `className`을 어떻게 맞추는지, 어느 부품이 `ref`와 나머지 속성을 받는지, 지금 부품이 어느 분류에
 > 속하는지 안다.
 >
-> **마지막 검토**: 2026-11-20
+> **마지막 검토**: 2026-11-23
 
 **읽는 법**
 
@@ -56,7 +56,7 @@
 | 이미지 확대 창                               | 그리는 부품(범용)과 앱 배선(앱 전용)으로 나눴다. `ImageViewer`는 열림·이미지·순서를 속성으로 받고, `GlobalImageViewer`가 스토어와 뒤로가기 오버레이 훅을 잇는다              | 통째로 앱 전용, 뒤로가기 규약까지 패키지에 넣는다                                                                                                                                        | 사용자 답                                             |
 | 경계를 지키게 하는 방법                      | 허용 목록 방식의 린트 `custom-design-system/no-app-import-in-generic-ui`. 범용 부품과 보조 모듈 파일이 `@/shared/ui/**`와 허용 목록 밖의 앱 모듈, 라우터를 import하면 오류다 | 문구·라우터만 막는다(인증 스토어 같은 새 결합을 못 잡는다)                                                                                                                               | 계획 승인                                             |
 | 다른 프로젝트에서 쓸 수 있는지 확인하는 시점 | 1단계 뒤에 분리 리허설을 끼운다([로드맵 §5](./DESIGN-SYSTEM-ROADMAP.md#5-단계))                                                                                              | 3단계 끝 증거만 강화한다, 지금 순서 그대로 둔다                                                                                                                                          | 사용자 답                                             |
-| 0단계 분류의 열린 줄                         | `LinkThumbnail`·`TooltipWrapper`의 분류와 보조 모듈의 자리는 분리 리허설 뒤에 정한다                                                                                         | —                                                                                                                                                                                        | 사용자 답                                             |
+| 0단계 분류의 열린 줄                         | `LinkThumbnail`·`TooltipWrapper`의 분류와 보조 모듈의 자리는 분리 리허설 뒤에 정한다. 2026-11-23에 정했다([§1.5 "미뤄 둔 항목의 답"](#미뤄-둔-항목의-답))                    | —                                                                                                                                                                                        | 사용자 답                                             |
 
 문구에 관한 여섯 줄(글자를 넣는 방법부터 변수 이름까지)이 어떤 요구와 비교에서 나왔는지, 선례와 다시 볼 조건은
 [§1.3](#13-글자를-provider로-받기로-한-이유)에 있다.
@@ -434,8 +434,8 @@ Badge.displayName = 'Badge';
   `SelectScrollDownButton`(스크롤 위치가 없다). 소스는 다른 부품처럼 `forwardRef`로 `ref`·`className`·나머지 속성을 넘기는
   꼴이지만 그려서 확인하지는 못했다.
 - **`SelectValue`** — Radix 부품을 그대로 내보낸 것인데 Radix가 `className`을 받지 않는다.
-- **`LinkThumbnail`** — `className`이 맨 바깥 요소가 아니라 `img`로 간다. 범용·앱 전용 분류와 함께 분리 리허설 계획에서
-  정한다.
+- **`LinkThumbnail`** — `className`이 맨 바깥 요소가 아니라 `img`로 간다. 맨 바깥 요소로 옮기기로 정했고(2026-11-23,
+  [§1.5 "미뤄 둔 항목의 답"](#미뤄-둔-항목의-답)) 별도 PR에서 고친다.
 - **`Toaster`** — 맨 바깥 요소를 sonner가 그린다.
 
 조립 부품 35개의 표는 다섯으로 나뉜다. 셋 다 대상 요소로 가는 저수준 elements 8개, `className`만 맨 바깥 요소로 가는 11개,
@@ -487,15 +487,18 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 - **이 앱이 React 19로 올라갈 때.** `forwardRef`를 걷어 내고 `ref`를 속성으로 받는 꼴로 바꾼 뒤, 규칙 표의 "React 18을
   지원하는 동안" 문장을 고친다. 패키지가 React 18 프로젝트도 받쳐야 하면 그대로 둔다. 올릴 계획은 아직 없다.
 - **조립 부품에 `ref`나 `className`이 실제로 필요해질 때.** 계약 표의 그 줄과 코드를 함께 바꾼다.
-- **`LinkThumbnail`의 분류를 정할 때(분리 리허설 계획).** `className`을 맨 바깥 요소로 옮길지 그때 함께 정한다.
+- **`LinkThumbnail`의 `className`을 맨 바깥 요소로 옮길 때.** 옮기기로 정했다(2026-11-23,
+  [§1.5 "미뤄 둔 항목의 답"](#미뤄-둔-항목의-답)). 별도 PR에서 코드를 고치면서 계약 테스트의 예외 줄을 지운다.
 
 ### 1.5 분리 리허설에서 알게 된 것과 정한 것
 
-2026-11-20, [로드맵 §5](./DESIGN-SYSTEM-ROADMAP.md#5-단계)의 1.5단계다. 대표 묶음을 저장소 안 패키지 `packages/ui`
-(`@link-sphere/ui`)로 떼어 내고 이 앱이 그 패키지로 같은 화면을 그리게 했다(첫 PR). Next.js 예제 앱으로 그려 본 결과와 미뤄
-둔 세 항목(§1.1 마지막 줄, [§5.5](#55-함께-옮길-보조-모듈))의 답은 둘째 PR에서 이 절에 더한다. 폴더를 옮기고 설정을 고치면
-되돌릴 수 있어 `DECISIONS.md`에는 적지 않았다. 계획은
-[`plans/2026-11-20-design-system-split-rehearsal.md`](./plans/2026-11-20-design-system-split-rehearsal.md)다.
+[로드맵 §5](./DESIGN-SYSTEM-ROADMAP.md#5-단계)의 1.5단계다. 첫 PR(2026-11-20)에서 대표 묶음을 저장소 안 패키지 `packages/ui`
+(`@link-sphere/ui`)로 떼어 내고 이 앱이 그 패키지로 같은 화면을 그리게 했다. 둘째 PR(2026-11-23)에서 Next.js(React 19) 예제 앱
+`examples/next`가 같은 패키지로 화면을 그리게 했고, 그 결과를 본 사용자의 답으로 미뤄 둔 항목(§1.1 마지막 줄,
+[§5.5](#55-함께-옮길-보조-모듈))을 정했다. 폴더를 옮기고 설정을 고치면 되돌릴 수 있어 `DECISIONS.md`에는 적지 않았다. 계획은
+[`plans/2026-11-20-design-system-split-rehearsal.md`](./plans/2026-11-20-design-system-split-rehearsal.md)와, 답으로 생긴 코드
+변경을 다룬
+[`plans/2026-11-23-design-system-split-rehearsal-wrapup.md`](./plans/2026-11-23-design-system-split-rehearsal-wrapup.md)다.
 
 #### 옮긴 것
 
@@ -511,20 +514,21 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 - `src/shared/lib/toast/toast.test.ts` — 토스트 래퍼를 앱 문구(`TEXTS`)의 실제 문장과 앱 테스트 setup의 sonner 목으로 검사한다.
 - `src/shared/ui/atoms/sonner.stories.tsx`(`Toaster` 스토리) — 앱 전용 토스트(`showNoticeToast` 등)와 `TEXTS`로 견본을 그린다.
 
-두 파일의 자리는 미뤄 둔 셋째 항목과 함께 정한다.
+두 파일도 나머지 부품을 패키지로 옮기는 3단계에서 패키지 방식으로 바꿔 옮긴다([미뤄 둔 항목의 답](#미뤄-둔-항목의-답)).
 
 #### 패키지의 경계
 
-| 항목             | 정한 것                                                                                                            | 지키는 장치                                                                                                                     |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
-| 형태             | 빌드 없이 TS 소스를 `exports`로 내보낸다. `private: true`로 게시하지 않는다                                        | 쓰는 앱의 번들러가 변환한다(Vite·Vitest·Storybook에서 확인, Next.js는 둘째 PR)                                                  |
-| 공개 경로        | 폴더 구조 그대로다. `exports`에 적힌 폴더(`atoms`·`elements`·`lib`·`texts`)와 `styles.css`만 밖에서 가져올 수 있다 | `exports` 밖 경로는 해석되지 않는다                                                                                             |
-| 패키지 안 import | 자기 패키지 이름으로 가리킨다(`@link-sphere/ui/lib/tailwind/utils`). `@/`(앱 코드)와 상대 경로는 쓰지 않는다       | ESLint `no-restricted-imports` 패키지 블록, 상대 경로 금지 규칙, 경계 린트 `custom-design-system/no-app-import-in-generic-ui`   |
-| 의존성 선언      | `react`·`react-dom`은 `peerDependencies`(`>=18`), 나머지는 `dependencies`. 버전은 옮길 때의 설치본 그대로다        | dependency-cruiser `no-non-package-json`이 패키지 파일을 가장 가까운 `packages/ui/package.json`으로 판정한다(`pnpm check:deps`) |
-| 타입 검사        | 패키지 `tsconfig.json`으로 따로 돈다                                                                               | `pnpm type-check`가 앱 `tsc -b` 뒤에 패키지 `tsc --noEmit`을 돌린다                                                             |
-| 테스트           | 앱 setup·`@` 별칭 없이 도는 Vitest 프로젝트 `ui`(jsdom + jest-dom)                                                 | `pnpm test`가 `unit`과 함께 돌린다(`packages/ui/vitest.config.ts`)                                                              |
-| 스토리           | 앱 Storybook 하나가 함께 읽는다. 제목과 주소는 옮기기 전과 같다(`Shared/UI/Atoms/Button`)                          | 제목 규칙 `custom-storybook/title-matches-path`가 `packages/ui/src/`를 `shared/ui/`로 읽는다                                    |
-| 앱에 남는 부품   | 3단계 전까지 새 범용 부품도 `src/shared/ui`에 만든다. 남는 부품도 문구는 패키지의 `useUiTexts`로 읽는다            | —                                                                                                                               |
+| 항목                    | 정한 것                                                                                                                                                                                                                        | 지키는 장치                                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 형태                    | 빌드 없이 TS 소스를 `exports`로 내보낸다. `private: true`로 게시하지 않는다                                                                                                                                                    | 쓰는 앱의 번들러가 변환한다(Vite·Vitest·Storybook·Next.js 16.4.6에서 확인). Next.js는 `transpilePackages`에 패키지를 적는다([예제 앱](#예제-앱))                                            |
+| 공개 경로               | 폴더 구조 그대로다. `exports`에 적힌 폴더(`atoms`·`elements`·`lib`·`texts`)와 `styles.css`만 밖에서 가져올 수 있다                                                                                                             | `exports` 밖 경로는 해석되지 않는다                                                                                                                                                         |
+| 패키지 안 import        | 자기 패키지 이름으로 가리킨다(`@link-sphere/ui/lib/tailwind/utils`). `@/`(앱 코드)와 상대 경로는 쓰지 않는다                                                                                                                   | ESLint `no-restricted-imports` 패키지 블록, 상대 경로 금지 규칙, 경계 린트 `custom-design-system/no-app-import-in-generic-ui`                                                               |
+| 의존성 선언             | `react`·`react-dom`은 `peerDependencies`(`>=18`), `@types/react`는 없어도 되는(optional) peer, 나머지는 `dependencies`다. 토큰 CSS가 가져오는 `tw-animate-css`도 `dependencies`에 든다. 버전은 옮길 때의 설치본 그대로다       | dependency-cruiser `no-non-package-json`이 패키지 파일을 가장 가까운 `packages/ui/package.json`으로 판정한다(`pnpm check:deps`). CSS의 `@import`는 이 검사가 보지 않는다(아래 "알게 된 것") |
+| 앱과 함께 선언한 의존성 | 패키지의 `dependencies` 가운데 루트 `package.json`도 선언한 패키지(지금 9개)는 버전 문자열이 같아야 한다. 패키지의 `devDependencies`(테스트·타입 도구)는 대조하지 않는다 — 지금 8개가 루트와 겹치고 3개는 범위 문자열이 다르다 | `src/test/workspace-shared-deps.test.ts`(`pnpm test`). 한쪽만 올리면 실패한다                                                                                                               |
+| 타입 검사               | 패키지 `tsconfig.json`으로 따로 돈다                                                                                                                                                                                           | `pnpm type-check`가 앱 `tsc -b` 뒤에 패키지 `tsc --noEmit`을 돌린다                                                                                                                         |
+| 테스트                  | 앱 setup·`@` 별칭 없이 도는 Vitest 프로젝트 `ui`(jsdom + jest-dom)                                                                                                                                                             | `pnpm test`가 `unit`과 함께 돌린다(`packages/ui/vitest.config.ts`)                                                                                                                          |
+| 스토리                  | 앱 Storybook 하나가 함께 읽는다. 제목과 주소는 옮기기 전과 같다(`Shared/UI/Atoms/Button`)                                                                                                                                      | 제목 규칙 `custom-storybook/title-matches-path`가 `packages/ui/src/`를 `shared/ui/`로 읽는다                                                                                                |
+| 앱에 남는 부품          | 3단계 전까지 새 범용 부품도 `src/shared/ui`에 만든다. 남는 부품도 문구는 패키지의 `useUiTexts`로 읽는다                                                                                                                        | —                                                                                                                                                                                           |
 
 #### 토큰을 나눈 기준
 
@@ -533,7 +537,8 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 
 - **패키지(`packages/ui/src/styles/tokens.css`)**: 의미 색과 무채색 팔레트, 반경, z-index 8단계, 글자 크기(t1~t14 스케일과 역할
   토큰), 다크 변형, `@layer base`의 기본 테두리·커서·텍스트 선택, 동작 줄이기, `--toast-offset-bottom`의 기본값 24px. 이 파일의
-  `@source '..'`가 패키지 소스를 쓰는 앱의 Tailwind에 등록한다.
+  `@source '..'`가 패키지 소스를 쓰는 앱의 Tailwind에 등록한다. 맨 위에서 열림·닫힘 애니메이션 CSS(`tw-animate-css`)도
+  가져온다(2026-11-23).
 - **앱(`src/app/globals.css`)**: 카테고리·사이드바·차트 색, `hover-or-open`, `--kbd-in-primary-*`, `--navbar-height`, 글꼴
   (`--font-sans` — 글꼴 파일을 앱이 싣는다), `body`의 줄바꿈 규칙, nprogress, `--toast-offset-bottom`의 모바일 값(탭바 위로 띄운다).
 - **계획과 다른 점**: t1~t14 스케일은 앱에 남기려 했다. 패키지의 `cn()`이 `TEXT_SIZE_TOKENS`로 이 이름들을 알고, 그 테스트가 토큰
@@ -541,30 +546,100 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 
 #### 알게 된 것
 
-| 문제                                                                                                                                                                                                                                                                                                                                       | 드러난 곳                      | 대응                                                                                                                                               | 3단계로 넘길 것                                                                                            |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 패키지에 선언하지 않은 import가 설치로는 드러나지 않는다. `.npmrc`의 `shamefully-hoist=true`가 루트 의존성을 모든 곳에서 보이게 한다                                                                                                                                                                                                       | 계획 조사                      | dependency-cruiser가 가장 가까운 `package.json`으로 판정한다(18.7.2 `get-manifest.mjs`). 일부러 넣은 미선언 import가 잡혔다                        | 별도 저장소로 옮기면 설치 단계에서도 막힌다                                                                |
-| 앱이 `@link-sphere/ui`를 선언했는지는 dependency-cruiser가 보지 않는다. pnpm 워크스페이스 import를 `undetermined`로 분류하고(`determine-dependency-types.mjs:254`), 워크스페이스는 `package.json`의 `workspaces` 필드로만 알아본다(`module-classifiers.mjs:145-150`)                                                                       | `pnpm check:deps` 확인         | 루트 `package.json`에 `"@link-sphere/ui": "workspace:*"`로 선언했다. 선언이 빠지면 링크가 생기지 않아 해석부터 실패할 것으로 본다(확인하지 않았다) | —                                                                                                          |
-| 패키지 안 자기 참조 import는 Vite가 가장 가까운 `package.json`의 `name`과 `exports`로 푼다(6.4.6). Stryker가 저장소를 sandbox로 복사하자 앱의 import는 sandbox 밖의 실제 패키지로, 패키지 안 import는 sandbox 안 복사본으로 풀려 모듈이 두 벌이 됐다. 문구 Provider가 갈라져 `useUiTexts must be used within a UiTextsProvider`로 실패했다 | 뮤테이션 테스트 dry run        | `vitest.stryker.config.ts`가 `@link-sphere/ui`를 sandbox 안 패키지 소스로 별칭한다                                                                 | 쓰는 쪽에서 자기 참조와 바깥 import가 서로 다른 실제 경로로 풀리는 환경(파일 복사·링크)이면 같은 일이 난다 |
-| pnpm이 패키지의 peer `react`를 루트의 React 18로 링크한다                                                                                                                                                                                                                                                                                  | `pnpm install`                 | 이 앱은 React 18이라 문제가 없다                                                                                                                   | React 19 앱에서 React가 두 벌이 되는지 둘째 PR의 예제 앱으로 본다                                          |
-| 툴팁의 열림·닫힘 애니메이션 클래스(`animate-in` 등)는 `tw-animate-css`가 만든다. 이 CSS는 앱 `globals.css`가 import한다                                                                                                                                                                                                                    | 토큰 나누기                    | 패키지 CSS에 넣지 않았다                                                                                                                           | 받는 쪽이 함께 import해야 한다. 패키지 의존성으로 넣을지 정한다                                            |
-| 패키지 `tsconfig`를 앱의 project references에 넣으면 선언 파일을 만드는 설정 때문에 타입 이름 오류(TS2742)가 난다                                                                                                                                                                                                                          | `pnpm type-check`              | 패키지를 따로 `tsc --noEmit`으로 검사한다                                                                                                          | 빌드 도구를 정할 때 다시 본다                                                                              |
-| jsdom 환경의 전역 `URL`은 jsdom 것이라 `new URL(상대 경로, import.meta.url)`을 `fs`가 파일 주소로 받지 않는다                                                                                                                                                                                                                              | 패키지 테스트(`utils.test.ts`) | `fileURLToPath` + `join`으로 경로를 만든다                                                                                                         | —                                                                                                          |
-| 저장소 도구가 `src`만 보고 있었다. Storybook은 옮긴 스토리를 빠뜨렸고, 문서 검사는 `packages/ui/src/…` 안의 `src/…`를 루트 경로로 읽었고, 의존성 그림·뮤테이션 대상·배포 경로 필터에도 패키지가 없었다                                                                                                                                     | 각 도구                        | 모두 넓혔다(`.storybook/main.ts`, `scripts/check-docs.js`, `scripts/dep-graph.js`, `scripts/mutation-report.js`, 워크플로 세 개)                   | 패키지나 앱이 더 생기면 같은 목록을 다시 본다                                                              |
+| 문제                                                                                                                                                                                                                                                                                                                                                                                              | 드러난 곳                      | 대응                                                                                                                                                                                                                                                                                                                                                                                      | 3단계로 넘길 것                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 패키지에 선언하지 않은 import가 설치로는 드러나지 않는다. `.npmrc`의 `shamefully-hoist=true`가 루트 의존성을 모든 곳에서 보이게 한다                                                                                                                                                                                                                                                              | 계획 조사                      | dependency-cruiser가 가장 가까운 `package.json`으로 판정한다(18.7.2 `get-manifest.mjs`). 일부러 넣은 미선언 import가 잡혔다                                                                                                                                                                                                                                                               | 별도 저장소로 옮기면 설치 단계에서도 막힌다                                                                                    |
+| 앱이 `@link-sphere/ui`를 선언했는지는 dependency-cruiser가 보지 않는다. pnpm 워크스페이스 import를 `undetermined`로 분류하고(`determine-dependency-types.mjs:254`), 워크스페이스는 `package.json`의 `workspaces` 필드로만 알아본다(`module-classifiers.mjs:145-150`)                                                                                                                              | `pnpm check:deps` 확인         | 루트 `package.json`에 `"@link-sphere/ui": "workspace:*"`로 선언했다. 선언이 빠지면 링크가 생기지 않아 해석부터 실패할 것으로 본다(확인하지 않았다)                                                                                                                                                                                                                                        | —                                                                                                                              |
+| 패키지 안 자기 참조 import는 Vite가 가장 가까운 `package.json`의 `name`과 `exports`로 푼다(6.4.6). Stryker가 저장소를 sandbox로 복사하자 앱의 import는 sandbox 밖의 실제 패키지로, 패키지 안 import는 sandbox 안 복사본으로 풀려 모듈이 두 벌이 됐다. 문구 Provider가 갈라져 `useUiTexts must be used within a UiTextsProvider`로 실패했다                                                        | 뮤테이션 테스트 dry run        | `vitest.stryker.config.ts`가 `@link-sphere/ui`를 sandbox 안 패키지 소스로 별칭한다                                                                                                                                                                                                                                                                                                        | 쓰는 쪽에서 자기 참조와 바깥 import가 서로 다른 실제 경로로 풀리는 환경(파일 복사·링크)이면 같은 일이 난다                     |
+| pnpm이 패키지의 peer `react`를 루트의 React 18로 링크한다                                                                                                                                                                                                                                                                                                                                         | `pnpm install`                 | 이 앱은 React 18이라 문제가 없다. React 19 예제 앱에서도 실행 중 React는 한 벌이었다(아래 줄)                                                                                                                                                                                                                                                                                             | —                                                                                                                              |
+| 링크로 설치하면 패키지 파일이 저장소 루트의 `node_modules`를 본다. 실행 중 React는 한 벌이었지만(Next App Router가 자기 React로 모은다. 훅을 쓰는 툴팁이 열렸다) 타입과 `next-themes`가 두 벌이 됐다. 타입은 `@types/react` 18과 19가 섞여 `ReactNode` 오류(TS2322)가 났고, 어두운 화면에서 토스트 테마가 `light`로 측정됐다(앱의 테마 Provider와 `Toaster`의 `useTheme`이 서로 다른 모듈을 본다) | 예제 앱 `next build`, 브라우저 | 예제 앱이 패키지를 복사본으로 깐다(pnpm `dependenciesMeta.injected`). 복사본은 `node_modules` 안이라 Next가 TS를 변환하지 않아(`Unknown module type`) `transpilePackages`에 적었고, 패키지에 `@types/react`를 없어도 되는 peer로 선언했다. 그 뒤 토스트 테마는 `dark`였다                                                                                                                 | 별도 저장소에서 설치하면 처음부터 복사본과 같은 모양이다. `next-themes`를 받는 쪽 것을 쓰는 peer로 둘지("함께 쓸 패키지 범위") |
+| 복사본은 패키지를 고쳐도 따라오지 않는다                                                                                                                                                                                                                                                                                                                                                          | 예제 앱                        | 패키지를 고친 뒤 `pnpm install`을 다시 돌린다([예제 앱](#예제-앱))                                                                                                                                                                                                                                                                                                                        | 빌드해서 주면 받는 쪽은 설치본만 본다                                                                                          |
+| 복사본을 다시 깔아도 Next의 증분 캐시(`.next/cache/.tsbuildinfo`)가 앞선 빌드의 타입 오류를 그대로 다시 썼다(TS2559)                                                                                                                                                                                                                                                                              | 예제 앱 `next build`           | 예제 앱 `tsconfig.json`에서 `incremental`을 껐다. 타입 검사는 1초 남짓이다                                                                                                                                                                                                                                                                                                                | —                                                                                                                              |
+| 패키지 파일에는 `'use client'`가 없다. 서버 컴포넌트에서 직접 그리면 네 파일이 깨진다. `UiTextsProvider`·`TooltipWrapper`·`link-thumbnail`은 빌드 오류(`createContext`·`useState` 등을 서버 컴포넌트 모듈이 import)이고 `sonner`는 프리렌더에서만 오류(`useTheme`을 서버에서 호출)다. `Spinner`는 문구 Provider를 거쳐 함께 깨진다. `Button`·`Tooltip`은 서버 컴포넌트에서 그려졌다               | 예제 앱 `next build`           | 예제 앱이 클라이언트 경계 두 개(`providers.tsx`, `showcase.tsx`) 아래에서 그린다. `Button`은 서버 컴포넌트(`page.tsx`)에서도 그린다                                                                                                                                                                                                                                                       | `'use client'`를 붙일 파일(후보는 이 네 개)                                                                                    |
+| 받는 쪽이 패키지 경로를 Tailwind에 등록해야 하는지                                                                                                                                                                                                                                                                                                                                                | 예제 앱 CSS                    | 패키지 토큰 CSS의 `@source '..'`만으로 충분했다. 이 줄을 빼면 예제 앱 CSS가 27,265바이트에서 12,698바이트로 줄어 부품 클래스가 빠진다                                                                                                                                                                                                                                                     | —                                                                                                                              |
+| 툴팁의 열림·닫힘 애니메이션 클래스(`animate-in` 등)는 `tw-animate-css`가 만든다. 받는 쪽이 이 CSS를 빠뜨리면 오류 없이 애니메이션만 사라진다(툴팁의 `animationName`이 `none`)                                                                                                                                                                                                                     | 토큰 나누기, 예제 앱           | 패키지 토큰 CSS가 맨 위에서 가져오고 패키지 `dependencies`에 선언했다(2026-11-23). 이 앱과 예제 앱의 직접 import는 지웠다. 이 앱 CSS는 전후 99,155바이트로 같고 규칙 내용도 같다(`tw-animate-css`의 `@property`·`@keyframes` 21개가 토큰 규칙 앞으로 옮겨졌을 뿐이고, 이름이 겹치는 규칙이 없어 순서의 영향이 없다)                                                                       | —                                                                                                                              |
+| `pnpm check:deps`는 CSS의 `@import`를 보지 않는다. 패키지에서 `tw-animate-css` 선언을 지워도 통과했다                                                                                                                                                                                                                                                                                             | 선언을 지워 본 시험            | 깨끗한 설치에서는 `@import`를 풀지 못해 빌드가 실패할 것으로 본다(확인하지 못했다). 워크트리에서는 선언을 지우고 다시 설치한 뒤에도 앱과 예제 앱 빌드가 통과했다. 워크트리 안의 탐색 경로에는 설치본이 없었고 Node의 탐색 경로는 상위 폴더인 메인 체크아웃의 `node_modules`까지 올라가는데 거기에 설치본이 있어, 그쪽에서 풀린 것으로 추정한다(빌드의 해석 경로를 직접 따라가지는 않았다) | CSS 의존성이 늘면 선언을 확인하는 검사를 둘지                                                                                  |
+| 이 앱과 패키지가 같은 패키지를 서로 다른 버전으로 풀리게 선언하면 pnpm이 두 벌을 깐다. 그러면 위의 `next-themes` 문제가 이 앱에서도 날 수 있다(이 앱에서 재현하지는 않았다. 지금은 패키지 `dependencies`와 겹치는 9개 모두 버전 문자열이 같다)                                                                                                                                                    | 예제 앱 측정에서 이어진 판단   | 함께 선언한 패키지의 버전 문자열이 같은지 보는 테스트 `src/test/workspace-shared-deps.test.ts`. 패키지의 `next-themes`를 0.4.5로 바꾸면 실패했다                                                                                                                                                                                                                                          | "함께 쓸 패키지 범위"를 정하면 이 테스트를 그 결정에 맞춘다                                                                    |
+| 패키지 `tsconfig`를 앱의 project references에 넣으면 선언 파일을 만드는 설정 때문에 타입 이름 오류(TS2742)가 난다                                                                                                                                                                                                                                                                                 | `pnpm type-check`              | 패키지를 따로 `tsc --noEmit`으로 검사한다                                                                                                                                                                                                                                                                                                                                                 | 빌드 도구를 정할 때 다시 본다                                                                                                  |
+| jsdom 환경의 전역 `URL`은 jsdom 것이라 `new URL(상대 경로, import.meta.url)`을 `fs`가 파일 주소로 받지 않는다                                                                                                                                                                                                                                                                                     | 패키지 테스트(`utils.test.ts`) | `fileURLToPath` + `join`으로 경로를 만든다                                                                                                                                                                                                                                                                                                                                                | —                                                                                                                              |
+| 저장소 도구가 `src`만 보고 있었다. Storybook은 옮긴 스토리를 빠뜨렸고, 문서 검사는 `packages/ui/src/…` 안의 `src/…`를 루트 경로로 읽었고, 의존성 그림·뮤테이션 대상·배포 경로 필터에도 패키지가 없었다                                                                                                                                                                                            | 각 도구                        | 모두 넓혔다(`.storybook/main.ts`, `scripts/check-docs.js`, `scripts/dep-graph.js`, `scripts/mutation-report.js`, 워크플로 세 개)                                                                                                                                                                                                                                                          | 패키지나 앱이 더 생기면 같은 목록을 다시 본다                                                                                  |
+
+#### 예제 앱
+
+`examples/next`(`@link-sphere/example-next`)는 이 패키지를 받는 쪽 프로젝트를 흉내 낸 Next.js App Router 앱이다(Next.js 16.4.6,
+React 19.3.1, Tailwind 4.3.5 — 설치본 기준). 화면 하나에 `Button` 종류 6개, `Spinner`, `Tooltip`·`TooltipWrapper`, `Toaster`와
+토스트 래퍼, `LinkThumbnail`(있는 이미지와 없는 주소), 밝은·어두운 테마 전환을 그린다. 앱 코드(`src/`)는 가져다 쓰지 않는다.
+
+받는 쪽이 하는 일은 이 앱의 파일 네 곳에 있다.
+
+| 하는 일                                                               | 파일                              |
+| --------------------------------------------------------------------- | --------------------------------- |
+| 패키지를 선언한다. 저장소 안에서는 복사본으로 깔게 한다(`injected`)   | `examples/next/package.json`      |
+| Next가 패키지의 TS 소스를 변환하게 한다(`transpilePackages`)          | `examples/next/next.config.ts`    |
+| `@import 'tailwindcss'` 다음에 패키지 CSS 한 줄을 가져온다            | `examples/next/app/globals.css`   |
+| 클라이언트 경계 안에서 테마·문구·툴팁 Provider와 `Toaster`를 장착한다 | `examples/next/app/providers.tsx` |
+
+```bash
+pnpm --filter @link-sphere/example-next build   # next build — CI가 돌리는 명령
+pnpm --filter @link-sphere/example-next start   # 빌드한 것을 띄운다
+pnpm --filter @link-sphere/example-next dev     # 개발 서버
+```
+
+- **패키지를 고친 뒤에는 `pnpm install`을 다시 돌린다.** 예제 앱은 패키지의 복사본을 보기 때문에 고친 내용이 설치 전에는
+  반영되지 않는다. 이 앱(루트)은 링크라 바로 반영된다.
+- **CI**: `ci.yml` check 잡의 "예제 앱 빌드 (examples/next)" 단계가 `packages`·`examples`·`pnpm-lock.yaml`·
+  `pnpm-workspace.yaml`이 바뀐 PR에서만 빌드한다. 수동 실행(`workflow_dispatch`)이면 늘 빌드한다.
+- **TypeScript는 5.9.3이다.** 계획은 최신 안정판(7.0.2)이었지만 저장소 안의 TypeScript를 한 벌로 두려고 루트와 같은 버전을
+  골랐다. Next.js 16.4가 7을 받는지는 확인하지 않았다.
+- 스크립트와 CI 모두 `NEXT_TELEMETRY_DISABLED=1`로 Next.js의 익명 사용 정보 전송을 끈다.
+- **린트**: 루트 `pnpm lint`가 예제 앱 파일도 보지만 기본 규칙만 걸린다(코어 4개와 typescript-eslint 20개 —
+  `eslint --print-config examples/next/app/showcase.tsx`, 2026-11-23). 이 앱의 레이어·문구·디자인 시스템 규칙은 `src`와 패키지에만
+  걸린다. Next.js용 린트 규칙을 예제 앱에 둘지는 정하지 않았다.
+
+#### 미뤄 둔 항목의 답
+
+2026-11-23, 리허설 결과를 본 사용자의 답이다. 코드를 바꾸는 답 가운데 애니메이션 CSS와 버전 맞춤은 둘째 PR에 넣었고, 나머지는
+적힌 시점에 따로 계획을 세운다.
+
+| 항목                             | 결정                                                                                                                                                                                                           | 기각한 대안                                                                                               | 적용 시점                     |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| 보조 모듈의 자리                 | 부품을 옮길 때 패키지 `lib/`로 옮기고 앱도 패키지에서 가져다 쓴다. 앱 것과 섞인 세 파일([§5.5](#55-함께-옮길-보조-모듈))은 부품이 쓰는 이름만 떼어 옮긴다                                                      | 패키지와 앱에 사본을 하나씩 둔다(한쪽만 고치면 어긋난다)                                                  | 3단계                         |
+| `LinkThumbnail`·`TooltipWrapper` | 둘 다 범용이다. 예제 앱에서 앱 코드 없이 그려졌다. `LinkThumbnail`의 `className`은 맨 바깥 요소로 보내고 `img`용 클래스는 새 속성으로 받는다([§1.4](#14-api-규칙)의 규칙에 맞춘다)                             | `className`을 지금처럼 `img`로 두고 예외로 기록한다(받는 쪽이 이 부품만 따로 기억해야 한다)               | 별도 계획·PR(1.5단계 뒤)      |
+| 범용 부품의 스토리·테스트        | 부품을 패키지로 옮길 때 그 스토리·테스트도 패키지 방식으로 바꾼다. 문구가 필요한 테스트는 그때 `KO_UI_TEXTS`로 감싸는 패키지 `render`를 만들어 쓴다. `ImageViewer` 스토리의 앱 배선 둘은 앱 쪽 스토리로 나눈다 | 지금 미리 고친다(옮길 때 경로를 또 고친다), 고치지 않는다(앱 코드를 import하는 파일은 패키지로 못 옮긴다) | 3단계                         |
+| 애니메이션 CSS                   | 패키지 토큰 CSS가 `tw-animate-css`를 가져오고 패키지 `dependencies`에 선언한다. 받는 쪽은 패키지 CSS 한 줄만 가져온다                                                                                          | 받는 쪽이 가져온다(빠뜨려도 오류가 없다)                                                                  | 둘째 PR                       |
+| 버전 어긋남 막기                 | 루트와 패키지가 함께 선언한 패키지의 버전 문자열이 같은지 테스트로 본다                                                                                                                                        | `next-themes`를 peer로만 둔다(3단계의 "함께 쓸 패키지 범위"를 앞당긴다), 기록만 한다                      | 둘째 PR                       |
+| 패키지 이름                      | `@link-sphere/ui`는 이 서비스 이름에 묶여 있어 바꾼다. 후보와 npm 스코프 조건·비용을 비교한 이름 계획을 먼저 세우고, 사용자가 고른 이름으로 이름만 바꾸는 PR을 낸다                                            | 둘째 PR에 넣는다(리허설 결과와 약 220개 파일 치환이 한 diff에 섞인다), 3단계까지 미룬다                   | 별도 계획·PR(1.5단계 바로 뒤) |
+
+스토리·테스트 항목의 대상은 15개 파일이다(2026-11-23, `src/shared/ui`의 범용 부품 스토리·테스트 가운데 앱 것을 import하는
+파일).
+
+- **앱 문구(`TEXTS`)를 직접 import하는 8개**: 스토리 3개(`sonner`, `CharacterCount`, `FormAlert`), 테스트 5개(`alert-dialog`,
+  `BackToTopButton`, `ImageAttachmentPreviews`, `GlobalAlertDialogs`, `FormInput`).
+- **앱 테스트 도구(`src/test/utils.tsx`)만 쓰는 6개**: `dialog`, `select`, `SheetDialogContent`, `ImageViewer`,
+  `FormInputPassword`, `ErrorLayout`의 테스트.
+- **라우터를 쓰는 1개**: `ImageViewer.stories.tsx`. 앱 배선을 그리는 스토리 둘(`CommentAttachmentIntegration`,
+  `MixedAspectRatioGallery`)이 `GlobalImageViewer`·`MarkdownContent`와 메모리 라우터를 쓴다.
+
+패키지 안에서는 `@/` import를 린트가, 선언하지 않은 패키지를 의존성 검사가 이미 막는다. 그래서 이 파일들은 옮기는 순간 고치지
+않으면 검사에서 걸리고, 새 검사를 더하지 않았다.
 
 ## 2. 사용 대상과 전제
 
 - **받는 쪽은 React와 Tailwind v4를 쓴다.** 부품은 모양을 Tailwind 클래스로 적고, 그 클래스의 CSS는 받는 쪽 프로젝트의 Tailwind가
   만든다.
-- **받는 쪽은 패키지 경로를 Tailwind에 등록한다.** Tailwind는 `node_modules` 안의 파일을 기본으로 읽지 않는다. Tailwind 문서
-  [Detecting classes in source files](https://tailwindcss.com/docs/detecting-classes-in-source-files)는
+- **받는 쪽은 패키지 경로를 Tailwind에 따로 등록하지 않는다.** Tailwind는 `node_modules` 안의 파일을 기본으로 읽지 않는다.
+  Tailwind 문서 [Detecting classes in source files](https://tailwindcss.com/docs/detecting-classes-in-source-files)는
   `@source "../node_modules/@acmecorp/ui-lib"`처럼 경로를 등록하는 방법을 두고 _"의존성은 보통 `.gitignore`에 올라 있어 Tailwind가
-  기본으로 무시하므로, Tailwind로 만든 외부 라이브러리를 스캔해야 할 때 특히 유용하다"_ (번역)고 쓴다. 이 저장소의 설치본은
-  4.3.5다. 분리 리허설에서는 패키지 토큰 CSS가 자기 소스를 `@source`로 등록하게 했다. 받는 쪽이 따로 등록해야 하는지는 둘째
-  PR의 예제 앱으로 확인한다.
-- **받는 쪽은 토큰 CSS도 가져간다.** 부품의 클래스(`bg-primary` 등)는 패키지 토큰 CSS(`packages/ui/src/styles/tokens.css`)가 정한
-  토큰에서 나온다. 받는 쪽 CSS는 `@import 'tailwindcss'` 다음에 `@import '@link-sphere/ui/styles.css'`를 둔다. 툴팁 애니메이션에는
-  `tw-animate-css`도 함께 import해야 한다([§1.5](#15-분리-리허설에서-알게-된-것과-정한-것)).
+  기본으로 무시하므로, Tailwind로 만든 외부 라이브러리를 스캔해야 할 때 특히 유용하다"_ (번역)고 쓴다. 이 등록을 패키지 토큰 CSS가
+  자기 소스를 가리키는 `@source '..'`로 대신한다. 예제 앱(Next.js 16.4.6, Tailwind 4.3.5)은 따로 등록하지 않고도 부품 클래스가 모두
+  만들어졌고, 패키지의 그 줄을 빼면 빠졌다([§1.5](#15-분리-리허설에서-알게-된-것과-정한-것) "알게 된 것").
+- **받는 쪽은 패키지 CSS 한 줄을 가져간다.** 부품의 클래스(`bg-primary` 등)는 패키지 토큰 CSS(`packages/ui/src/styles/tokens.css`)가
+  정한 토큰에서 나온다. 받는 쪽 CSS는 `@import 'tailwindcss'` 다음에 `@import '@link-sphere/ui/styles.css'`를 둔다. 열림·닫힘
+  애니메이션 CSS(`tw-animate-css`)도 이 한 줄로 함께 온다. 받는 쪽이 `tw-animate-css`를 한 번 더 가져와도 CSS는 겹치지 않았다(예제
+  앱 CSS가 한 번일 때와 두 번일 때 27,265바이트로 바이트까지 같았다, 2026-11-23).
+- **Next.js(App Router)에서 쓸 때.** 패키지가 빌드 없이 TS 소스를 내보내는 동안에는 받는 쪽 `next.config`의 `transpilePackages`에
+  패키지를 적는다. 패키지 파일에 `'use client'`가 없어서, 훅을 쓰는 부품과 문구 Provider는 받는 쪽의 클라이언트 경계 아래에서
+  그린다. 둘 다 3단계에서 다시 정한다([§1.5 "예제 앱"](#예제-앱)).
 - **Tailwind를 안 쓰는 프로젝트**에는 미리 만든 CSS 파일을 패키지에 함께 넣어 주는 길이 있다. 부품 코드는 그대로 두고 빌드 단계를
   더하는 일이라 뒤에 붙일 수 있다는 것이 이 문서의 판단이다(실험하지 않았다). 넣을지는 3단계에서 정한다.
 
@@ -653,31 +728,31 @@ flowchart TD
 
 ### 5.1 atoms (23개)
 
-| 부품             | 파일                                       | 분류 | 묶인 것                                                                                                              | 1단계에서 할 일                                              |
-| ---------------- | ------------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `AlertDialog`    | `src/shared/ui/atoms/alert-dialog.tsx`     | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                     |
-| `Avatar`         | `src/shared/ui/atoms/avatar.tsx`           | 범용 | —                                                                                                                    | 없음                                                         |
-| `Badge`          | `src/shared/ui/atoms/badge.tsx`            | 범용 | —                                                                                                                    | 없음                                                         |
-| `Button`         | `packages/ui/src/atoms/button.tsx`         | 범용 | —                                                                                                                    | 없음                                                         |
-| `Card`           | `src/shared/ui/atoms/card.tsx`             | 범용 | —                                                                                                                    | 없음                                                         |
-| `Checkbox`       | `src/shared/ui/atoms/checkbox.tsx`         | 범용 | —                                                                                                                    | 없음                                                         |
-| `Dialog`         | `src/shared/ui/atoms/dialog.tsx`           | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                     |
-| `Divider`        | `src/shared/ui/atoms/divider.tsx`          | 범용 | —                                                                                                                    | 없음                                                         |
-| `DropdownMenu`   | `src/shared/ui/atoms/dropdown-menu.tsx`    | 범용 | —                                                                                                                    | 없음                                                         |
-| `FeaturedIcon`   | `src/shared/ui/atoms/featured-icon.tsx`    | 범용 | —                                                                                                                    | 없음                                                         |
-| `Input`          | `src/shared/ui/atoms/input.tsx`            | 범용 | 문구 1개(`input.clear`). 보조: `useMergedRef`                                                                        | 끝 — 지우기 버튼 라벨을 `useUiTexts()`로 읽는다              |
-| `Kbd`            | `src/shared/ui/atoms/kbd.tsx`              | 범용 | —                                                                                                                    | 없음                                                         |
-| `Label`          | `src/shared/ui/atoms/label.tsx`            | 범용 | —                                                                                                                    | 없음                                                         |
-| `LabeledDivider` | `src/shared/ui/atoms/labeled-divider.tsx`  | 범용 | —                                                                                                                    | 없음                                                         |
-| `LinkThumbnail`  | `packages/ui/src/atoms/link-thumbnail.tsx` | 범용 | 보조: `failedImageCache`(실패한 이미지 주소를 세션 동안 기억한다)                                                    | 보조 모듈과 함께 옮긴다. 분류는 분리 리허설 뒤에 다시 본다   |
-| `RequiredMark`   | `src/shared/ui/atoms/required-mark.tsx`    | 범용 | —                                                                                                                    | 없음                                                         |
-| `Select`         | `src/shared/ui/atoms/select.tsx`           | 범용 | 보조: `useClickGuard`의 상수 `CLICK_GUARD_MS`                                                                        | 보조 모듈과 함께 옮긴다                                      |
-| `Skeleton`       | `src/shared/ui/atoms/skeleton.tsx`         | 범용 | —                                                                                                                    | 없음                                                         |
-| `Toaster`        | `packages/ui/src/atoms/sonner.tsx`         | 범용 | CSS 변수 `--toast-offset-bottom`을 읽는다. 기본값 24px은 패키지 토큰 CSS에, 모바일 값은 `src/app/globals.css`에 있다 | 없음. 분리 리허설에서 기본값과 앱의 덮는 값으로 나눴다(§1.5) |
-| `Spinner`        | `packages/ui/src/atoms/spinner.tsx`        | 범용 | 문구 1개(`spinner.label`)                                                                                            | 끝 — 로딩 라벨을 `useUiTexts()`로 읽는다                     |
-| `Switch`         | `src/shared/ui/atoms/switch.tsx`           | 범용 | —                                                                                                                    | 없음                                                         |
-| `Textarea`       | `src/shared/ui/atoms/textarea.tsx`         | 범용 | —                                                                                                                    | 없음                                                         |
-| `Tooltip`        | `packages/ui/src/atoms/tooltip.tsx`        | 범용 | —                                                                                                                    | 없음                                                         |
+| 부품             | 파일                                       | 분류 | 묶인 것                                                                                                              | 1단계에서 할 일                                                                       |
+| ---------------- | ------------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `AlertDialog`    | `src/shared/ui/atoms/alert-dialog.tsx`     | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                                              |
+| `Avatar`         | `src/shared/ui/atoms/avatar.tsx`           | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Badge`          | `src/shared/ui/atoms/badge.tsx`            | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Button`         | `packages/ui/src/atoms/button.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Card`           | `src/shared/ui/atoms/card.tsx`             | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Checkbox`       | `src/shared/ui/atoms/checkbox.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Dialog`         | `src/shared/ui/atoms/dialog.tsx`           | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                                              |
+| `Divider`        | `src/shared/ui/atoms/divider.tsx`          | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `DropdownMenu`   | `src/shared/ui/atoms/dropdown-menu.tsx`    | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `FeaturedIcon`   | `src/shared/ui/atoms/featured-icon.tsx`    | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Input`          | `src/shared/ui/atoms/input.tsx`            | 범용 | 문구 1개(`input.clear`). 보조: `useMergedRef`                                                                        | 끝 — 지우기 버튼 라벨을 `useUiTexts()`로 읽는다                                       |
+| `Kbd`            | `src/shared/ui/atoms/kbd.tsx`              | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Label`          | `src/shared/ui/atoms/label.tsx`            | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `LabeledDivider` | `src/shared/ui/atoms/labeled-divider.tsx`  | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `LinkThumbnail`  | `packages/ui/src/atoms/link-thumbnail.tsx` | 범용 | 보조: `failedImageCache`(실패한 이미지 주소를 세션 동안 기억한다)                                                    | 옮겼다. 범용으로 확정했다. `className`을 맨 바깥 요소로 옮기는 일은 별도 PR이다(§1.5) |
+| `RequiredMark`   | `src/shared/ui/atoms/required-mark.tsx`    | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Select`         | `src/shared/ui/atoms/select.tsx`           | 범용 | 보조: `useClickGuard`의 상수 `CLICK_GUARD_MS`                                                                        | 보조 모듈과 함께 옮긴다                                                               |
+| `Skeleton`       | `src/shared/ui/atoms/skeleton.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Toaster`        | `packages/ui/src/atoms/sonner.tsx`         | 범용 | CSS 변수 `--toast-offset-bottom`을 읽는다. 기본값 24px은 패키지 토큰 CSS에, 모바일 값은 `src/app/globals.css`에 있다 | 없음. 분리 리허설에서 기본값과 앱의 덮는 값으로 나눴다(§1.5)                          |
+| `Spinner`        | `packages/ui/src/atoms/spinner.tsx`        | 범용 | 문구 1개(`spinner.label`)                                                                                            | 끝 — 로딩 라벨을 `useUiTexts()`로 읽는다                                              |
+| `Switch`         | `src/shared/ui/atoms/switch.tsx`           | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Textarea`       | `src/shared/ui/atoms/textarea.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
+| `Tooltip`        | `packages/ui/src/atoms/tooltip.tsx`        | 범용 | —                                                                                                                    | 없음                                                                                  |
 
 ### 5.2 elements (33개)
 
@@ -705,7 +780,7 @@ flowchart TD
 | `PasswordInput`           | `src/shared/ui/elements/PasswordInput.tsx`                          | 범용    | 문구 2개(`passwordInput.show`, `passwordInput.hide`)                                                                                                                                          | 끝 — 라벨을 `useUiTexts()`로 읽는다                                                   |
 | `SearchInput`             | `src/shared/ui/elements/SearchInput.tsx`                            | 범용    | 보조: `useKeydown`, `useMergedRef`                                                                                                                                                            | 보조 모듈과 함께 옮긴다                                                               |
 | `ToggleButton`            | `src/shared/ui/elements/ToggleButton.tsx`                           | 범용    | 보조: `useClickGuard`                                                                                                                                                                         | 보조 모듈과 함께 옮긴다                                                               |
-| `TooltipWrapper`          | `packages/ui/src/elements/TooltipWrapper.tsx`                       | 범용    | 보조: 토스트 래퍼 `toast`. 터치에서는 툴팁 대신 토스트로 이유를 알린다 — 받는 쪽이 패키지의 토스트(`Toaster`)를 함께 장착해야 보인다                                                          | 보조 모듈과 함께 옮긴다. 분류는 분리 리허설 뒤에 다시 본다                            |
+| `TooltipWrapper`          | `packages/ui/src/elements/TooltipWrapper.tsx`                       | 범용    | 보조: 토스트 래퍼 `toast`. 터치에서는 툴팁 대신 토스트로 이유를 알린다 — 받는 쪽이 패키지의 토스트(`Toaster`)를 함께 장착해야 보인다                                                          | 옮겼다. 범용으로 확정했다(§1.5)                                                       |
 | `SheetDialogContent`      | `src/shared/ui/elements/dialog/SheetDialogContent.tsx`              | 범용    | —                                                                                                                                                                                             | 없음                                                                                  |
 | `GlobalAlertDialogs`      | `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx` | 범용    | 문구 3개(`alertDialog.confirm`, `alertDialog.cancel`, `alertDialog.fallbackTitle`). 창을 닫을 신호는 `dismissKey` 속성으로 받는다                                                             | 끝 — 문구는 `useUiTexts()`로 읽고, 위치가 바뀌었다는 신호는 쓰는 쪽이 속성으로 넘긴다 |
 | `RouteAlertDialogs`       | `src/shared/ui/elements/dialog/alert-dialog/RouteAlertDialogs.tsx`  | 앱 전용 | 라우터(`useLocation` — 위치 키를 `GlobalAlertDialogs`의 `dismissKey`로 넘긴다)                                                                                                                | 앱에 남긴다(1단계에서 만들었다)                                                       |
@@ -741,9 +816,9 @@ flowchart TD
   목록과 같다. 이 파일들도 린트 대상이라 보조 모듈을 거쳐 앱에 다시 묶이지 않는다.
 - **앱 것과 섞여 있는 세 파일은 이름 단위로만 허용한다.** `config/const.ts`는 상수 둘, `types/common.type.ts`는 타입
   `SelectOptionType`, `utils/common.util.ts`는 `CommonUtil.commaizeNumber`만 쓸 수 있다.
-- **나머지를 어디로 옮길지는 리허설 결과를 본 뒤 정한다.** 리허설에서는 앱도 함께 쓰는 `cn()`·토스트 래퍼를 패키지 `lib/`로
-  옮겨 앱도 패키지에서 가져다 쓰게 했다. 이 방식을 규칙으로 삼을지와 섞인 세 파일에서 쓰는 것만 떼어 낼지가 남아 있다
-  ([§1.5](#15-분리-리허설에서-알게-된-것과-정한-것)).
+- **나머지는 부품을 옮길 때(3단계) 패키지 `lib/`로 옮기고 앱도 패키지에서 가져다 쓴다.** 리허설에서 `cn()`·토스트 래퍼로 해 본
+  방식을 규칙으로 삼았다. 앱 것과 섞인 세 파일은 부품이 쓰는 이름만 떼어 옮긴다(2026-11-23 사용자 답,
+  [§1.5 "미뤄 둔 항목의 답"](#미뤄-둔-항목의-답)).
 
 | 보조 모듈                                                                         | 쓰는 부품                                             | 그 모듈이 가져다 쓰는 것                                                    |
 | --------------------------------------------------------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------- |

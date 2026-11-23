@@ -638,6 +638,9 @@ export default [
       // 뮤테이션 테스트(pnpm test:mutation)가 실행 중 프로젝트를 복사해 두는 샌드박스 —
       // 실행이 중간에 끊기면 남는다.
       '**/.stryker-tmp/**',
+      // Next.js 예제 앱(examples/next)이 빌드할 때 만드는 파일 - .gitignore에도 있다.
+      '**/.next/**',
+      '**/next-env.d.ts',
     ],
   },
   // 공용 UI 패키지(packages/ui/src)는 옮기기 전 자리(src/shared/…)에 걸리던 블록에 모두 함께 적는다 - 옮긴 파일이

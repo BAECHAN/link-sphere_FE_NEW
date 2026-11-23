@@ -362,7 +362,22 @@ packages/ui/
     ├── lib/                     # tailwind/utils.ts(cn), toast/(sonner 래퍼 — 직접 import 금지), image/failedImageCache.ts
     ├── texts/                   # UiTexts 타입, UiTextsProvider·useUiTexts, 한국어 묶음 KO_UI_TEXTS
     │                            # (부품이 스스로 넣는 글자 — DESIGN-SYSTEM-PRINCIPLES.md §1.2)
-    └── styles/tokens.css        # 범용 토큰(색·반경·z-index·글자 크기·다크·기본 커서·동작 줄이기). 앱 globals.css가 import
+    └── styles/tokens.css        # 범용 토큰(색·반경·z-index·글자 크기·다크·기본 커서·동작 줄이기)과 tw-animate-css. 앱 globals.css가 import
+```
+
+이 패키지를 다른 프로젝트에서 받아 쓰는 모습을 확인하는 예제 앱이 `examples/next`에 있다(2026-11-23). 앱 코드(`src/`)를 가져다
+쓰지 않고, 배포되지도 않는다. 받는 쪽이 하는 일과 실행 명령은 [DESIGN-SYSTEM-PRINCIPLES.md](DESIGN-SYSTEM-PRINCIPLES.md) §1.5
+"예제 앱"이 정본이다.
+
+```
+examples/next/                   # @link-sphere/example-next — Next.js App Router + React 19
+├── package.json                 # @link-sphere/ui를 복사본으로 깐다(dependenciesMeta.injected)
+├── next.config.ts               # transpilePackages에 @link-sphere/ui
+└── app/
+    ├── globals.css              # tailwindcss 다음에 패키지 CSS 한 줄
+    ├── layout.tsx, page.tsx     # 서버 컴포넌트(Button만 직접 그린다)
+    ├── providers.tsx            # 클라이언트 경계 — 테마·문구·툴팁 Provider, Toaster
+    └── showcase.tsx             # 클라이언트 경계 — 훅을 쓰는 부품
 ```
 
 레이어에 속하지 않는 최상위 디렉터리도 있다 — `src/mocks/`(MSW `handlers/`·`fixtures/`),
@@ -1658,8 +1673,8 @@ Storybook에 그 환경(QueryClient·라우터·MSW decorator)이 없어 대상�
 
 ```bash
 pnpm dev            # 개발 서버 (port 31119, localhost 모드)
-pnpm build          # tsc -b && vite build && node scripts/inject-csp.js (CSP 주입 포함)
-pnpm type-check     # TypeScript 타입 검사 (tsc -b --noEmit)
+pnpm build          # tsc -b && 공용 UI 패키지 타입 검사 && vite build && node scripts/inject-csp.js (CSP 주입 포함)
+pnpm type-check     # TypeScript 타입 검사 (tsc -b --noEmit, 이어서 공용 UI 패키지의 tsc --noEmit)
 pnpm lint           # ESLint 검사 (--max-warnings 0)
 pnpm lint:fix       # ESLint 자동 수정
 pnpm format         # Prettier 포맷
@@ -1686,6 +1701,8 @@ pnpm test:mutation  # StrykerJS 변이 테스트 (stryker.config.json, docs/TEST
 pnpm perf:lh        # Lighthouse CI — 공개 페이지 (lighthouserc.cjs, docs/PERFORMANCE.md)
 pnpm perf:lh:auth   # Lighthouse CI — 로그인 필요 페이지 (lighthouserc.auth.cjs, LH_TEST_PASSWORD 필요)
 pnpm storybook      # Storybook (port 6006, 공개본은 https://baechan.github.io/link-sphere_FE_NEW/storybook/)
+pnpm --filter @link-sphere/example-next build  # 공용 UI 패키지 예제 앱(examples/next) next build — 패키지를 고쳤으면 먼저 pnpm install
+                    # (복사본 설치라서다. docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5 "예제 앱")
 ```
 
 ---
