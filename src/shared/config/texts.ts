@@ -250,6 +250,12 @@ export const TEXTS = {
     list: {
       heading: '최근 링크',
       submit: '링크 공유',
+      // 로그아웃 상태에서 주소에 로그인 전용 범위 필터가 남아 있을 때 목록 자리에 띄우는 안내
+      loginRequired: {
+        title: '로그인하면 볼 수 있어요',
+        description:
+          '북마크·좋아요·내가 작성한 글처럼 내 활동으로 고르는 조건은 로그인한 뒤에 적용돼요.',
+      },
     },
     form: {
       create: {

@@ -329,6 +329,20 @@
 
 ### Fixed
 
+- `post` 로그아웃 상태에서 범위 칩을 누르면 조건 없이 전체 글이 나오던 문제
+  <details><summary>배경·구현</summary>
+
+  피드의 범위 칩(북마크한·좋아요한·내가 작성한·나만 볼 수 있는)은 "내" 활동으로 고르는 조건이라 로그인이 있어야 뜻이 있다. 그런데 로그아웃 상태에서 누르면 칩만 켜지고 요청이 토큰 없이 그대로 나갔고, BE는 조건을 버리고 전체 공개 글을 주거나("나만 볼 수 있는"은 빈 목록) 해서 왜 그런 결과가 나왔는지 알 수 없었다(2026-11-23 운영에서 토큰 없는 요청 5건으로 재현). 남의 비공개 글이 새지는 않았다 — 공개 범위 조건은 늘 붙는다.
+
+  이제 로그아웃 상태에서는 이 필터가 붙은 목록을 요청하지 않는다. 꺼진 칩을 누르면 칩·주소를 그대로 둔 채 로그인 창을 띄우고, 로그인하면 그 칩이 켜진다(북마크 버튼과 같은 `useAuthGuard`의 `resumeAfterLogin`). 칩을 켠 채 로그아웃했거나 그 주소로 바로 들어와 주소에 필터가 남아 있으면 목록 자리에 "로그인하면 볼 수 있어요" 안내와 로그인 버튼을 두고, 라우트의 피드 미리 받기도 하지 않는다. 켜진 칩을 끄는 것과 초기화는 로그인 없이 된다. 칩을 숨기지는 않았다 — 방문자가 기능이 있는지 알 수 없게 된다. 안내의 모양과 문구는 실제 스타일 시안 네 가지를 나란히 보고 골랐다(사용자 선택).
+
+  로그인 뒤 재개는 토글이 아니라 "켜기"이고, 라우터가 지금 가 있는 주소에서 시작한다. 처음 구현은 재개가 React가 커밋한 옛 주소에서 시작해, 라벨 칩을 누르고 그 응답이 오기 전에 범위 칩 → 로그인하면 방금 고른 라벨이 주소에서 빠졌다(실제 로그인 창 훅을 끼운 단위 테스트로 재현해 병합 전에 고침, 경위는 `docs/SEARCH.md` §10).
+
+  남는 것: 칩을 켠 채 로그아웃하는 순간 떠 있던 목록이 토큰 없이 한 번 다시 요청한다(모킹한 브라우저에서 3회 측정, 매번 1건). 화면은 곧 안내로 바뀌어 그 응답을 쓰지 않는다. 다만 BE가 아직 200을 주는 동안에는 그 응답(조건 없는 공개 글)이 캐시에 남아, 그 자리에서 다시 로그인하면 새 응답이 올 때까지 잠깐 보인다. 손으로 친 공백 낀 주소(`?filter=%20isMyPosts`)에서는 안내는 뜨는데 칩이 꺼져 보이고 초기화가 듣지 않는다(둘 다 일회용 스펙으로 재현, `docs/SEARCH.md` §11). 기존 테스트 가운데 로그인 준비 없이 범위 칩을 켜던 것은 단언을 그대로 두고 입력만 로그인 상태로 바꿨다(요구 변경).
+  (`post-list-payload.ts`, `usePostListFilter.ts`, `usePostList.ts`, `usePostListLoginGate.ts`(신규), `PostList.tsx`, `AppRoutes.tsx`, `texts.ts`, `e2e/guest-guard.spec.ts`, `e2e/post-list-filters.spec.ts`, `docs/SEARCH.md`, `docs/AUTH.md`, `docs/plans/2026-11-23-login-only-filter-chips.md`(신규), [PR #675](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/675))
+
+  </details>
+
 - `comment` 업로드 중 연 이미지 확대 창에서 쪽을 넘기면 이미지가 깨지던 문제
   <details><summary>배경·구현</summary>
 
@@ -699,6 +713,7 @@
 
 ### Notes
 
+- 배포 순서: **FE(범위 칩 로그인 유도) 먼저 → BE**. `link-sphere_BE_NEW`가 토큰 없는 범위 필터 요청(`GET /post?filter=isMyPosts` 등)을 401 `NOT_LOGGED_IN`으로 거절하는 변경이 이어진다(BE PR은 이 FE 배포를 확인한 뒤에 연다). FE는 그 요청을 보내지 않아 BE 응답과 무관하게 동작한다. BE를 먼저 올리면 옛 화면에서 로그아웃 상태로 칩을 누를 때 로그인 페이지로 이동한다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #194](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/194) 필요(`POST /post/{id}/view` 응답 `data`가 빈 객체에서 `{ viewCount }`로 바뀌고, 같은 회원·IP는 UTC 하루에 한 번만 센다). **배포 순서: BE 먼저 → FE** — FE를 먼저 올리면 상세 조회수가 0으로 보인다. 그 사이에는 다시 본 글만 화면에 1 많게 보이고 DB는 맞다. 되돌릴 때는 FE 먼저.
 - BE API 의존: `link-sphere_BE_NEW` [PR #159](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/159) 필요(`POST /post/{id}/view` 신규, `GET /post/{id}`는 조회수를 올리지 않음). **배포 순서: BE 먼저 → FE 바로** — 그 사이에는 조회가 안 세지고 에러는 없다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #158](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/158) 필요(글·댓글·답글 등록과 메일 요청 2개에 `Idempotency-Key` 필수, 같은 키면 처음 결과). **배포 순서: 헤더를 싣는 FE(#535) 먼저 → SQL → BE → 재전송을 켜는 FE** — 헤더 FE 배포 전에 열린 탭은 BE 필수화 뒤 등록이 400으로 실패하고 새로고침하면 회복한다. BE 전에 재전송을 켜면 글·댓글이 2개 생긴다.

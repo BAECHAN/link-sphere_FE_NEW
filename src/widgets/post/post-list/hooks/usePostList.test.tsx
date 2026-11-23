@@ -1,8 +1,8 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, RouterProvider, createMemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { http, HttpResponse } from 'msw';
 import { server } from '@/mocks/server';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
@@ -13,6 +13,9 @@ import { PostListFilter } from '@/widgets/post/post-list/ui/PostListFilter';
 import { usePostList } from '@/widgets/post/post-list/hooks/usePostList';
 import type { CardGridSpec } from '@/shared/hooks/useWindowGridVirtualizer';
 import { RouterEvents } from '@/shared/lib/router/router-events';
+import { useLoginDialog } from '@/widgets/layout/login-dialog/hooks/useLoginDialog';
+import { useAuthStore } from '@/shared/store/auth.store';
+import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 
 // PostListFilter.test.tsx는 usePostList()를 호출하지 않아(=목록 쿼리가 suspend하지 않아)
 // 이 파일이 다루는 버그 클래스(RouterProvider.tsx의 v7_startTransition 때문에 필터 변경이
@@ -136,11 +139,19 @@ function renderPostList(initialEntry: string) {
   );
 }
 
+/** 로그인 창의 열림·닫힘·재개 로직만 돌린다 - 창(폼)은 그리지 않는다 */
+function LoginDialogLogic() {
+  useLoginDialog();
+
+  return null;
+}
+
 /**
  * 뒤로가기(POP)는 라우터 구독(RouterEvents)으로만 잡히는데, 그건 데이터 라우터에만 있다 -
  * MemoryRouter 컴포넌트 대신 createMemoryRouter로 만들어 앱(RouterProvider.tsx)처럼 주입한다.
+ * extra는 같은 라우트에 함께 그릴 것(로그인 창 로직 등)이다.
  */
-function renderPostListWithDataRouter(initialEntry: string) {
+function renderPostListWithDataRouter(initialEntry: string, extra?: ReactNode) {
   const queryClient = createTestQueryClient();
   const router = createMemoryRouter(
     [
@@ -153,6 +164,7 @@ function renderPostListWithDataRouter(initialEntry: string) {
               <PostListProbe />
             </Suspense>
             <LocationSearchProbe />
+            {extra}
           </>
         ),
       },
@@ -192,6 +204,11 @@ beforeEach(() => {
 });
 
 describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', () => {
+  // 범위 칩은 로그인해야 켜진다(정리는 src/test/setup.ts)
+  beforeEach(() => {
+    useAuthStore.getState().setAuth('token');
+  });
+
   it('시나리오 A: 로딩 중 다른 필터를 연속 클릭해도 둘 다 누적된다', async () => {
     const { getGate, inOrder } = createGateRegistry();
     mockGatedPostList(getGate);
@@ -439,5 +456,98 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
       expect(readCommittedParams().get('q')).toBeNull();
     });
     expect(backendChip).not.toHaveClass('bg-primary');
+  });
+});
+
+// 로그아웃 상태에서 누른 범위 칩은 로그인 뒤 로그인 창이 닫히고 나서 켜진다(useAuthGuard의 resumeAfterLogin).
+// 그 재개는 클릭이 아니라 로그인 창 쪽 effect에서, 창이 닫히는 뒤로가기 직후에 불린다 - 칩 표시(낙관적 미러)와
+// 주소 초안이 클릭 때와 다른 경로를 탄다. 불리는 시점이 결과를 바꾸므로(React가 뒤로가기를 커밋하기 전이다)
+// 창의 열림·닫힘·재개 로직(useLoginDialog)을 실제로 돌려 그 순서 그대로 본다.
+describe('usePostList — 로그아웃 상태에서 누른 범위 칩을 로그인 뒤 재개', () => {
+  afterEach(() => {
+    useLoginDialogStore.getState().setOnSuccess(undefined);
+    useLoginDialogStore.getState().setPendingAction(undefined);
+  });
+
+  function isLoginDialogOpen(router: ReturnType<typeof renderPostListWithDataRouter>) {
+    const state = router.state.location.state as { loginDialogOpen?: boolean } | null;
+
+    return Boolean(state?.loginDialogOpen);
+  }
+
+  /** 로그인 성공 - 로그인 창이 스스로 닫히고(뒤로) 재개 액션을 부른다(useLoginDialog.ts) */
+  async function signInThroughDialog(router: ReturnType<typeof renderPostListWithDataRouter>) {
+    act(() => {
+      useAuthStore.getState().setAuth('token');
+    });
+
+    await waitFor(() => expect(isLoginDialogOpen(router)).toBe(false));
+  }
+
+  it('시나리오 G: 재개하면 목록 응답 전에 칩이 켜지고, 이어 누른 칩도 함께 쌓인다', async () => {
+    const { getGate, inOrder } = createGateRegistry();
+    mockGatedPostList(getGate);
+    const user = userEvent.setup();
+
+    const router = renderPostListWithDataRouter('/', <LoginDialogLogic />);
+    await waitForGateCount(inOrder, 1);
+    await releaseAllGates(inOrder);
+    await screen.findByTestId('post-count');
+
+    const myPostsChip = screen.getByRole('button', { name: TEXTS.buttons.myPosts });
+    await user.click(myPostsChip);
+
+    // 로그인 창만 열린다 - 칩도 주소도 그대로이고 목록을 새로 요청하지 않는다
+    await waitFor(() => expect(isLoginDialogOpen(router)).toBe(true));
+    expect(myPostsChip).not.toHaveClass('bg-info');
+    expect(inOrder).toHaveLength(1);
+
+    await signInThroughDialog(router);
+
+    // 새 조건의 응답을 아직 받지 못한 정지 구간 - 커밋된 주소는 그대로지만 칩은 켜져 있다
+    await waitForGateCount(inOrder, 2);
+    expect(readCommittedParams().get('filter')).toBeNull();
+    expect(myPostsChip).toHaveClass('bg-info');
+
+    await user.click(screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly }));
+    await waitForGateCount(inOrder, 3);
+    await releaseAllGates(inOrder);
+
+    await waitFor(() => {
+      expect(readCommittedParams().get('filter')).toBe('isMyPosts,isBookmarked');
+    });
+    expect(myPostsChip).toHaveClass('bg-info');
+  });
+
+  it('시나리오 H: 라벨 칩의 응답을 기다리는 중에 범위 칩을 누르고 로그인해도 라벨이 주소에 남는다', async () => {
+    const { getGate, inOrder } = createGateRegistry();
+    mockGatedPostList(getGate);
+    const user = userEvent.setup();
+
+    const router = renderPostListWithDataRouter('/', <LoginDialogLogic />);
+    await waitForGateCount(inOrder, 1);
+    await releaseAllGates(inOrder);
+    await screen.findByTestId('post-count');
+
+    const backendChip = await screen.findByRole('button', { name: '@백엔드' });
+    await user.click(backendChip);
+    await waitForGateCount(inOrder, 2);
+    // 아직 release 전 — 라우터는 라벨이 붙은 주소에 가 있지만 커밋된 주소는 그대로다
+    expect(readCommittedParams().get('q')).toBeNull();
+
+    const myPostsChip = screen.getByRole('button', { name: TEXTS.buttons.myPosts });
+    await user.click(myPostsChip);
+    await waitFor(() => expect(isLoginDialogOpen(router)).toBe(true));
+
+    await signInThroughDialog(router);
+    await waitForGateCount(inOrder, 3);
+    await releaseAllGates(inOrder);
+
+    await waitFor(() => {
+      expect(readCommittedParams().get('q')).toBe('@백엔드');
+    });
+    expect(readCommittedParams().get('filter')).toBe('isMyPosts');
+    expect(backendChip).toHaveClass('bg-primary');
+    expect(myPostsChip).toHaveClass('bg-info');
   });
 });

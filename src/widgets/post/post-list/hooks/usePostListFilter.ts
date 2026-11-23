@@ -1,13 +1,14 @@
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
-import { useEffect, useState } from 'react';
+import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
+import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { usePostListParams } from '@/widgets/post/post-list/hooks/usePostList';
 import { parseSearchQuery } from '@/widgets/post/post-list/utils/search-parser';
+import { SCOPE_FILTERS } from '@/widgets/post/post-list/utils/post-list-payload';
+import { useAuthStore } from '@/shared/store/auth.store';
 import { useHideBotsStore } from '@/shared/store/hideBots.store';
 import { RouterEvents } from '@/shared/lib/router/router-events';
-
-const SCOPE_FILTERS = ['isBookmarked', 'isLiked', 'isMyPosts', 'isPrivate'] as const;
 
 // "조건 N개 적용 중" 카운트 — 봇 글 숨기기(localStorage 개인 설정, 초기화 대상 아님)는 제외.
 function computeAppliedFilterCount(
@@ -36,7 +37,7 @@ function computeAppliedFilterCount(
  */
 export const usePostListFilter = () => {
   const { categoryOptionList } = useCategoryOptions();
-  const { searchQuery, currentFilter, toggleSearchTag, toggleFilter, clearSearch } =
+  const { searchQuery, currentFilter, toggleSearchTag, toggleFilter, turnFilterOn, clearSearch } =
     usePostListParams();
   const { pathname } = useLocation();
   const hideBots = useHideBotsStore((state) => state.hideBots);
@@ -54,7 +55,35 @@ export const usePostListFilter = () => {
     setOptimisticFilters(activeFilters);
   }
 
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const guard = useAuthGuard();
+
+  // 로그인 뒤 재개는 칩을 누른 렌더가 아니라 로그인 창이 닫힌 뒤에 불린다 - 누를 때 잡아 둔 함수는 그때의
+  // 위치에 묶여 있어, 재개가 쓴 주소 초안이 지금 위치의 것으로 남지 않는다(이어 누른 칩이 재개한 칩을 지운다).
+  // 그래서 마지막으로 커밋된 turnFilterOn을 ref로 읽는다. ref는 렌더 중이 아니라 effect에서 갱신한다
+  // (https://react.dev/reference/react/useRef#caveats)
+  const latestTurnFilterOnRef = useRef(turnFilterOn);
+
+  useEffect(() => {
+    latestTurnFilterOnRef.current = turnFilterOn;
+  });
+
+  // 로그인 창 쪽 effect 안에서 불리므로 flushSync를 쓰지 않는다(렌더·effect 중의 flushSync는 React가 막는다)
+  const turnFilterOnAfterLogin = (targetFilter: string) => {
+    setOptimisticFilters((prev) => (prev.includes(targetFilter) ? prev : [...prev, targetFilter]));
+    latestTurnFilterOnRef.current(targetFilter);
+  };
+
   const handleToggleFilter = (targetFilter: string) => {
+    const isTurningOn = !optimisticFilters.includes(targetFilter);
+
+    // 범위 칩은 로그인해야 뜻이 있다 - 로그아웃 상태에서 켜려 하면 요청 없이 로그인 창을 띄우고, 로그인하면
+    // 그 칩을 켠다. 끄는 데는 로그인이 필요 없다(칩을 켠 채 로그아웃한 뒤에도 끌 수 있어야 한다)
+    if (isTurningOn && !isAuthenticated) {
+      guard(() => turnFilterOnAfterLogin(targetFilter), { resumeAfterLogin: true });
+      return;
+    }
+
     // flushSync로 강제 동기 커밋 → toggleFilter의 startTransition 배칭에서 분리
     flushSync(() => {
       setOptimisticFilters((prev) =>

@@ -27,7 +27,7 @@ TEXTS
 ├── accountSettings.* (title, emailVerificationNeeded, passwordSectionTitle, deleteSectionTitle, deleteConfirmMessage, ...)
 ├── version.* (title, description, loadedBuild, deployedBuild, bannerMatch, bannerMismatch, ...)
 ├── recentSearch.* (title, clearAll, empty, removeItem)
-├── post.list.* (heading, submit) — 글 목록 머리
+├── post.list.* (heading, submit, loginRequired.title/description) — 글 목록 머리, 로그아웃 상태의 로그인 전용 필터 안내
 ├── post.form.create.* (title, description1/2, urlLabel, urlPlaceholder, titleLabel, ...)
 ├── post.form.update.* (title, description, titleLabel, titlePlaceholder, update, ...)
 ├── post.form.preview.* (placeholder, loading, failed, ariaLabel) — 등록·수정 폼 공용 링크 미리보기
