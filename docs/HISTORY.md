@@ -1,4 +1,7 @@
 ### 2026-11-24 (FE)
+- LinkThumbnail 컴포넌트의 스타일 결합 방식 개선을 위해 className 적용 위치를 최상위 요소로 변경하여 스타일 확장성 확보 ([#684](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/684))
+
+### 2026-11-24 (FE)
 - 실시간 갱신 로직 개선: 탭 비활성화 시에도 작성 시각이 정상적으로 업데이트되도록 수정 ([#680](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/680))
 
 ### 2026-11-24 (FE)
