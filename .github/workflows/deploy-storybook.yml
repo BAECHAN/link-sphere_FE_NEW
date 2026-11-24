@@ -39,16 +39,16 @@ concurrency:
 
 permissions:
   contents: read
-  pages: write # Pages 게시
-  id-token: write # deploy-pages가 게시 요청을 OIDC 토큰으로 증명한다
 
 jobs:
-  deploy:
+  # 올리는 잡(build)과 게시하는 잡(deploy)을 나눈다. deploy-pages는 산출물을 이름으로 찾을 때 목록을 한 번만 조회하는데,
+  # 한 잡에서 올린 직후(0.3~0.4초 뒤)에 조회하면 목록이 아직 비어 있을 때가 있어 실패했다(2026-11-24 실행 3개, 같은 증상:
+  # https://github.com/actions/deploy-pages/issues/451). 잡을 나누면 조회가 다음 잡이 시작된 뒤로 밀리고, 실패해도
+  # deploy 잡만 다시 돌릴 수 있다 - 한 잡이면 재실행이 산출물을 하나 더 올려 "Multiple artifacts"로 다시 실패한다.
+  # deploy-pages README가 권하는 구조다(https://github.com/actions/deploy-pages#usage). 경위와 복구 절차는
+  # docs/DEPLOY.md "Storybook 공개 배포"의 "잡 구조와 실패 복구".
+  build:
     runs-on: ubuntu-latest
-    # 저장소 Pages 소스가 "GitHub Actions"일 때 쓰는 환경 - main만 배포하도록 보호 규칙을 건다(docs/DEPLOY.md)
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -83,6 +83,18 @@ jobs:
         with:
           path: _site
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    # 게시 권한은 이 잡에만 준다 - build 잡은 npm 의존성 코드가 도는 구간이라 contents: read만 갖는다
+    permissions:
+      pages: write # Pages 게시
+      id-token: write # deploy-pages가 게시 요청을 OIDC 토큰으로 증명한다
+    # 저장소 Pages 소스가 "GitHub Actions"일 때 쓰는 환경 - main만 배포하도록 보호 규칙을 건다(docs/DEPLOY.md)
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
