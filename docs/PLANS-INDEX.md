@@ -12,7 +12,7 @@
 | 2026-11-24 | [GitHub Pages 배포를 build·deploy 두 잡으로 나누기 (FE Storybook → BE API 문서)](./plans/2026-11-24-pages-deploy-split-jobs.md)                              | #677 · 이탈 0 · 미구현 0           |              |
 | 2026-11-23 | [공용 UI 패키지 이름 바꾸기: `@link-sphere/ui` → `@baechan/ui`](./plans/2026-11-23-design-system-package-rename.md)                                          | #676 · 이탈 1 · 미구현 0           |              |
 | 2026-11-23 | [디자인 시스템 1.5단계 마무리: 리허설 답 반영과 둘째 PR](./plans/2026-11-23-design-system-split-rehearsal-wrapup.md)                                         | #673 · 이탈 0 · 미구현 0           |              |
-| 2026-11-23 | [로그아웃 상태에서 로그인 전용 범위 칩이 그대로 조회되는 문제](./plans/2026-11-23-login-only-filter-chips.md)                                                | #675 · 이탈 3 · 미구현 3           |              |
+| 2026-11-23 | [로그아웃 상태에서 로그인 전용 범위 칩이 그대로 조회되는 문제](./plans/2026-11-23-login-only-filter-chips.md)                                                | #675 #227 #678 · 이탈 4 · 미구현 3 |              |
 | 2026-11-21 | [코드 지도(floorplan) 공개와 Claude Code 안내 이전](./plans/2026-11-21-floorplan-pages.md)                                                                   | #671 #226 · 이탈 2 · 미구현 0      |              |
 | 2026-11-20 | [업로드 중 연 이미지 확대 창이 "첨부 이미지 N"으로 깨지는 문제](./plans/2026-11-20-comment-image-viewer-blob-revoke.md)                                      | #670 · 이탈 0 · 미구현 0           |              |
 | 2026-11-20 | [내 댓글의 수정·삭제를 이름 줄 ⋮ 메뉴로 옮겨 좁은 폰의 가로 넘침을 없앤다](./plans/2026-11-20-comment-owner-menu.md)                                         | #666 · 이탈 2 · 미구현 0           |              |

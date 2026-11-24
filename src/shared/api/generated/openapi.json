@@ -2555,7 +2555,7 @@
     },
     "/post": {
       "get": {
-        "description": "category·search·filter·nickname 으로 필터링하고 cursor·size 로 이어 읽는다. 첫 쪽은 cursor 없이 요청하고, 다음 쪽은 응답의 nextCursor 를 그대로 보낸다. nextCursor 가 null 이면 마지막 쪽이다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다. size 는 최대 50 으로 잘린다. filter=isLiked 는 최근 좋아요 10,000개 안에서 거르고, 좋아요가 더 있어 잘랐을 때만 likedFilterLimit 이 10000 이다(평소 null). 같은 IP의 검색이 몰리면 의미 검색을 건너뛰고 키워드 검색 결과만 돌려준다(에러 아님). 실패: 400 INVALID_INPUT(잘못된 cursor, 검색어 유무가 달라진 cursor)",
+        "description": "category·search·filter·nickname 으로 필터링하고 cursor·size 로 이어 읽는다. 첫 쪽은 cursor 없이 요청하고, 다음 쪽은 응답의 nextCursor 를 그대로 보낸다. nextCursor 가 null 이면 마지막 쪽이다. 인증 토큰을 보내면 본인의 좋아요·북마크 여부가 응답에 반영된다. size 는 최대 50 으로 잘린다. filter=isLiked 는 최근 좋아요 10,000개 안에서 거르고, 좋아요가 더 있어 잘랐을 때만 likedFilterLimit 이 10000 이다(평소 null). 같은 IP의 검색이 몰리면 의미 검색을 건너뛰고 키워드 검색 결과만 돌려준다(에러 아님). 실패: 400 INVALID_INPUT(잘못된 cursor, 검색어 유무가 달라진 cursor), 401 NOT_LOGGED_IN(토큰 없이 filter 에 isMyPosts·isPrivate·isBookmarked·isLiked 를 보냄)",
         "operationId": "getAllPosts",
         "parameters": [
           {

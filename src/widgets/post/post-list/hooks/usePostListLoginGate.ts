@@ -11,7 +11,7 @@ function doNothingAfterLogin() {
 /**
  * 로그아웃 상태인데 주소에 로그인 전용 범위 필터가 남아 있는지(칩을 켠 채 로그아웃·로그인 만료, 그 주소로
  * 바로 진입). 참이면 목록과 미리 받기를 요청하지 않고 목록 자리에 로그인 안내를 둔다 - 그대로 요청하면
- * 서버가 물어본 조건과 다른 답을 주거나 거절한다(docs/SEARCH.md 범위 칩).
+ * 서버가 401로 거절한다(docs/SEARCH.md 범위 칩).
  * 목록 화면(PostList)과 피드 라우트의 미리 받기(AppRoutes)가 함께 쓴다. 미리 받기는 lazy 페이지 청크 밖에서
  * 돌므로 usePostList.ts를 import하지 않고, 주소는 usePostFeedPrefetch와 같은 커밋된 값에서 읽는다.
  */
