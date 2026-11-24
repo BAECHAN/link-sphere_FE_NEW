@@ -105,8 +105,8 @@ e2e(`e2e/`)의 모킹 도구(`installCatchAll`·`mockAuthRefresh`·`mockAccountQ
      workers: 1,
      use: {
        ...base.use,
+       // 화면 크기(viewport)는 여기 적어도 먹지 않는다 - 스펙의 test.use로 정한다(아래 2번)
        video: { mode: 'on', size: { width: 1280, height: 800 } },
-       viewport: { width: 1280, height: 800 },
      },
      webServer: { ...base.webServer, cwd: path.resolve(here, '../..') },
    };
@@ -115,6 +115,15 @@ e2e(`e2e/`)의 모킹 도구(`installCatchAll`·`mockAuthRefresh`·`mockAccountQ
 2. 스펙(`verify-<slug>.spec.ts`)은 `e2e/post-create.spec.ts`처럼 `beforeEach`에서 캐치올과 인증
    모킹을 깔고, 시나리오마다 `test` 하나를 만든다. 테스트 이름은 `1-<짧은설명>`처럼 번호를 붙여
    사용자에게 제시한 항목 순서와 맞춘다(위 "호출 순서" 4번과 같은 이유).
+   - 화면 크기는 스펙 맨 위 `test.use({ viewport: { width: 1280, height: 800 } })`로 정한다. 설정 파일 최상위
+     `use.viewport`는 먹지 않는다 — 프로젝트의 `use`가 최상위 `use` 뒤에 합쳐져(설치본 Playwright 1.65.0
+     `node_modules/playwright/lib/common/index.js:603`) `chromium` 프로젝트의 `devices['Desktop Chrome']`(1280×720,
+     `playwright.config.ts:41`)이 이긴다. 이 줄이 없으면 앱은 720px 높이로 그려지고 영상(1280×800) 아래 80px가 회색
+     띠로 남는다(2026-11-24 직접 측정: 설정에만 적고 찍으면 `window.innerHeight`가 720, 이 줄을 넣으면 800).
+   - 검증 대상이 화면 아래로 잘리면 `test.use`의 높이와 설정의 `video.size` 높이를 같은 값으로 늘린다.
+     `toBeVisible`·`toHaveCount`는 스크롤해야 보이는 요소에도 통과하므로, 영상에 보이는지는 아래 "마지막 화면
+     붙잡기"의 프레임으로 확인한다(2026-11-24, 상세의 댓글이 720px 아래로 잘려 단언은 통과했는데 영상에는 글
+     카드만 보였다. 높이를 1000으로 늘려 다시 찍었다, #680).
    - 응답을 `setTimeout`으로 1초 남짓 늦춰 로딩 상태가 영상에 보이게 한다.
    - 입력은 `fill` 대신 `pressSequentially(값, { delay: 30 })`로 해야 타이핑이 보인다.
    - 모바일은 `test.describe` 안에서 `test.use(devices['Pixel 5'])`를 그대로 쓰면 거부된다
