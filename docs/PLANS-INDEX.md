@@ -9,7 +9,7 @@
 
 | 날짜       | 계획                                                                                                                                                         | 대조                               | 대체         |
 | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------- | ------------ |
-| 2026-11-24 | [GitHub Pages 배포를 build·deploy 두 잡으로 나누기 (FE Storybook → BE API 문서)](./plans/2026-11-24-pages-deploy-split-jobs.md)                              | #677 · 이탈 0 · 미구현 0           |              |
+| 2026-11-24 | [GitHub Pages 배포를 build·deploy 두 잡으로 나누기 (FE Storybook → BE API 문서)](./plans/2026-11-24-pages-deploy-split-jobs.md)                              | #677 #228 · 이탈 0 · 미구현 0      |              |
 | 2026-11-24 | [열어 둔 탭의 작성 시각 글자가 멈춰 있는 문제 — 1분마다, 그리고 돌아왔을 때 다시 계산](./plans/2026-11-24-relative-time-refresh.md)                          | #680 · 이탈 2 · 미구현 0           |              |
 | 2026-11-23 | [공용 UI 패키지 이름 바꾸기: `@link-sphere/ui` → `@baechan/ui`](./plans/2026-11-23-design-system-package-rename.md)                                          | #676 · 이탈 1 · 미구현 0           |              |
 | 2026-11-23 | [디자인 시스템 1.5단계 마무리: 리허설 답 반영과 둘째 PR](./plans/2026-11-23-design-system-split-rehearsal-wrapup.md)                                         | #673 · 이탈 0 · 미구현 0           |              |
@@ -92,67 +92,67 @@
 
 ## 2026-10 (59)
 
-| 날짜       | 계획                                                                                                                                       | 대조 | 대체   |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ------ |
-| 2026-10-31 | [AI 루프·멀티에이전트 도입 준비: 0·1단계 구현과 2·3단계 로드맵](./plans/2026-10-31-ai-loop-graph-readiness.md)                             |      | 대체됨 |
-| 2026-10-30 | [Storybook·Swagger UI를 GitHub Pages로 — 운영 출처에서 문서 사이트 떼어내기](./plans/2026-10-30-docs-to-github-pages.md)                   |      |        |
-| 2026-10-29 | [FE↔BE API 계약 자동 검사 — BE PR 스펙 비교 · MSW 스펙 타입 · 경로 타입 클라이언트](./plans/2026-10-29-api-contract-checks.md)             |      |        |
-| 2026-10-28 | [북마크 폴더 화면 — 제목 옆 연필로 이름 바꾸기 + 모바일 정렬을 아이콘으로](./plans/2026-10-28-bookmark-folder-title-rename-sort-icon.md)   |      |        |
-| 2026-10-28 | [로그인이 풀려도 쓰던 화면에 둔다 (Phase 2 폐기 · Phase 3 확장)](./plans/2026-10-28-keep-writing-in-place.md)                              |      |        |
-| 2026-10-28 | [로그인 만료·로그아웃 때 쓰던 글 지키기](./plans/2026-10-28-session-expiry-draft-preservation.md)                                          |      |        |
-| 2026-10-28 | [태블릿 대응 — 폭 축과 입력 축 나누기](./plans/2026-10-28-tablet-width-and-input-axes.md)                                                  |      |        |
-| 2026-10-28 | [태블릿 대응 Phase 2 — 세로 구간을 레일로, 카드 최소 폭을 292로](./plans/2026-10-28-tablet-width-rail.md)                                  |      |        |
-| 2026-10-27 | [북마크 폴더 고정 — 별도 구획 대신 "내 폴더" 맨 위로](./plans/2026-10-27-bookmark-folder-pin-in-my-folders.md)                             |      |        |
-| 2026-10-27 | [첫 로딩 JS 줄이기 + 폰트 preload 운영 결과 기록](./plans/2026-10-27-first-load-js.md)                                                     |      |        |
-| 2026-10-26 | [BE 아키텍처 골격: 레이어 관계 문서화 · 표준 대비 점검 · 도구로 고정](./plans/2026-10-26-be-architecture-skeleton.md)                      |      |        |
-| 2026-10-26 | [BE 남은 것 정리: 보안 업데이트 · 위험 수정 · 죽은 코드·중복 정리 · 관측성](./plans/2026-10-26-be-remaining-cleanup.md)                    |      |        |
-| 2026-10-26 | [북마크 폴더 고정(pin)](./plans/2026-10-26-bookmark-folder-pin.md)                                                                         |      |        |
-| 2026-10-26 | [LCP 줄이기 — 데이터 요청 앞당기기 + 폰트 preload 정리](./plans/2026-10-26-lcp-prefetch-font-preload.md)                                   |      |        |
-| 2026-10-26 | [Lighthouse Best Practices 77점 원인 제거 + Lighthouse CI가 회귀를 보이게 개선](./plans/2026-10-26-lighthouse-best-practices.md)           |      |        |
-| 2026-10-25 | [BE 전체 점검: 파이프라인·패턴 정본화와 위반 정리](./plans/2026-10-25-be-architecture-audit.md)                                            |      |        |
-| 2026-10-21 | [확인창을 거치는 삭제에 성공 토스트 복원](./plans/2026-10-21-delete-success-toast.md)                                                      |      |        |
-| 2026-10-21 | [게시글 등록·수정 저장 중 이탈 — 확인창과 응답이 겹칠 때의 이동 버그 수정과 테스트](./plans/2026-10-21-post-submit-leave-guard.md)         |      |        |
-| 2026-10-16 | [봇 글 숨기기 토글 시 피드가 좌우로 7.5px 흔들리는 문제](./plans/2026-10-16-hide-bots-layout-shift.md)                                     |      |        |
-| 2026-10-16 | [localStorage에 쓰지 못하는 탭에서 같은 탭 로그인·로그아웃도 인증 세대로 알아채기](./plans/2026-10-16-in-tab-auth-epoch.md)                |      |        |
-| 2026-10-16 | [경로 지정 커밋 뒤 인덱스가 정렬 전 내용으로 남는 문제(MM) 해소](./plans/2026-10-16-lint-staged-pathspec-index.md)                         |      |        |
-| 2026-10-16 | [목록 필터 카드 카테고리 칩 레이아웃 시프트 제거 + 라이브러리 내부 동작 확인 지침](./plans/2026-10-16-post-list-category-cls.md)           |      |        |
-| 2026-10-16 | [제출 페이지 진입 시 URL 칸 자동 포커스](./plans/2026-10-16-submit-url-autofocus.md)                                                       |      |        |
-| 2026-10-15 | [남은 두 가지: CloudFront 차이 검사를 CI로, refresh 때 BE가 다른 계정 갱신을 거절](./plans/2026-10-15-drift-ci-and-refresh-guard.md)       |      |        |
-| 2026-10-15 | [동작 줄이기 — CSS 애니메이션·트랜지션에서 움직임만 빼기](./plans/2026-10-15-reduced-motion-css.md)                                        |      |        |
-| 2026-10-15 | [scope mutation의 인증 세대 확인 누락을 린트로 막기](./plans/2026-10-15-scope-mutation-auth-epoch-lint.md)                                 |      |        |
-| 2026-10-15 | [refresh 회원 불일치 롤백 통합 테스트 (BE) + AUTH.md 한 문장 (FE)](./plans/2026-10-15-session-mismatch-rollback-integration-test.md)       |      |        |
-| 2026-10-15 | [SESSION_MISMATCH 안내 토스트 — 토스트 단일 소유 원칙에 예외 명시](./plans/2026-10-15-session-mismatch-toast-exception.md)                 |      |        |
-| 2026-10-14 | [캐시 전략 후속 — HTML no-cache(bfcache)·포커스 훅 제거·CloudFront 스냅샷](./plans/2026-10-14-cache-strategy-followups.md)                 |      |        |
-| 2026-10-14 | [배포 후 옛 화면이 남는 네 군데 — 버그·배포 산출물 정리 + 개념 문서](./plans/2026-10-14-cache-strategy.md)                                 |      |        |
-| 2026-10-14 | [카드 💬 아이콘 → 상세의 댓글 작성 영역으로 스크롤](./plans/2026-10-14-comment-icon-scroll-to-form.md)                                     |      |        |
-| 2026-10-14 | [💬 도착 스크롤 방식 확정 + 상세 댓글 동시 요청 + 💬 hover 미리 받기](./plans/2026-10-14-comment-scroll-speed.md)                          |      |        |
-| 2026-10-14 | [마지막 폴더를 빼도 다른 기기가 추가한 폴더는 지키기 — 서버가 실제 소속으로 판단](./plans/2026-10-14-last-folder-keeps-others.md)          |      |        |
-| 2026-10-14 | [피드 범위 필터에 "좋아요한" 칩 추가](./plans/2026-10-14-liked-filter-chip.md)                                                             |      | 대체됨 |
-| 2026-10-14 | [피드 검색 필터: 정지 구간 버그 3건 수정 (에러 고착·뒤로가기 칩 고착·라벨 연속 클릭 유실)](./plans/2026-10-14-post-filter-pending-bugs.md) |      |        |
-| 2026-10-14 | [계정이 바뀐 순간 진행 중이던 요청이 새 계정으로 재실행되는 문제 수정](./plans/2026-10-14-session-changed-guard.md)                        |      |        |
-| 2026-10-13 | [북마크 토글을 상태 지정형(PUT/DELETE)으로 전환하고 같은 글의 북마크 요청을 한 줄로](./plans/2026-10-13-bookmark-set-state.md)             |      |        |
-| 2026-10-13 | [배포 성공 시 열린 "배포 실패" 이슈 자동 종료 (#136 조치)](./plans/2026-10-13-deploy-failure-issue-autoclose.md)                           |      |        |
-| 2026-10-13 | [e2e 숨은 flaky 2건 수정과 Playwright failOnFlakyTests](./plans/2026-10-13-e2e-flaky-layout-effect.md)                                     |      |        |
-| 2026-10-13 | [GitHub Actions → AWS 인증을 영구 키에서 OIDC로 전환 (FE·BE)](./plans/2026-10-13-github-oidc-aws.md)                                       |      |        |
-| 2026-10-13 | [좋아요 동시 요청 500 수정과 상태 지정형 API 전환](./plans/2026-10-13-like-concurrency.md)                                                 |      |        |
-| 2026-10-13 | [좋아요 낙관적 업데이트 테스트 보강](./plans/2026-10-13-like-optimistic-tests.md)                                                          |      |        |
-| 2026-10-13 | [FE CI 뮤테이션 비차단 보고](./plans/2026-10-13-mutation-ci-report.md)                                                                     |      |        |
-| 2026-10-13 | [필수 체크 켜기 (FE check·e2e, BE check, 사람 예외 없음, 히스토리 봇은 GitHub App 토큰)](./plans/2026-10-13-required-checks.md)            |      |        |
-| 2026-10-13 | [테스트 건너뛰기·단독 실행을 린트로 막고 Playwright forbidOnly 설정](./plans/2026-10-13-test-skip-only-lint.md)                            |      |        |
-| 2026-10-12 | [Gemini History Updater push 경합 재시도](./plans/2026-10-12-history-push-retry.md)                                                        |      |        |
-| 2026-10-12 | [좋아요 토글 응답에 likeCount 추가 및 FE 캐시 교정](./plans/2026-10-12-like-count-response.md)                                             |      |        |
-| 2026-10-05 | [이미지 업로드: 실패 안내·소유권·고아 회수 (재검토판)](./plans/2026-10-05-image-upload-lifecycle.md)                                       |      |        |
-| 2026-10-05 | [URL 접근별 에러 응답 정리 계획](./plans/2026-10-05-url-error-responses.md)                                                                |      |        |
-| 2026-10-04 | [등록 폼 링크 미리보기로 인한 데스크톱 제출 버튼 레이아웃 밀림 해결](./plans/2026-10-04-post-preview-layout-shift.md)                      |      |        |
-| 2026-10-03 | [글 등록: 응답 대기(A) + 작성 중 링크 미리보기(E) + 실패 원인 노출(F)](./plans/2026-10-03-post-create-preview.md)                          |      |        |
-| 2026-10-03 | [features·widgets 슬라이스 교차 import 5건 제거 — render prop으로 위층 조립](./plans/2026-10-03-slice-cross-import.md)                     |      |        |
-| 2026-10-02 | [프로젝트 전체(FE·BE) 온보딩 문서 — 길잡이(ONBOARDING.md) + 빈 기능 문서 단계별 보강](./plans/2026-10-02-onboarding-docs.md)               |      |        |
-| 2026-10-02 | [온보딩 Phase 2 — 게시글(POST.md)·댓글(COMMENT.md) 독립 기능 문서 작성](./plans/2026-10-02-onboarding-phase2-feature-docs.md)              |      |        |
-| 2026-10-02 | [문서화 중 발견한 게시글·댓글 문제 수정 + 댓글 알림 시연](./plans/2026-10-02-post-comment-fixes.md)                                        |      |        |
-| 2026-10-02 | [Storybook 사이드바 구조 정비 — TEMP 해소·제목 규칙·허용 범위 문서화](./plans/2026-10-02-storybook-structure.md)                           |      |        |
-| 2026-10-01 | [dependency-cruiser 도입 — 그래프 명령 · entities `@x` 강제 · 유령 의존성 차단 · PR 영향 그래프](./plans/2026-10-01-dependency-cruiser.md) |      |        |
-| 2026-10-01 | [등록 폼 북마크 필드에도 폴더 목록 hover 프리페치](./plans/2026-10-01-post-create-folder-prefetch.md)                                      |      |        |
-| 2026-10-01 | [회원가입 닉네임·이메일 확인 문구 레이아웃 시프트 제거 (B안: 안내 문구로 줄 채우기)](./plans/2026-10-01-signup-hint-text.md)               |      |        |
+| 날짜       | 계획                                                                                                                                       | 대조 | 대체         |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---- | ------------ |
+| 2026-10-31 | [AI 루프·멀티에이전트 도입 준비: 0·1단계 구현과 2·3단계 로드맵](./plans/2026-10-31-ai-loop-graph-readiness.md)                             |      | 대체됨       |
+| 2026-10-30 | [Storybook·Swagger UI를 GitHub Pages로 — 운영 출처에서 문서 사이트 떼어내기](./plans/2026-10-30-docs-to-github-pages.md)                   |      | 대체됨(일부) |
+| 2026-10-29 | [FE↔BE API 계약 자동 검사 — BE PR 스펙 비교 · MSW 스펙 타입 · 경로 타입 클라이언트](./plans/2026-10-29-api-contract-checks.md)             |      |              |
+| 2026-10-28 | [북마크 폴더 화면 — 제목 옆 연필로 이름 바꾸기 + 모바일 정렬을 아이콘으로](./plans/2026-10-28-bookmark-folder-title-rename-sort-icon.md)   |      |              |
+| 2026-10-28 | [로그인이 풀려도 쓰던 화면에 둔다 (Phase 2 폐기 · Phase 3 확장)](./plans/2026-10-28-keep-writing-in-place.md)                              |      |              |
+| 2026-10-28 | [로그인 만료·로그아웃 때 쓰던 글 지키기](./plans/2026-10-28-session-expiry-draft-preservation.md)                                          |      |              |
+| 2026-10-28 | [태블릿 대응 — 폭 축과 입력 축 나누기](./plans/2026-10-28-tablet-width-and-input-axes.md)                                                  |      |              |
+| 2026-10-28 | [태블릿 대응 Phase 2 — 세로 구간을 레일로, 카드 최소 폭을 292로](./plans/2026-10-28-tablet-width-rail.md)                                  |      |              |
+| 2026-10-27 | [북마크 폴더 고정 — 별도 구획 대신 "내 폴더" 맨 위로](./plans/2026-10-27-bookmark-folder-pin-in-my-folders.md)                             |      |              |
+| 2026-10-27 | [첫 로딩 JS 줄이기 + 폰트 preload 운영 결과 기록](./plans/2026-10-27-first-load-js.md)                                                     |      |              |
+| 2026-10-26 | [BE 아키텍처 골격: 레이어 관계 문서화 · 표준 대비 점검 · 도구로 고정](./plans/2026-10-26-be-architecture-skeleton.md)                      |      |              |
+| 2026-10-26 | [BE 남은 것 정리: 보안 업데이트 · 위험 수정 · 죽은 코드·중복 정리 · 관측성](./plans/2026-10-26-be-remaining-cleanup.md)                    |      |              |
+| 2026-10-26 | [북마크 폴더 고정(pin)](./plans/2026-10-26-bookmark-folder-pin.md)                                                                         |      |              |
+| 2026-10-26 | [LCP 줄이기 — 데이터 요청 앞당기기 + 폰트 preload 정리](./plans/2026-10-26-lcp-prefetch-font-preload.md)                                   |      |              |
+| 2026-10-26 | [Lighthouse Best Practices 77점 원인 제거 + Lighthouse CI가 회귀를 보이게 개선](./plans/2026-10-26-lighthouse-best-practices.md)           |      |              |
+| 2026-10-25 | [BE 전체 점검: 파이프라인·패턴 정본화와 위반 정리](./plans/2026-10-25-be-architecture-audit.md)                                            |      |              |
+| 2026-10-21 | [확인창을 거치는 삭제에 성공 토스트 복원](./plans/2026-10-21-delete-success-toast.md)                                                      |      |              |
+| 2026-10-21 | [게시글 등록·수정 저장 중 이탈 — 확인창과 응답이 겹칠 때의 이동 버그 수정과 테스트](./plans/2026-10-21-post-submit-leave-guard.md)         |      |              |
+| 2026-10-16 | [봇 글 숨기기 토글 시 피드가 좌우로 7.5px 흔들리는 문제](./plans/2026-10-16-hide-bots-layout-shift.md)                                     |      |              |
+| 2026-10-16 | [localStorage에 쓰지 못하는 탭에서 같은 탭 로그인·로그아웃도 인증 세대로 알아채기](./plans/2026-10-16-in-tab-auth-epoch.md)                |      |              |
+| 2026-10-16 | [경로 지정 커밋 뒤 인덱스가 정렬 전 내용으로 남는 문제(MM) 해소](./plans/2026-10-16-lint-staged-pathspec-index.md)                         |      |              |
+| 2026-10-16 | [목록 필터 카드 카테고리 칩 레이아웃 시프트 제거 + 라이브러리 내부 동작 확인 지침](./plans/2026-10-16-post-list-category-cls.md)           |      |              |
+| 2026-10-16 | [제출 페이지 진입 시 URL 칸 자동 포커스](./plans/2026-10-16-submit-url-autofocus.md)                                                       |      |              |
+| 2026-10-15 | [남은 두 가지: CloudFront 차이 검사를 CI로, refresh 때 BE가 다른 계정 갱신을 거절](./plans/2026-10-15-drift-ci-and-refresh-guard.md)       |      |              |
+| 2026-10-15 | [동작 줄이기 — CSS 애니메이션·트랜지션에서 움직임만 빼기](./plans/2026-10-15-reduced-motion-css.md)                                        |      |              |
+| 2026-10-15 | [scope mutation의 인증 세대 확인 누락을 린트로 막기](./plans/2026-10-15-scope-mutation-auth-epoch-lint.md)                                 |      |              |
+| 2026-10-15 | [refresh 회원 불일치 롤백 통합 테스트 (BE) + AUTH.md 한 문장 (FE)](./plans/2026-10-15-session-mismatch-rollback-integration-test.md)       |      |              |
+| 2026-10-15 | [SESSION_MISMATCH 안내 토스트 — 토스트 단일 소유 원칙에 예외 명시](./plans/2026-10-15-session-mismatch-toast-exception.md)                 |      |              |
+| 2026-10-14 | [캐시 전략 후속 — HTML no-cache(bfcache)·포커스 훅 제거·CloudFront 스냅샷](./plans/2026-10-14-cache-strategy-followups.md)                 |      |              |
+| 2026-10-14 | [배포 후 옛 화면이 남는 네 군데 — 버그·배포 산출물 정리 + 개념 문서](./plans/2026-10-14-cache-strategy.md)                                 |      |              |
+| 2026-10-14 | [카드 💬 아이콘 → 상세의 댓글 작성 영역으로 스크롤](./plans/2026-10-14-comment-icon-scroll-to-form.md)                                     |      |              |
+| 2026-10-14 | [💬 도착 스크롤 방식 확정 + 상세 댓글 동시 요청 + 💬 hover 미리 받기](./plans/2026-10-14-comment-scroll-speed.md)                          |      |              |
+| 2026-10-14 | [마지막 폴더를 빼도 다른 기기가 추가한 폴더는 지키기 — 서버가 실제 소속으로 판단](./plans/2026-10-14-last-folder-keeps-others.md)          |      |              |
+| 2026-10-14 | [피드 범위 필터에 "좋아요한" 칩 추가](./plans/2026-10-14-liked-filter-chip.md)                                                             |      | 대체됨       |
+| 2026-10-14 | [피드 검색 필터: 정지 구간 버그 3건 수정 (에러 고착·뒤로가기 칩 고착·라벨 연속 클릭 유실)](./plans/2026-10-14-post-filter-pending-bugs.md) |      |              |
+| 2026-10-14 | [계정이 바뀐 순간 진행 중이던 요청이 새 계정으로 재실행되는 문제 수정](./plans/2026-10-14-session-changed-guard.md)                        |      |              |
+| 2026-10-13 | [북마크 토글을 상태 지정형(PUT/DELETE)으로 전환하고 같은 글의 북마크 요청을 한 줄로](./plans/2026-10-13-bookmark-set-state.md)             |      |              |
+| 2026-10-13 | [배포 성공 시 열린 "배포 실패" 이슈 자동 종료 (#136 조치)](./plans/2026-10-13-deploy-failure-issue-autoclose.md)                           |      |              |
+| 2026-10-13 | [e2e 숨은 flaky 2건 수정과 Playwright failOnFlakyTests](./plans/2026-10-13-e2e-flaky-layout-effect.md)                                     |      |              |
+| 2026-10-13 | [GitHub Actions → AWS 인증을 영구 키에서 OIDC로 전환 (FE·BE)](./plans/2026-10-13-github-oidc-aws.md)                                       |      |              |
+| 2026-10-13 | [좋아요 동시 요청 500 수정과 상태 지정형 API 전환](./plans/2026-10-13-like-concurrency.md)                                                 |      |              |
+| 2026-10-13 | [좋아요 낙관적 업데이트 테스트 보강](./plans/2026-10-13-like-optimistic-tests.md)                                                          |      |              |
+| 2026-10-13 | [FE CI 뮤테이션 비차단 보고](./plans/2026-10-13-mutation-ci-report.md)                                                                     |      |              |
+| 2026-10-13 | [필수 체크 켜기 (FE check·e2e, BE check, 사람 예외 없음, 히스토리 봇은 GitHub App 토큰)](./plans/2026-10-13-required-checks.md)            |      |              |
+| 2026-10-13 | [테스트 건너뛰기·단독 실행을 린트로 막고 Playwright forbidOnly 설정](./plans/2026-10-13-test-skip-only-lint.md)                            |      |              |
+| 2026-10-12 | [Gemini History Updater push 경합 재시도](./plans/2026-10-12-history-push-retry.md)                                                        |      |              |
+| 2026-10-12 | [좋아요 토글 응답에 likeCount 추가 및 FE 캐시 교정](./plans/2026-10-12-like-count-response.md)                                             |      |              |
+| 2026-10-05 | [이미지 업로드: 실패 안내·소유권·고아 회수 (재검토판)](./plans/2026-10-05-image-upload-lifecycle.md)                                       |      |              |
+| 2026-10-05 | [URL 접근별 에러 응답 정리 계획](./plans/2026-10-05-url-error-responses.md)                                                                |      |              |
+| 2026-10-04 | [등록 폼 링크 미리보기로 인한 데스크톱 제출 버튼 레이아웃 밀림 해결](./plans/2026-10-04-post-preview-layout-shift.md)                      |      |              |
+| 2026-10-03 | [글 등록: 응답 대기(A) + 작성 중 링크 미리보기(E) + 실패 원인 노출(F)](./plans/2026-10-03-post-create-preview.md)                          |      |              |
+| 2026-10-03 | [features·widgets 슬라이스 교차 import 5건 제거 — render prop으로 위층 조립](./plans/2026-10-03-slice-cross-import.md)                     |      |              |
+| 2026-10-02 | [프로젝트 전체(FE·BE) 온보딩 문서 — 길잡이(ONBOARDING.md) + 빈 기능 문서 단계별 보강](./plans/2026-10-02-onboarding-docs.md)               |      |              |
+| 2026-10-02 | [온보딩 Phase 2 — 게시글(POST.md)·댓글(COMMENT.md) 독립 기능 문서 작성](./plans/2026-10-02-onboarding-phase2-feature-docs.md)              |      |              |
+| 2026-10-02 | [문서화 중 발견한 게시글·댓글 문제 수정 + 댓글 알림 시연](./plans/2026-10-02-post-comment-fixes.md)                                        |      |              |
+| 2026-10-02 | [Storybook 사이드바 구조 정비 — TEMP 해소·제목 규칙·허용 범위 문서화](./plans/2026-10-02-storybook-structure.md)                           |      |              |
+| 2026-10-01 | [dependency-cruiser 도입 — 그래프 명령 · entities `@x` 강제 · 유령 의존성 차단 · PR 영향 그래프](./plans/2026-10-01-dependency-cruiser.md) |      |              |
+| 2026-10-01 | [등록 폼 북마크 필드에도 폴더 목록 hover 프리페치](./plans/2026-10-01-post-create-folder-prefetch.md)                                      |      |              |
+| 2026-10-01 | [회원가입 닉네임·이메일 확인 문구 레이아웃 시프트 제거 (B안: 안내 문구로 줄 채우기)](./plans/2026-10-01-signup-hint-text.md)               |      |              |
 
 ## 2026-09 (105)
 

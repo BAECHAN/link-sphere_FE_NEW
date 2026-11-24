@@ -1,5 +1,13 @@
 # Storybook·Swagger UI를 GitHub Pages로 — 운영 출처에서 문서 사이트 떼어내기
 
+<!-- plan-result:start — 이 블록만 병합 뒤에도 고칠 수 있다(.claude/CLAUDE.md "계획과 PR 본문"). 아래는 승인된 계획 원문 -->
+
+## 구현 결과
+
+- 대체됨(일부): `docs/plans/2026-11-24-pages-deploy-split-jobs.md`(#677) — `deploy-storybook.yml`의 잡 하나를 `build`·`deploy` 두 잡으로 나누고, 워크플로 전체에 주던 게시 권한(`pages: write`·`id-token: write`)과 `github-pages` 환경을 `deploy` 잡에만 뒀다. 주소·트리거·액션 버전·사이트 구성은 그대로다. BE `api-docs-pages.yml`의 같은 변경은 BE #228. 이 표시는 #677에서 빠뜨려 #682에서 달았다
+
+<!-- plan-result:end -->
+
 > 요약: 운영 도메인(`linksphere.click`)과 같은 출처에서 도는 Storybook을 FE 저장소의 GitHub Pages로 옮기고
 > 옛 `/storybook/`은 없앤다(404). 새로 만드는 Swagger UI는 처음부터 BE 저장소의 GitHub Pages에 올린다.
 > PR은 FE → BE 순서로 하나씩 연다.
