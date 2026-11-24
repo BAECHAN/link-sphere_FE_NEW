@@ -1,4 +1,7 @@
 ### 2026-11-24 (FE)
+- 실시간 갱신 로직 개선: 탭 비활성화 시에도 작성 시각이 정상적으로 업데이트되도록 수정 ([#680](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/680))
+
+### 2026-11-24 (FE)
 - 백엔드 토큰 없는 범위 필터 401 응답 정책에 따른 API 요청 로직 대응 ([#678](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/678))
 
 ### 2026-11-24 (BE)
