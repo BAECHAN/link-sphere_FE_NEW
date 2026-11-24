@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { useAuthStore } from '@/shared/store/auth.store';
 import { useFcmForegroundMessage } from '@/shared/lib/firebase/useFcmForegroundMessage';
 
@@ -22,7 +22,7 @@ vi.mock('firebase/messaging', () => ({
 
 vi.mock('@/shared/lib/firebase/firebase', () => ({ messaging: {} }));
 
-vi.mock('@link-sphere/ui/lib/toast/toast', () => ({ toast: vi.fn() }));
+vi.mock('@baechan/ui/lib/toast/toast', () => ({ toast: vi.fn() }));
 
 function Wrapper({ children }: { children: ReactNode }) {
   return createElement(MemoryRouter, { initialEntries: ['/post'] }, children);

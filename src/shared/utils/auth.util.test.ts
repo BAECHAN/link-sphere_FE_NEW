@@ -5,7 +5,7 @@ import { QueryClientProvider, useQuery, useSuspenseQuery } from '@tanstack/react
 import { useAuthStore } from '@/shared/store/auth.store';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { useLoginDialogStore } from '@/shared/store/loginDialog.store';
 import { clearUnsavedChanges, useUnsavedChangesStore } from '@/shared/store/unsavedChanges.store';
 import { RouterEvents } from '@/shared/lib/router/router-events';

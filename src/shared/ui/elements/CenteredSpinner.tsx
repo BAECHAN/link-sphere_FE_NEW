@@ -1,5 +1,5 @@
-import { Spinner } from '@link-sphere/ui/atoms/spinner';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { Spinner } from '@baechan/ui/atoms/spinner';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { LOADING_INDICATOR_DELAY_MS } from '@/shared/config/const';
 

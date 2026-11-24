@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach, type MockInstance } from 'vitest';
 import { MutationObserver, QueryObserver } from '@tanstack/react-query';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ApiError } from '@/shared/types/common.type';
 // 전역 에러 핸들러(queryCache·mutationCache onError)가 붙은 실제 싱글턴이어야 토스트 id가 보인다

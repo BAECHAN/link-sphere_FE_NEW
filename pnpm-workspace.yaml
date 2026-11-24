@@ -2,7 +2,7 @@
 # (https://pnpm.io/package_json).
 #
 # 워크스페이스: 루트(이 앱)는 늘 들어가고, packages/·examples/ 아래 패키지가 함께 든다(2026-11-20 분리 리허설,
-# docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5). packages/ui는 공용 UI 패키지 `@link-sphere/ui`이고 이 앱이
+# docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5). packages/ui는 공용 UI 패키지 `@baechan/ui`이고 이 앱이
 # `workspace:*`로 가져다 쓴다. examples/next는 같은 패키지를 React 19로 그려 보는 Next.js 예제 앱이다.
 # 루트에서 `pnpm add`는 지금처럼 루트에 더해지고(2026-11-20 pnpm 10.20.0에서 -w 없이 확인), 패키지에
 # 더할 때는 `pnpm --filter <패키지 이름> add <패키지>`를 쓴다.

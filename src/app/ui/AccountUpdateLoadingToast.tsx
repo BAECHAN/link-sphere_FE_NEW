@@ -5,7 +5,7 @@ import {
 } from '@/shared/config/const';
 import { useDelayedLoading } from '@/shared/hooks/useDelayedLoading';
 import { useMinimumLoading } from '@/shared/hooks/useMinimumLoading';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { accountMutationKeys } from '@/entities/account/api/account.keys';
 import { useIsMutating } from '@tanstack/react-query';
 import { useEffect } from 'react';

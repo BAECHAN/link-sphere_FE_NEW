@@ -1,5 +1,5 @@
 import { FormProvider } from 'react-hook-form';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { FormInputPassword } from '@/shared/ui/elements/form/FormInputPassword';
 import { PasswordRequirementList } from '@/entities/auth/ui/PasswordRequirementList';
 import { PasswordConfirmMessage } from '@/entities/auth/ui/PasswordConfirmMessage';

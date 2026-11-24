@@ -1,5 +1,5 @@
 import { forwardRef, ReactNode } from 'react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 export interface LabeledDividerProps extends React.ComponentPropsWithoutRef<'div'> {
   children: ReactNode;

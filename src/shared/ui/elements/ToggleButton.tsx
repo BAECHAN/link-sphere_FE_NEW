@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { Button, type ButtonProps } from '@link-sphere/ui/atoms/button';
+import { Button, type ButtonProps } from '@baechan/ui/atoms/button';
 import { useClickGuard } from '@/shared/hooks/useClickGuard';
 
 /**

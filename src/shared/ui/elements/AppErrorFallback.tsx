@@ -4,7 +4,7 @@ import { TEXTS } from '@/shared/config/texts';
 import { ChunkReloadUtil } from '@/shared/utils/chunk-reload.util';
 import { ErrorUtil } from '@/shared/utils/error.util';
 import { ErrorLayout } from '@/shared/ui/layouts/ErrorLayout';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { CenteredSpinner } from '@/shared/ui/elements/CenteredSpinner';
 
 interface AppErrorFallbackProps {

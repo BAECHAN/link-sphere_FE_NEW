@@ -4,8 +4,8 @@ import { AsyncBoundary } from '@/shared/ui/elements/AsyncBoundary';
 import { AppErrorFallback } from '@/shared/ui/elements/AppErrorFallback';
 import { RouterProvider } from '@/app/providers/RouterProvider';
 import { AuthProvider } from '@/app/providers/AuthProvider';
-import { Toaster } from '@link-sphere/ui/atoms/sonner';
-import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
+import { Toaster } from '@baechan/ui/atoms/sonner';
+import { TooltipProvider } from '@baechan/ui/atoms/tooltip';
 import { AccountUpdateLoadingToast } from '@/app/ui/AccountUpdateLoadingToast';
 
 /**

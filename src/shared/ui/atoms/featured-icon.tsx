@@ -2,7 +2,7 @@ import { forwardRef } from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { type LucideIcon } from 'lucide-react';
 
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 const featuredIconVariants = cva(
   'h-11 w-11 rounded-full flex items-center justify-center shrink-0 [&>svg]:size-5',

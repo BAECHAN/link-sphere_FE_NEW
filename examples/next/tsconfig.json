@@ -1,4 +1,4 @@
-// Next.js가 만든 권장 설정에서 incremental만 끈다 - @link-sphere/ui 복사본(injected)을 다시 깔아도 Next의 증분 캐시
+// Next.js가 만든 권장 설정에서 incremental만 끈다 - @baechan/ui 복사본(injected)을 다시 깔아도 Next의 증분 캐시
 // (.next/cache/.tsbuildinfo)가 앞선 빌드의 타입 오류를 그대로 다시 썼다(2026-11-20, docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5).
 // 예제 앱은 작아 캐시 없이도 타입 검사가 1초 남짓이다
 {

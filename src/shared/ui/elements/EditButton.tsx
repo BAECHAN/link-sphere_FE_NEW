@@ -1,7 +1,7 @@
 import { forwardRef } from 'react';
 import { Pencil } from 'lucide-react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
+import { Button } from '@baechan/ui/atoms/button';
 
 // type·children과 label에서 만드는 aria-label·title은 이 부품이 정한다 - 타입에서 빼고, 아래에서 나머지 속성을 먼저
 // 펼친 뒤 다시 적어 넘겨받은 값이 이기지 못하게 한다. 하이픈이 든 aria-label은 타입에서 빼도 JSX에서 타입 오류가

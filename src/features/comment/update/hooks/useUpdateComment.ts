@@ -17,7 +17,7 @@ import { useHasLeftPage } from '@/shared/hooks/useHasLeftPage';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
 import { getUtf8ByteLength } from '@/shared/lib/content/textBytes';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
 import { ErrorUtil } from '@/shared/utils/error.util';
 

@@ -1,9 +1,9 @@
 import { forwardRef, useState, type ForwardedRef } from 'react';
 import { CommentFormView, type CommentFormHandle } from '@/features/comment/create/ui/CommentForm';
 import { useCommentComposer } from '@/features/comment/create/hooks/useCommentComposer';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { TEXTS } from '@/shared/config/texts';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 interface CommentComposerProps {
   postId: string;

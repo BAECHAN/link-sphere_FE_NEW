@@ -3,7 +3,7 @@ import {
   INLINE_ACTION_CLASS_NAMES,
   resolveActionLayout,
   STACKED_ACTION_CLASS_NAMES,
-} from '@link-sphere/ui/lib/toast/toast-layout';
+} from '@baechan/ui/lib/toast/toast-layout';
 
 /**
  * 토스트 위치 정책 — 카테고리별로 위치를 다르게 둔다.

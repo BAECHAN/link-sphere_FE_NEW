@@ -14,7 +14,7 @@ import { RouterEvents } from '@/shared/lib/router/router-events';
 import { ROUTES_PATHS, isProtectedPath } from '@/shared/config/route-paths';
 import { createBackClosableOverlayState } from '@/shared/config/back-closable-overlay';
 import { TEXTS } from '@/shared/config/texts';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { LogoutGraceUtil } from '@/shared/utils/logout-grace.util';
 
 // 같은 이유의 안내가 겹쳐 뜨지 않게 한다(선례: TooltipWrapper의 REASON_TOAST_ID)

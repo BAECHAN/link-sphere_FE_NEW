@@ -23,7 +23,7 @@ import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { assertMutationAuthEpochUnchanged } from '@/shared/lib/react-query/config/mutation-auth-epoch';
 import { shouldRetryIdempotentMutation } from '@/shared/lib/react-query/config/retry-policy';
 import { prefetchQueryQuietly } from '@/shared/lib/react-query/prefetch-quietly';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { ApiError } from '@/shared/types/common.type';
 import { ErrorUtil } from '@/shared/utils/error.util';

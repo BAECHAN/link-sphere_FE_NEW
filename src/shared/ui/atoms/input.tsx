@@ -1,9 +1,9 @@
 import { forwardRef, useRef } from 'react';
 
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
+import { Button } from '@baechan/ui/atoms/button';
 import { useMergedRef } from '@/shared/hooks/useMergedRef';
-import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@baechan/ui/texts/UiTextsProvider';
 
 import { X } from 'lucide-react';
 

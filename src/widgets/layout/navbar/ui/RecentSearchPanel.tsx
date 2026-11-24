@@ -1,7 +1,7 @@
 import { XIcon } from 'lucide-react';
 import { RemoveScroll } from 'react-remove-scroll';
 import { Slot } from '@radix-ui/react-slot';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { TEXTS } from '@/shared/config/texts';
 

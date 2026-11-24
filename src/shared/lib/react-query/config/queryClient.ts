@@ -1,5 +1,5 @@
 import { MutationCache, QueryCache, QueryClient, type Mutation } from '@tanstack/react-query';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import {
   isUnwatchedQueryFailure,
   resolveErrorToast,

@@ -1,5 +1,5 @@
 import { Input } from '@/shared/ui/atoms/input';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { SearchIcon } from 'lucide-react';
 import { Kbd } from '@/shared/ui/atoms/kbd';
 import { useRef, useState } from 'react';

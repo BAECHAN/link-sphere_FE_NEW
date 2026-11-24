@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 
-import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@baechan/ui/texts/UiTextsProvider';
 
 export interface ErrorLayoutProps {
   title: string;

@@ -7,7 +7,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from '@/shared/ui/atoms/dialog';
-import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
+import { useUiTexts } from '@baechan/ui/texts/UiTextsProvider';
 
 // 인스타그램이 실제 공개한 기준값 - 이 범위 밖의 비율만 캔버스를 클램프한다(자르지 않고 object-contain).
 const MIN_ASPECT_RATIO = 4 / 5; // 세로로 긴 한계

@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from '@/shared/ui/atoms/alert-dialog';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 
 const meta = {
   title: 'Shared/UI/Atoms/AlertDialog',

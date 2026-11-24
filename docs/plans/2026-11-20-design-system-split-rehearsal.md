@@ -25,6 +25,7 @@
 - 계획에 없던 변경(Phase 2): 예제 앱에 둘째 클라이언트 경계 파일(`showcase.tsx`)과 견본 이미지, `next-themes`·`postcss`·`tailwindcss`·`@types/node` 선언을 더했다. `.gitignore`에 `*.tsbuildinfo`를 더했다. CI 단계는 수동 실행이면 늘 빌드한다. Phase 1에서 미룬 `examples/*` 워크스페이스 등록을 넣었다
 - Phase 2에서 넘긴 확인: Dependabot이 워크스페이스 안 `package.json`을 고치는지는 문서로 알 수 없었다. 예제 앱 단계가 앱만 바뀐 PR에서 건너뛰는지와 함께 병합 뒤 확인 이슈로 넘겼다. 예제 앱에는 루트 린트의 기본 규칙만 걸리고 Next.js용 린트 규칙을 둘지는 정하지 않았다(원칙 문서 §1.5 "예제 앱")
 - Phase 3: 미뤄 둔 세 항목에 더해 애니메이션 CSS, 버전 어긋남, 패키지 이름을 사용자 답으로 정해 원칙 문서 §1.5에 적었다. 코드를 바꾸는 답 둘(애니메이션 CSS, 버전 맞춤 테스트)은 마무리 계획으로 같은 PR에 넣었고, `LinkThumbnail`의 `className`과 패키지 이름은 별도 계획·PR이다
+- 이름 변경: 패키지 이름이 `@link-sphere/ui`에서 `@baechan/ui`로, 예제 앱이 `@link-sphere/example-next`에서 `@baechan/ui-example`로 바뀌었다(#676, [계획](./2026-11-23-design-system-package-rename.md)). 아래 원문의 옛 이름은 당시 기록이라 그대로 둔다
 
 <!-- plan-result:end -->
 

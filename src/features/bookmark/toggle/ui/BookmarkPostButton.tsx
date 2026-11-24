@@ -1,7 +1,7 @@
 import { Bookmark } from 'lucide-react';
 import { Post } from '@/entities/post/model/post.schema';
-import { Button } from '@link-sphere/ui/atoms/button';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { Button } from '@baechan/ui/atoms/button';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { useBookmarkPostButton } from '@/features/bookmark/toggle/hooks/useBookmarkPostButton';
 

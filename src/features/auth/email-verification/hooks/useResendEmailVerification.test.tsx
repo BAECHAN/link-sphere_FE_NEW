@@ -8,7 +8,7 @@ import { createTestQueryClient } from '@/test/utils';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useResendEmailVerification } from '@/features/auth/email-verification/hooks/useResendEmailVerification';
 
-vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
+vi.mock('@baechan/ui/lib/toast/toast', () => ({
   toast: { error: vi.fn(), success: vi.fn() },
 }));
 

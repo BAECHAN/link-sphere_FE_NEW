@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/shared/ui/atoms/card';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { FeaturedIcon } from '@/shared/ui/atoms/featured-icon';
 import { CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';

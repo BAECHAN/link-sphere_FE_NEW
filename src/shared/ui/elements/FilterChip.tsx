@@ -1,5 +1,5 @@
 import { forwardRef } from 'react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { ToggleButton } from '@/shared/ui/elements/ToggleButton';
 
 // type·children과 isActive에서 만드는 aria-pressed는 이 부품이 정한다 - 타입에서 빼고, 아래에서 나머지 속성을 먼저

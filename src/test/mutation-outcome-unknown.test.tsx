@@ -16,7 +16,7 @@ import { mockAccount } from '@/mocks/fixtures/account.fixtures';
 import { API_BASE_URL, API_ENDPOINTS } from '@/shared/config/api';
 import { TEXTS } from '@/shared/config/texts';
 import { rememberMutationAuthEpoch } from '@/shared/lib/react-query/config/mutation-auth-epoch';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { ApiError, NetworkError, SessionChangedError } from '@/shared/types/common.type';
 import { AuthEpochUtil } from '@/shared/utils/auth-epoch.util';
 import { accountKeys } from '@/entities/account/api/account.keys';

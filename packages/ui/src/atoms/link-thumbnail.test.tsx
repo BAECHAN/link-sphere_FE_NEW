@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
-import { LinkThumbnail } from '@link-sphere/ui/atoms/link-thumbnail';
+import { LinkThumbnail } from '@baechan/ui/atoms/link-thumbnail';
 
 describe('LinkThumbnail', () => {
   it('src가 없으면 아무것도 렌더하지 않는다', () => {

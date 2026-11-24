@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 export interface EmptyStateProps {
   children: ReactNode;

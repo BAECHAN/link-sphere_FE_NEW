@@ -2,7 +2,7 @@ import { get, useFormState, type FieldError } from 'react-hook-form';
 import { Label } from '@/shared/ui/atoms/label';
 import { RequiredMark } from '@/shared/ui/atoms/required-mark';
 import { PropsWithChildren } from 'react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 export interface FormFieldProps extends PropsWithChildren {
   name: string;

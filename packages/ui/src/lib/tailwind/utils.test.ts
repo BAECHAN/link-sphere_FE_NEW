@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 
 // 패키지 토큰 CSS(styles/tokens.css) @theme의 글자 크기 토큰(--text-t1, --text-micro 등). --text-*--line-height 같은
 // 하위 변수는 뺀다. 이 파일 기준 경로로 읽는다 - 패키지 테스트는 어느 폴더에서 실행해도 같은 파일을 읽어야 한다.

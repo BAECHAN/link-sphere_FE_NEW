@@ -29,7 +29,7 @@ const url = (endpoint: string) => `${API_BASE_URL}${endpoint}`;
 
 const mockToastError = vi.fn();
 const mockToastSuccess = vi.fn();
-vi.mock('@link-sphere/ui/lib/toast/toast', () => ({
+vi.mock('@baechan/ui/lib/toast/toast', () => ({
   toast: {
     error: (...args: unknown[]) => {
       mockToastError(...args);

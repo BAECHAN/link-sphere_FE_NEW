@@ -3,7 +3,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { createElement, type MouseEvent, type ReactNode } from 'react';
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query';
 import { MemoryRouter, useLocation } from 'react-router-dom';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { http } from '@/mocks/http';
 import { server } from '@/mocks/server';
 import { MockEnvelopeUtil } from '@/mocks/mock-envelope.util';

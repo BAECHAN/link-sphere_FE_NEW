@@ -1,8 +1,8 @@
 import { act, fireEvent, render, waitFor } from '@testing-library/react';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
-import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
-import { TooltipProvider } from '@link-sphere/ui/atoms/tooltip';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { toast } from '@baechan/ui/lib/toast/toast';
+import { TooltipWrapper } from '@baechan/ui/elements/TooltipWrapper';
+import { TooltipProvider } from '@baechan/ui/atoms/tooltip';
+import { Button } from '@baechan/ui/atoms/button';
 
 // render에는 TooltipProvider가 없으므로 직접 감싼다.
 function renderTooltipWrapper(content: string | null) {

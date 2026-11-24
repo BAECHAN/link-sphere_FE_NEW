@@ -1,6 +1,6 @@
 import { type ReactNode, useLayoutEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/atoms/card';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { useCreatePost } from '@/features/post/create/hooks/useCreatePost';
 import { FormProvider } from 'react-hook-form';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
@@ -11,10 +11,10 @@ import {
   type PostCreateFolderSelectRenderProps,
 } from '@/features/post/create/ui/PostCreateBookmarkFolderField';
 import { useCategoryOptions } from '@/entities/category/hooks/useCategoryOptions';
-import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
+import { TooltipWrapper } from '@baechan/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 import { useBackClosableOverlay } from '@/shared/hooks/useBackClosableOverlay';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { FormAlert } from '@/shared/ui/elements/FormAlert';
 import { LinkPreviewCard } from '@/entities/post/ui/LinkPreviewCard';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';

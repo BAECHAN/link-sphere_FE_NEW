@@ -1,7 +1,7 @@
 import { RotateCw } from 'lucide-react';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
-import { Button } from '@link-sphere/ui/atoms/button';
-import { useUiTexts } from '@link-sphere/ui/texts/UiTextsProvider';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
+import { Button } from '@baechan/ui/atoms/button';
+import { useUiTexts } from '@baechan/ui/texts/UiTextsProvider';
 
 export interface LoadMoreErrorProps {
   onRetry: () => void;

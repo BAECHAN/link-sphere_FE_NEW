@@ -1,4 +1,4 @@
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useResendEmailVerification } from '@/features/auth/email-verification/hooks/useResendEmailVerification';
 import { TEXTS } from '@/shared/config/texts';

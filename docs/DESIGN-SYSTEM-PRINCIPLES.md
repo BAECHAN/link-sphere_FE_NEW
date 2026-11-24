@@ -493,7 +493,7 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 ### 1.5 분리 리허설에서 알게 된 것과 정한 것
 
 [로드맵 §5](./DESIGN-SYSTEM-ROADMAP.md#5-단계)의 1.5단계다. 첫 PR(2026-11-20)에서 대표 묶음을 저장소 안 패키지 `packages/ui`
-(`@link-sphere/ui`)로 떼어 내고 이 앱이 그 패키지로 같은 화면을 그리게 했다. 둘째 PR(2026-11-23)에서 Next.js(React 19) 예제 앱
+(그때 이름은 `@link-sphere/ui`, 지금은 `@baechan/ui`다. [패키지 이름](#패키지-이름))로 떼어 내고 이 앱이 그 패키지로 같은 화면을 그리게 했다. 둘째 PR(2026-11-23)에서 Next.js(React 19) 예제 앱
 `examples/next`가 같은 패키지로 화면을 그리게 했고, 그 결과를 본 사용자의 답으로 미뤄 둔 항목(§1.1 마지막 줄,
 [§5.5](#55-함께-옮길-보조-모듈))을 정했다. 폴더를 옮기고 설정을 고치면 되돌릴 수 있어 `DECISIONS.md`에는 적지 않았다. 계획은
 [`plans/2026-11-20-design-system-split-rehearsal.md`](./plans/2026-11-20-design-system-split-rehearsal.md)와, 답으로 생긴 코드
@@ -502,12 +502,12 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 
 #### 옮긴 것
 
-| 묶음      | 패키지 안 자리                                                                                                  | 쓰는 쪽의 import 경로                          |
-| --------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| 부품 6개  | `atoms/`의 `Button`·`Spinner`·`Tooltip`·`Toaster`(`sonner.tsx`)·`LinkThumbnail`, `elements/`의 `TooltipWrapper` | `@link-sphere/ui/atoms/button` 꼴              |
-| 보조 모듈 | `lib/tailwind/utils.ts`(`cn`), `lib/toast/toast.ts`·`toast-layout.ts`, `lib/image/failedImageCache.ts`          | `@link-sphere/ui/lib/tailwind/utils` 꼴        |
-| 문구      | `texts/`의 `UiTexts` 타입, `UiTextsProvider`·`useUiTexts`, `KO_UI_TEXTS`                                        | `@link-sphere/ui/texts/UiTextsProvider` 꼴     |
-| 범용 토큰 | `styles/tokens.css`                                                                                             | CSS에서 `@import '@link-sphere/ui/styles.css'` |
+| 묶음      | 패키지 안 자리                                                                                                  | 쓰는 쪽의 import 경로                      |
+| --------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| 부품 6개  | `atoms/`의 `Button`·`Spinner`·`Tooltip`·`Toaster`(`sonner.tsx`)·`LinkThumbnail`, `elements/`의 `TooltipWrapper` | `@baechan/ui/atoms/button` 꼴              |
+| 보조 모듈 | `lib/tailwind/utils.ts`(`cn`), `lib/toast/toast.ts`·`toast-layout.ts`, `lib/image/failedImageCache.ts`          | `@baechan/ui/lib/tailwind/utils` 꼴        |
+| 문구      | `texts/`의 `UiTexts` 타입, `UiTextsProvider`·`useUiTexts`, `KO_UI_TEXTS`                                        | `@baechan/ui/texts/UiTextsProvider` 꼴     |
+| 범용 토큰 | `styles/tokens.css`                                                                                             | CSS에서 `@import '@baechan/ui/styles.css'` |
 
 위 파일의 스토리·테스트도 함께 옮겼다. 둘은 앱에 남겼다. 옮기면 패키지 쪽 파일이 앱 코드를 import하게 되기 때문이다.
 
@@ -522,7 +522,7 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 형태                    | 빌드 없이 TS 소스를 `exports`로 내보낸다. `private: true`로 게시하지 않는다                                                                                                                                                    | 쓰는 앱의 번들러가 변환한다(Vite·Vitest·Storybook·Next.js 16.4.6에서 확인). Next.js는 `transpilePackages`에 패키지를 적는다([예제 앱](#예제-앱))                                            |
 | 공개 경로               | 폴더 구조 그대로다. `exports`에 적힌 폴더(`atoms`·`elements`·`lib`·`texts`)와 `styles.css`만 밖에서 가져올 수 있다                                                                                                             | `exports` 밖 경로는 해석되지 않는다                                                                                                                                                         |
-| 패키지 안 import        | 자기 패키지 이름으로 가리킨다(`@link-sphere/ui/lib/tailwind/utils`). `@/`(앱 코드)와 상대 경로는 쓰지 않는다                                                                                                                   | ESLint `no-restricted-imports` 패키지 블록, 상대 경로 금지 규칙, 경계 린트 `custom-design-system/no-app-import-in-generic-ui`                                                               |
+| 패키지 안 import        | 자기 패키지 이름으로 가리킨다(`@baechan/ui/lib/tailwind/utils`). `@/`(앱 코드)와 상대 경로는 쓰지 않는다                                                                                                                       | ESLint `no-restricted-imports` 패키지 블록, 상대 경로 금지 규칙, 경계 린트 `custom-design-system/no-app-import-in-generic-ui`                                                               |
 | 의존성 선언             | `react`·`react-dom`은 `peerDependencies`(`>=18`), `@types/react`는 없어도 되는(optional) peer, 나머지는 `dependencies`다. 토큰 CSS가 가져오는 `tw-animate-css`도 `dependencies`에 든다. 버전은 옮길 때의 설치본 그대로다       | dependency-cruiser `no-non-package-json`이 패키지 파일을 가장 가까운 `packages/ui/package.json`으로 판정한다(`pnpm check:deps`). CSS의 `@import`는 이 검사가 보지 않는다(아래 "알게 된 것") |
 | 앱과 함께 선언한 의존성 | 패키지의 `dependencies` 가운데 루트 `package.json`도 선언한 패키지(지금 9개)는 버전 문자열이 같아야 한다. 패키지의 `devDependencies`(테스트·타입 도구)는 대조하지 않는다 — 지금 8개가 루트와 겹치고 3개는 범위 문자열이 다르다 | `src/test/workspace-shared-deps.test.ts`(`pnpm test`). 한쪽만 올리면 실패한다                                                                                                               |
 | 타입 검사               | 패키지 `tsconfig.json`으로 따로 돈다                                                                                                                                                                                           | `pnpm type-check`가 앱 `tsc -b` 뒤에 패키지 `tsc --noEmit`을 돌린다                                                                                                                         |
@@ -549,8 +549,8 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 | 문제                                                                                                                                                                                                                                                                                                                                                                                              | 드러난 곳                      | 대응                                                                                                                                                                                                                                                                                                                                                                                      | 3단계로 넘길 것                                                                                                                |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | 패키지에 선언하지 않은 import가 설치로는 드러나지 않는다. `.npmrc`의 `shamefully-hoist=true`가 루트 의존성을 모든 곳에서 보이게 한다                                                                                                                                                                                                                                                              | 계획 조사                      | dependency-cruiser가 가장 가까운 `package.json`으로 판정한다(18.7.2 `get-manifest.mjs`). 일부러 넣은 미선언 import가 잡혔다                                                                                                                                                                                                                                                               | 별도 저장소로 옮기면 설치 단계에서도 막힌다                                                                                    |
-| 앱이 `@link-sphere/ui`를 선언했는지는 dependency-cruiser가 보지 않는다. pnpm 워크스페이스 import를 `undetermined`로 분류하고(`determine-dependency-types.mjs:254`), 워크스페이스는 `package.json`의 `workspaces` 필드로만 알아본다(`module-classifiers.mjs:145-150`)                                                                                                                              | `pnpm check:deps` 확인         | 루트 `package.json`에 `"@link-sphere/ui": "workspace:*"`로 선언했다. 선언이 빠지면 링크가 생기지 않아 해석부터 실패할 것으로 본다(확인하지 않았다)                                                                                                                                                                                                                                        | —                                                                                                                              |
-| 패키지 안 자기 참조 import는 Vite가 가장 가까운 `package.json`의 `name`과 `exports`로 푼다(6.4.6). Stryker가 저장소를 sandbox로 복사하자 앱의 import는 sandbox 밖의 실제 패키지로, 패키지 안 import는 sandbox 안 복사본으로 풀려 모듈이 두 벌이 됐다. 문구 Provider가 갈라져 `useUiTexts must be used within a UiTextsProvider`로 실패했다                                                        | 뮤테이션 테스트 dry run        | `vitest.stryker.config.ts`가 `@link-sphere/ui`를 sandbox 안 패키지 소스로 별칭한다                                                                                                                                                                                                                                                                                                        | 쓰는 쪽에서 자기 참조와 바깥 import가 서로 다른 실제 경로로 풀리는 환경(파일 복사·링크)이면 같은 일이 난다                     |
+| 앱이 `@baechan/ui`를 선언했는지는 dependency-cruiser가 보지 않는다. pnpm 워크스페이스 import를 `undetermined`로 분류하고(`determine-dependency-types.mjs:254`), 워크스페이스는 `package.json`의 `workspaces` 필드로만 알아본다(`module-classifiers.mjs:145-150`)                                                                                                                                  | `pnpm check:deps` 확인         | 루트 `package.json`에 `"@baechan/ui": "workspace:*"`로 선언했다. 선언이 빠지면 링크가 생기지 않아 해석부터 실패할 것으로 본다(확인하지 않았다)                                                                                                                                                                                                                                            | —                                                                                                                              |
+| 패키지 안 자기 참조 import는 Vite가 가장 가까운 `package.json`의 `name`과 `exports`로 푼다(6.4.6). Stryker가 저장소를 sandbox로 복사하자 앱의 import는 sandbox 밖의 실제 패키지로, 패키지 안 import는 sandbox 안 복사본으로 풀려 모듈이 두 벌이 됐다. 문구 Provider가 갈라져 `useUiTexts must be used within a UiTextsProvider`로 실패했다                                                        | 뮤테이션 테스트 dry run        | `vitest.stryker.config.ts`가 `@baechan/ui`를 sandbox 안 패키지 소스로 별칭한다                                                                                                                                                                                                                                                                                                            | 쓰는 쪽에서 자기 참조와 바깥 import가 서로 다른 실제 경로로 풀리는 환경(파일 복사·링크)이면 같은 일이 난다                     |
 | pnpm이 패키지의 peer `react`를 루트의 React 18로 링크한다                                                                                                                                                                                                                                                                                                                                         | `pnpm install`                 | 이 앱은 React 18이라 문제가 없다. React 19 예제 앱에서도 실행 중 React는 한 벌이었다(아래 줄)                                                                                                                                                                                                                                                                                             | —                                                                                                                              |
 | 링크로 설치하면 패키지 파일이 저장소 루트의 `node_modules`를 본다. 실행 중 React는 한 벌이었지만(Next App Router가 자기 React로 모은다. 훅을 쓰는 툴팁이 열렸다) 타입과 `next-themes`가 두 벌이 됐다. 타입은 `@types/react` 18과 19가 섞여 `ReactNode` 오류(TS2322)가 났고, 어두운 화면에서 토스트 테마가 `light`로 측정됐다(앱의 테마 Provider와 `Toaster`의 `useTheme`이 서로 다른 모듈을 본다) | 예제 앱 `next build`, 브라우저 | 예제 앱이 패키지를 복사본으로 깐다(pnpm `dependenciesMeta.injected`). 복사본은 `node_modules` 안이라 Next가 TS를 변환하지 않아(`Unknown module type`) `transpilePackages`에 적었고, 패키지에 `@types/react`를 없어도 되는 peer로 선언했다. 그 뒤 토스트 테마는 `dark`였다                                                                                                                 | 별도 저장소에서 설치하면 처음부터 복사본과 같은 모양이다. `next-themes`를 받는 쪽 것을 쓰는 peer로 둘지("함께 쓸 패키지 범위") |
 | 복사본은 패키지를 고쳐도 따라오지 않는다                                                                                                                                                                                                                                                                                                                                                          | 예제 앱                        | 패키지를 고친 뒤 `pnpm install`을 다시 돌린다([예제 앱](#예제-앱))                                                                                                                                                                                                                                                                                                                        | 빌드해서 주면 받는 쪽은 설치본만 본다                                                                                          |
@@ -566,7 +566,7 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 
 #### 예제 앱
 
-`examples/next`(`@link-sphere/example-next`)는 이 패키지를 받는 쪽 프로젝트를 흉내 낸 Next.js App Router 앱이다(Next.js 16.4.6,
+`examples/next`(`@baechan/ui-example`)는 이 패키지를 받는 쪽 프로젝트를 흉내 낸 Next.js App Router 앱이다(Next.js 16.4.6,
 React 19.3.1, Tailwind 4.3.5 — 설치본 기준). 화면 하나에 `Button` 종류 6개, `Spinner`, `Tooltip`·`TooltipWrapper`, `Toaster`와
 토스트 래퍼, `LinkThumbnail`(있는 이미지와 없는 주소), 밝은·어두운 테마 전환을 그린다. 앱 코드(`src/`)는 가져다 쓰지 않는다.
 
@@ -580,9 +580,9 @@ React 19.3.1, Tailwind 4.3.5 — 설치본 기준). 화면 하나에 `Button` �
 | 클라이언트 경계 안에서 테마·문구·툴팁 Provider와 `Toaster`를 장착한다 | `examples/next/app/providers.tsx` |
 
 ```bash
-pnpm --filter @link-sphere/example-next build   # next build — CI가 돌리는 명령
-pnpm --filter @link-sphere/example-next start   # 빌드한 것을 띄운다
-pnpm --filter @link-sphere/example-next dev     # 개발 서버
+pnpm --filter @baechan/ui-example build   # next build — CI가 돌리는 명령
+pnpm --filter @baechan/ui-example start   # 빌드한 것을 띄운다
+pnpm --filter @baechan/ui-example dev     # 개발 서버
 ```
 
 - **패키지를 고친 뒤에는 `pnpm install`을 다시 돌린다.** 예제 앱은 패키지의 복사본을 보기 때문에 고친 내용이 설치 전에는
@@ -601,14 +601,14 @@ pnpm --filter @link-sphere/example-next dev     # 개발 서버
 2026-11-23, 리허설 결과를 본 사용자의 답이다. 코드를 바꾸는 답 가운데 애니메이션 CSS와 버전 맞춤은 둘째 PR에 넣었고, 나머지는
 적힌 시점에 따로 계획을 세운다.
 
-| 항목                             | 결정                                                                                                                                                                                                           | 기각한 대안                                                                                               | 적용 시점                     |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| 보조 모듈의 자리                 | 부품을 옮길 때 패키지 `lib/`로 옮기고 앱도 패키지에서 가져다 쓴다. 앱 것과 섞인 세 파일([§5.5](#55-함께-옮길-보조-모듈))은 부품이 쓰는 이름만 떼어 옮긴다                                                      | 패키지와 앱에 사본을 하나씩 둔다(한쪽만 고치면 어긋난다)                                                  | 3단계                         |
-| `LinkThumbnail`·`TooltipWrapper` | 둘 다 범용이다. 예제 앱에서 앱 코드 없이 그려졌다. `LinkThumbnail`의 `className`은 맨 바깥 요소로 보내고 `img`용 클래스는 새 속성으로 받는다([§1.4](#14-api-규칙)의 규칙에 맞춘다)                             | `className`을 지금처럼 `img`로 두고 예외로 기록한다(받는 쪽이 이 부품만 따로 기억해야 한다)               | 별도 계획·PR(1.5단계 뒤)      |
-| 범용 부품의 스토리·테스트        | 부품을 패키지로 옮길 때 그 스토리·테스트도 패키지 방식으로 바꾼다. 문구가 필요한 테스트는 그때 `KO_UI_TEXTS`로 감싸는 패키지 `render`를 만들어 쓴다. `ImageViewer` 스토리의 앱 배선 둘은 앱 쪽 스토리로 나눈다 | 지금 미리 고친다(옮길 때 경로를 또 고친다), 고치지 않는다(앱 코드를 import하는 파일은 패키지로 못 옮긴다) | 3단계                         |
-| 애니메이션 CSS                   | 패키지 토큰 CSS가 `tw-animate-css`를 가져오고 패키지 `dependencies`에 선언한다. 받는 쪽은 패키지 CSS 한 줄만 가져온다                                                                                          | 받는 쪽이 가져온다(빠뜨려도 오류가 없다)                                                                  | 둘째 PR                       |
-| 버전 어긋남 막기                 | 루트와 패키지가 함께 선언한 패키지의 버전 문자열이 같은지 테스트로 본다                                                                                                                                        | `next-themes`를 peer로만 둔다(3단계의 "함께 쓸 패키지 범위"를 앞당긴다), 기록만 한다                      | 둘째 PR                       |
-| 패키지 이름                      | `@link-sphere/ui`는 이 서비스 이름에 묶여 있어 바꾼다. 후보와 npm 스코프 조건·비용을 비교한 이름 계획을 먼저 세우고, 사용자가 고른 이름으로 이름만 바꾸는 PR을 낸다                                            | 둘째 PR에 넣는다(리허설 결과와 약 220개 파일 치환이 한 diff에 섞인다), 3단계까지 미룬다                   | 별도 계획·PR(1.5단계 바로 뒤) |
+| 항목                             | 결정                                                                                                                                                                                                           | 기각한 대안                                                                                               | 적용 시점                                            |
+| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 보조 모듈의 자리                 | 부품을 옮길 때 패키지 `lib/`로 옮기고 앱도 패키지에서 가져다 쓴다. 앱 것과 섞인 세 파일([§5.5](#55-함께-옮길-보조-모듈))은 부품이 쓰는 이름만 떼어 옮긴다                                                      | 패키지와 앱에 사본을 하나씩 둔다(한쪽만 고치면 어긋난다)                                                  | 3단계                                                |
+| `LinkThumbnail`·`TooltipWrapper` | 둘 다 범용이다. 예제 앱에서 앱 코드 없이 그려졌다. `LinkThumbnail`의 `className`은 맨 바깥 요소로 보내고 `img`용 클래스는 새 속성으로 받는다([§1.4](#14-api-규칙)의 규칙에 맞춘다)                             | `className`을 지금처럼 `img`로 두고 예외로 기록한다(받는 쪽이 이 부품만 따로 기억해야 한다)               | 별도 계획·PR(1.5단계 뒤)                             |
+| 범용 부품의 스토리·테스트        | 부품을 패키지로 옮길 때 그 스토리·테스트도 패키지 방식으로 바꾼다. 문구가 필요한 테스트는 그때 `KO_UI_TEXTS`로 감싸는 패키지 `render`를 만들어 쓴다. `ImageViewer` 스토리의 앱 배선 둘은 앱 쪽 스토리로 나눈다 | 지금 미리 고친다(옮길 때 경로를 또 고친다), 고치지 않는다(앱 코드를 import하는 파일은 패키지로 못 옮긴다) | 3단계                                                |
+| 애니메이션 CSS                   | 패키지 토큰 CSS가 `tw-animate-css`를 가져오고 패키지 `dependencies`에 선언한다. 받는 쪽은 패키지 CSS 한 줄만 가져온다                                                                                          | 받는 쪽이 가져온다(빠뜨려도 오류가 없다)                                                                  | 둘째 PR                                              |
+| 버전 어긋남 막기                 | 루트와 패키지가 함께 선언한 패키지의 버전 문자열이 같은지 테스트로 본다                                                                                                                                        | `next-themes`를 peer로만 둔다(3단계의 "함께 쓸 패키지 범위"를 앞당긴다), 기록만 한다                      | 둘째 PR                                              |
+| 패키지 이름                      | `@link-sphere/ui`는 이 서비스 이름에 묶여 있어 바꾼다. 후보와 npm 스코프 조건·비용을 비교한 이름 계획을 먼저 세우고, 사용자가 고른 이름으로 이름만 바꾸는 PR을 낸다                                            | 둘째 PR에 넣는다(리허설 결과와 약 220개 파일 치환이 한 diff에 섞인다), 3단계까지 미룬다                   | 2026-11-23에 했다(#676, [패키지 이름](#패키지-이름)) |
 
 스토리·테스트 항목의 대상은 15개 파일이다(2026-11-23, `src/shared/ui`의 범용 부품 스토리·테스트 가운데 앱 것을 import하는
 파일).
@@ -623,6 +623,77 @@ pnpm --filter @link-sphere/example-next dev     # 개발 서버
 패키지 안에서는 `@/` import를 린트가, 선언하지 않은 패키지를 의존성 검사가 이미 막는다. 그래서 이 파일들은 옮기는 순간 고치지
 않으면 검사에서 걸리고, 새 검사를 더하지 않았다.
 
+#### 패키지 이름
+
+2026-11-23에 패키지 `@link-sphere/ui`를 `@baechan/ui`로, 예제 앱 `@link-sphere/example-next`를 `@baechan/ui-example`로
+바꿨다(#676). 계획은 [`plans/2026-11-23-design-system-package-rename.md`](./plans/2026-11-23-design-system-package-rename.md)다.
+npm에 올리기 전(`packages/ui/package.json`의 `private: true`)이라 저장소 안 치환(코드·설정 212개 파일)만으로 바꿀 수 있었다.
+올린 뒤에는 이름을 바꾸기 어렵다(아래 "다시 볼 조건").
+
+이름은 두 부분이다. 스코프(`@`부터 `/` 앞)는 npm에서 "누구의 패키지인가"를, 패키지 이름(`/` 뒤)은 "무엇인가"를 나타낸다.
+
+```
+업계 예(GitHub Primer)   바꾸기 전                     바꾼 뒤
+@primer/react            @link-sphere/ui               @baechan/ui
+└스코프┘└패키지┘          └ 서비스 이름에 묶임 ┘          └ npm 계정 이름 ┘
+                         @link-sphere/example-next     @baechan/ui-example
+```
+
+**정한 것: 개인 계정 스코프(`@baechan/…`).** 계정이 `baechan`이라는 것은 사용자가 말했고, PR을 열기 전에 직접 확인해 맞다고
+알려 줬다(2026-11-23). 이 기계에서는 직접 확인하지 못했다. `npm whoami`는 로그인 안 됨이었고, npmjs.com 프로필 페이지는 봇 확인
+화면(403)이 떠서 읽지 못했다. 이름이 npm에서 비어 있는지는 레지스트리를
+조회했다(2026-11-23): `@baechan/ui`와 `@baechan/example-next`(예제 앱의 처음 이름)는 404(올라간 적 없음), `scope:baechan`
+검색은 0건이다. 지금 이름 `@baechan/ui-example`은 조회하지 않았다. 스코프가 없어도 404가 나므로 이 조회는 계정이 있다는
+증거가 아니다.
+
+| 방향                 | 예             | 조건                                                                                  | 돈                     | 정한 것                                      |
+| -------------------- | -------------- | ------------------------------------------------------------------------------------- | ---------------------- | -------------------------------------------- |
+| 새 브랜드 스코프     | `@<브랜드>/ui` | npm에 그 이름의 조직을 만들어야 주인이 되고, 이름이 비어 있어야 한다                  | 공개 패키지만이면 무료 | 추천했으나 고르지 않았다                     |
+| **개인 계정 스코프** | `@baechan/ui`  | npm 계정만 있으면 된다. 따로 만들 것이 없다                                           | 무료                   | **사용자가 골랐다**(이유는 따로 듣지 않았다) |
+| 스코프 없는 이름     | `<이름>-ui`    | 전 세계에서 하나뿐인 이름이어야 하고, 형제 패키지(토큰 등)를 한 이름표로 묶을 수 없다 | 무료                   | 기각                                         |
+
+- **근거(재인용)**: 아래는 공식 문서를 읽은 에이전트의 보고를 옮긴 것이고 원문은 링크에서 확인한다.
+  - _"각 npm 사용자·조직은 자기 스코프를 가지며, 자기 스코프에는 본인만 패키지를 추가할 수 있다"_ (번역,
+    [npm scope](https://docs.npmjs.com/cli/v11/using-npm/scope). [about-scopes](https://docs.npmjs.com/about-scopes)에는 이 문장이 없다).
+  - 스코프 패키지는 기본이 비공개다([about-scopes](https://docs.npmjs.com/about-scopes)). 공개로 올리는 방법은 _"첫 `npm publish`
+    명령에 `--access public`을 지정해야 한다"_ (번역, [npm scope](https://docs.npmjs.com/cli/v11/using-npm/scope)). 공개 패키지는 무료이고 비공개만 유료다
+    ([creating-an-organization](https://docs.npmjs.com/creating-an-organization), 비공개 요금은 2023-10 수정 문서 기준이고 요금 페이지는 읽지 못했다).
+  - 계정 이름은 바꿀 수 없다([changing-your-npm-username](https://docs.npmjs.com/changing-your-npm-username)).
+  - 추천한 브랜드 스코프의 근거: npm 레지스트리의 `name` 값으로 본 패키지 9개(디자인 시스템 7곳) 가운데 8개가 브랜드 스코프이고
+    (`@primer/react`·`@carbon/react`·`@mantine/core`·`@chakra-ui/react`·`@shopify/polaris`·`@radix-ui/react-tooltip` 등), 스코프 없는 것은 `antd` 하나였다.
+    Primer(`@primer/primitives`)와 Shopify(`@shopify/polaris-tokens`)는 토큰을 같은 스코프의 형제 패키지로 둔다.
+- **패키지 부분은 `ui`로 그대로 두었다.** 스코프만 바꿔 치환 범위를 좁혔다. 2단계에서 토큰을 따로 떼면 같은 스코프에
+  `@baechan/<토큰 이름>`이 들어갈 자리가 있다.
+- **예제 앱 이름에서 `next`를 뺐다.** 처음엔 `@baechan/ui-example-next`로 정했지만 이름의 `next`가 패키지까지 Next.js용으로
+  읽힌다는 사용자 질문을 듣고 `@baechan/ui-example`로 바꿨다. 폴더는 `examples/next` 그대로다(폴더까지 바꾸면 CI 경로 필터와 문서
+  경로가 더 바뀐다). 다른 프레임워크 예제를 더하면 이 이름을 다시 정한다.
+
+**패키지는 Next.js 전용이 아니다.** `examples/next`의 `next`는 예제 앱이 쓰는 프레임워크다. 패키지가 요구하는 것은 `react`·`react-dom`
+`>=18`뿐이고(`packages/ui/package.json`의 `peerDependencies`), `packages/ui/src`에서 `next` 패키지를 가져오는 곳은 없다
+(`grep -rnE "from 'next(/[^']*)?'" packages/ui/src`가 0건, 2026-11-23. `from 'next` 까지만 쓰면 `next-themes`가 걸린다). `next-themes`는 Next.js가 아니라 테마를 바꾸는 라이브러리이고 `sonner.tsx`만 쓰며,
+Vite 앱인 이 앱도 같은 라이브러리를 직접 쓴다(`src/app/providers/ThemeProvider.tsx`). 지금 이 패키지를 쓰는 곳은 이 앱(Vite +
+React 18.3.1)과 예제 앱(Next.js + React 19.3.1) 둘이다.
+
+**이름을 바꿀 때 알게 된 것**
+
+| 발견                                                                                                                                                                                                                                                   | 확인 방법                                         | 대응                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm --filter <이름>`은 이름이 어떤 프로젝트와도 안 맞으면 `No projects matched the filters`만 찍고 종료 코드 0으로 끝난다. 루트 `package.json`의 `build`·`type-check`와 `ci.yml`의 예제 앱 단계가 이 필터를 쓰므로, 이름이 틀리면 에러 없이 건너뛴다 | 없는 이름으로 직접 실행(pnpm 10.20.0, 2026-11-23) | 이름을 바꿀 때는 출력에 `tsc --noEmit`·`next build`가 실제로 돈 줄이 있는지 본다. pnpm 10.20.0에는 일치하는 프로젝트가 없으면 종료 코드 1을 돌려주는 `--fail-if-no-match`가 있다(`pnpm install --help`). 쓰지는 않았다 |
+| 워크트리에서는 옛 이름의 import가 빌드를 통과할 수 있다(추정). 메인 체크아웃의 `node_modules`에 옛 이름 링크가 남아 있고 워크트리가 그 폴더까지 거슬러 올라가 풀기 때문이다. 2026-11-23 리허설에서 선언을 뺀 `tw-animate-css`가 이렇게 풀렸다          | `grep -rl '@link-sphere/'`로 남은 곳을 직접 센다  | 이름을 바꿀 때는 빌드 통과 대신 `grep` 0건을 증거로 삼고, 깨끗한 설치인 CI가 마지막으로 확인한다                                                                                                                       |
+| 이름이 4글자 짧아져(`@link-sphere` 12자 → `@baechan` 8자) 서식이 바뀔 수 있다                                                                                                                                                                          | `prettier --list-different`                       | 바뀐 파일은 없었다                                                                                                                                                                                                     |
+| 이름은 번들에 남지 않는다                                                                                                                                                                                                                              | `pnpm build` 전후의 `dist` 크기 비교              | CSS 합계 156,247바이트, JS 합계 1,056,798바이트, 파일 166개(`find dist -type f`)가 전후로 같았다                                                                                                                       |
+
+**다시 볼 조건**
+
+- **npm에 올리기 전(3단계)에 이 선택을 한 번 더 본다.** 개인 스코프에는 본인만 올릴 수 있다(위 근거). 다른 사람과 함께 관리하거나 서비스·브랜드
+  이름이 필요해지면 조직 스코프로 옮기는 쪽이 될 수 있다(패키지 하나만 공동으로 관리하는 방법이 있는지는 확인하지 않았다). 올린
+  뒤에 패키지 이름을 바꾸는 절차는 읽은 npm 문서 페이지에 없어 확인하지 못했다. 그래서 올리기 전에 정한다.
+- **올릴 때는 첫 `npm publish`에 `--access public`이 필요하다**(위 근거). 인증 방식과 게시 비용은 3단계 계획 때 공식 문서로 확인한다.
+- **병합 뒤 모든 체크아웃·워크트리는 `pnpm install`을 한 번 해야 한다.** 하지 않으면 `node_modules`에 옛 링크가 남아
+  `@baechan/ui/…`를 찾지 못한다.
+- 공개 코드 지도(`pages-site/floorplan/index.html`)에는 옛 이름이 한 번 남아 있다. 생성된 내보내기본이라 손으로 고치지 않고, 다음
+  지도 갱신 PR에서 바뀐다([`DEPLOY.md`](./DEPLOY.md) "코드 지도").
+
 ## 2. 사용 대상과 전제
 
 - **받는 쪽은 React와 Tailwind v4를 쓴다.** 부품은 모양을 Tailwind 클래스로 적고, 그 클래스의 CSS는 받는 쪽 프로젝트의 Tailwind가
@@ -634,7 +705,7 @@ pnpm --filter @link-sphere/example-next dev     # 개발 서버
   자기 소스를 가리키는 `@source '..'`로 대신한다. 예제 앱(Next.js 16.4.6, Tailwind 4.3.5)은 따로 등록하지 않고도 부품 클래스가 모두
   만들어졌고, 패키지의 그 줄을 빼면 빠졌다([§1.5](#15-분리-리허설에서-알게-된-것과-정한-것) "알게 된 것").
 - **받는 쪽은 패키지 CSS 한 줄을 가져간다.** 부품의 클래스(`bg-primary` 등)는 패키지 토큰 CSS(`packages/ui/src/styles/tokens.css`)가
-  정한 토큰에서 나온다. 받는 쪽 CSS는 `@import 'tailwindcss'` 다음에 `@import '@link-sphere/ui/styles.css'`를 둔다. 열림·닫힘
+  정한 토큰에서 나온다. 받는 쪽 CSS는 `@import 'tailwindcss'` 다음에 `@import '@baechan/ui/styles.css'`를 둔다. 열림·닫힘
   애니메이션 CSS(`tw-animate-css`)도 이 한 줄로 함께 온다. 받는 쪽이 `tw-animate-css`를 한 번 더 가져와도 CSS는 겹치지 않았다(예제
   앱 CSS가 한 번일 때와 두 번일 때 27,265바이트로 바이트까지 같았다, 2026-11-23).
 - **Next.js(App Router)에서 쓸 때.** 패키지가 빌드 없이 TS 소스를 내보내는 동안에는 받는 쪽 `next.config`의 `transpilePackages`에

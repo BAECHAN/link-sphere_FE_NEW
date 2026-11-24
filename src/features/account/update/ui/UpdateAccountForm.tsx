@@ -1,9 +1,9 @@
 import { useRef } from 'react';
 import { FormProvider } from 'react-hook-form';
 import { Camera } from 'lucide-react';
-import { Button } from '@link-sphere/ui/atoms/button';
+import { Button } from '@baechan/ui/atoms/button';
 import { FormInput } from '@/shared/ui/elements/form/FormInput';
-import { TooltipWrapper } from '@link-sphere/ui/elements/TooltipWrapper';
+import { TooltipWrapper } from '@baechan/ui/elements/TooltipWrapper';
 import { TEXTS } from '@/shared/config/texts';
 import { useUpdateAccount } from '@/features/account/update/hooks/useUpdateAccount';
 import { useAvailabilityMessage } from '@/shared/hooks/useAvailabilityMessage';

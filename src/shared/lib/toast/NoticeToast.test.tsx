@@ -2,7 +2,7 @@ import { isValidElement, type ReactElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { toast as sonnerToast, type ExternalToast } from 'sonner';
 import { showNoticeToast } from '@/shared/lib/toast/NoticeToast';
-import { STACKED_ACTION_CLASS_NAMES } from '@link-sphere/ui/lib/toast/toast-layout';
+import { STACKED_ACTION_CLASS_NAMES } from '@baechan/ui/lib/toast/toast-layout';
 
 // sonner는 src/test/setup.ts에서 모킹돼 있어, sonner에 넘어간 인자를 그대로 확인할 수 있다
 beforeEach(() => {

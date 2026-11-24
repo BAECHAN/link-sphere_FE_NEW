@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, type Location } from 'react-router-dom';
-import { toast } from '@link-sphere/ui/lib/toast/toast';
+import { toast } from '@baechan/ui/lib/toast/toast';
 import { TEXTS } from '@/shared/config/texts';
 import { SERVER_ERROR_CODE } from '@/shared/config/error-code';
 import { ErrorUtil } from '@/shared/utils/error.util';

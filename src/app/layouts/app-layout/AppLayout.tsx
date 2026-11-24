@@ -4,7 +4,7 @@ import { useMatch } from 'react-router-dom';
 import { TEXTS } from '@/shared/config/texts';
 import { ROUTES_PATHS } from '@/shared/config/route-paths';
 import { DESKTOP_MEDIA_QUERY } from '@/shared/config/const';
-import { cn } from '@link-sphere/ui/lib/tailwind/utils';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { Navbar } from '@/widgets/layout/navbar/ui/Navbar';
 import { Sidebar } from '@/widgets/layout/sidebar/ui/Sidebar';
 import { BottomTabBar } from '@/widgets/layout/bottom-tab-bar/ui/BottomTabBar';
