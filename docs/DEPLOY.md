@@ -282,8 +282,30 @@ PR 하나(`npm` 그룹)로 묶어 올린다(2026-11-12 도입). 위 절처럼 �
   `_site/<경로>/`에 넣는다.
 - **왜 별도 워크플로우인가**: `paths` 필터는 워크플로우 단위로만 걸 수 있다.
   `deploy.yml`에 job으로 얹으면 `.storybook/**` 변경만으로도 앱 프로덕션 배포가 함께 돈다.
-- **권한**: AWS 역할을 쓰지 않는다. 워크플로가 `pages: write`·`id-token: write`로 Pages에 게시한다
-  (`actions/upload-pages-artifact` → `actions/deploy-pages`).
+- **권한**: AWS 역할을 쓰지 않는다. 게시 권한(`pages: write`·`id-token: write`)은 게시하는 `deploy` 잡에만 있고, npm
+  의존성 코드가 도는 `build` 잡은 `contents: read`만 갖는다(`actions/upload-pages-artifact` → `actions/deploy-pages`).
+- **잡 구조와 실패 복구**(2026-11-24): 산출물(워크플로 실행이 GitHub에 올려 두는 파일 묶음)을 올리는 `build` 잡과 그
+  산출물을 게시하는 `deploy` 잡을 나눈다. deploy-pages
+  [README "Usage"](https://github.com/actions/deploy-pages/tree/368f82528645a54fb793d4d04e342629a3f51346#usage)는
+  _"이 액션은 전용 잡에서 쓰기를 권한다"_ (번역)고 쓴다.
+  - **왜 나눴나**: 그 전에는 한 잡에서 올린 직후 게시했다. 2026-11-24 #676 병합 뒤 실행부터 실행 3개가 연달아 게시
+    단계에서 `Found 0 artifact(s)` → `No artifacts named "github-pages" were found`로 실패했다. 산출물은 올라가 있었고(수 분
+    뒤 같은 이름으로 조회하면 1개), 올린 지 0.29~0.40초 뒤의 목록 조회만 비어 있었다(실행 로그의 시각 차이). 전날 성공한
+    실행도 간격은 0.35초였으니 간격만으로 갈리는 것은 아니다. `actions/deploy-pages` v5.0.1은 목록을 한 번만 조회하고
+    0개면 바로 실패한다(그 액션 소스의 `getArtifactMetadata` 함수, 재시도 없음). 액션 SHA·러너 이미지·워크플로 파일은 전날
+    성공한 실행과 같았다. 같은 증상의 보고가
+    [actions/deploy-pages#451](https://github.com/actions/deploy-pages/issues/451)에 있다. GitHub 안에서 목록이 왜 늦게
+    보이는지는 확인하지 못했다. 잡을 나누면 조회가 다음 잡이 시작된 뒤로 밀린다.
+  - **한 잡일 때 재실행으로 못 고친 이유**: 실패한 잡을 다시 돌리면 같은 실행에 산출물이 하나 더 올라가
+    `Found 2 artifact(s)` → `Multiple artifacts named "github-pages"`로 다시 실패했다(같은 날 직접 겪음).
+  - **지금 게시가 실패하면**: `gh run rerun <실행 번호> --failed`로 실패한 `deploy` 잡만 다시 돌린다. GitHub 문서는 재실행에
+    _"포함되지 않은 잡은 이전 시도의 출력을 유지한다"_ (번역,
+    [Re-running workflows and jobs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs))고
+    쓴다. `build` 잡이 다시 돌지 않으면 산출물은 하나로 남는다. 이 워크플로에서 `deploy` 잡만 재실행해 본 결과는 #677
+    본문 "검증"에 있다. 산출물 보존 기간(1일, `upload-pages-artifact`의 기본값)이 지났으면 아래 "롤백"의 수동 실행
+    명령으로 새 실행을 돌린다.
+  - 계획과 실패한 실행들의 관찰 표:
+    [`plans/2026-11-24-pages-deploy-split-jobs.md`](plans/2026-11-24-pages-deploy-split-jobs.md).
 - **저장소 설정(1회, 2026-10-30)**: Pages 소스를 "GitHub Actions"로 켜고
   (`gh api -X POST repos/BAECHAN/link-sphere_FE_NEW/pages -f build_type=workflow`), 게시 환경 `github-pages`는
   main 브랜치만 배포하도록 둔다. 다른 브랜치에서 수동 실행하면 환경 보호 규칙에 막힌다.

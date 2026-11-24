@@ -329,6 +329,14 @@
 
 ### Fixed
 
+- `infra` 공개 Storybook 배포가 올린 산출물을 못 찾아 실패하던 문제
+  <details><summary>배경·구현</summary>
+
+  2026-11-24 #676 병합 뒤부터 `Storybook Deploy (GitHub Pages)` 실행 3개가 연달아 `No artifacts named "github-pages" were found`로 실패해 공개 Storybook이 이전 배포에 머물렀다. 산출물(워크플로 실행이 GitHub에 올려 두는 파일 묶음)은 올라가 있었지만, 한 잡에서 올린 직후(0.29~0.40초 뒤)의 목록 조회가 비어 있었고 `actions/deploy-pages` v5.0.1은 목록을 한 번만 조회한다. 액션 버전·러너 이미지·워크플로 파일은 전날 성공한 실행과 같았다. 워크플로를 deploy-pages README가 권하는 구조대로 올리는 `build` 잡과 게시하는 `deploy` 잡으로 나눠 조회를 다음 잡이 시작된 뒤로 미뤘다. 실패하더라도 `deploy` 잡만 재실행할 수 있다 — 전에는 재실행이 산출물을 하나 더 올려 다시 실패했다. 게시 권한(`pages: write`·`id-token: write`)은 `deploy` 잡에만 남겼다. 공개 사이트의 내용은 그대로다. 경위와 복구 절차는 `docs/DEPLOY.md` "Storybook 공개 배포"의 "잡 구조와 실패 복구", 계획은 [`docs/plans/2026-11-24-pages-deploy-split-jobs.md`](docs/plans/2026-11-24-pages-deploy-split-jobs.md).
+  (`.github/workflows/deploy-storybook.yml`, `docs/DEPLOY.md`, [PR #677](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/677))
+
+  </details>
+
 - `post` 로그아웃 상태에서 범위 칩을 누르면 조건 없이 전체 글이 나오던 문제
   <details><summary>배경·구현</summary>
 
