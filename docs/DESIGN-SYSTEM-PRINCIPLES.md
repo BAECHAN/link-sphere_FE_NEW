@@ -10,7 +10,7 @@
 > 이유, 부품의 속성 이름과 `className`을 어떻게 맞추는지, 어느 부품이 `ref`와 나머지 속성을 받는지, 지금 부품이 어느 분류에
 > 속하는지 안다.
 >
-> **마지막 검토**: 2026-11-23
+> **마지막 검토**: 2026-11-24
 
 **읽는 법**
 
@@ -405,6 +405,10 @@ Badge.displayName = 'Badge';
   Storybook의 자동 속성 표는 인터페이스에 직접 적은 속성만 보여 줘서, 빼면 표에서 줄이 빠진다(#657에서 빠졌다가 #661에서
   되살렸다, [§6](#6-측정-명령) 17번).
 - **고치기 전부터 맞았던 elements**: `ToggleButton`, `PasswordInput`, `SearchInput`, `SheetDialogContent`.
+- **뒤에 고친 atoms 1개**: `LinkThumbnail`(2026-11-24, #684). `img`로 가던 `className`을 맨 바깥 요소로 옮기고 `ref`와 나머지
+  속성을 열었다. 이미지에 거는 클래스는 새 속성 `imageClassName`으로 받는다 — 부분을 꾸미는 속성은 `<부분>ClassName` 꼴로
+  적는다([§6](#6-측정-명령) 12번의 네 이름과 같은 꼴). `imageClassName`은 이미지를 받지 못해 안내 아이콘으로 바뀐 동안에는
+  쓰이지 않는다. 넘기던 곳은 `PostCard` 하나였고 화면은 바뀌지 않았다([§6](#6-측정-명령) 18번).
 
 #### 린트가 보는 것과 못 보는 것
 
@@ -423,10 +427,10 @@ Badge.displayName = 'Badge';
 
 | 대상             | 보는 것                                                                                                                                                               | 못 보는 것                                                                                                                                             |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| atoms            | 폴더의 파일을 훑어 내보낸 부품 76개 가운데 60개를 그리고 `ref`·`className`·`data-*` 속성이 같은 요소에 닿는지 본다. 표에 적지 않은 새 부품도 단독으로 그려 검사한다   | 그 요소가 맨 바깥 요소인지(셋이 같은 요소인지만 본다). 계약 밖으로 뺀 16개. `data-*`가 아닌 속성이 중간에서 걸러지는지. 타입이 `ref`를 받는다고 적는지 |
+| atoms            | 폴더의 파일을 훑어 내보낸 부품 76개 가운데 61개를 그리고 `ref`·`className`·`data-*` 속성이 같은 요소에 닿는지 본다. 표에 적지 않은 새 부품도 단독으로 그려 검사한다   | 그 요소가 맨 바깥 요소인지(셋이 같은 요소인지만 본다). 계약 밖으로 뺀 15개. `data-*`가 아닌 속성이 중간에서 걸러지는지. 타입이 `ref`를 받는다고 적는지 |
 | elements·layouts | 내보낸 부품 36개가 모두 표에 있는지, 표에 "대상 요소로 간다"고 적은 칸(부품 22개)이 실제로 닿는지, 버튼을 감싼 4개가 스스로 정한 속성을 넘겨받은 값으로 바꾸지 않는지 | "받지 않는다"·"다른 요소로 간다"고 적은 칸 — 지금 동작을 적어 둔 것이고 고정하지 않는다. 타입에서 뺀 속성을 넘기면 타입 오류가 나는지                  |
 
-계약 밖으로 뺀 atoms 16개는 이렇게 나뉜다. 부품별 이유와 근거(설치본 `파일:줄`)는 테스트 파일의 `ATOMS_OUTSIDE_CONTRACT`에
+계약 밖으로 뺀 atoms 15개는 이렇게 나뉜다. 부품별 이유와 근거(설치본 `파일:줄`)는 테스트 파일의 `ATOMS_OUTSIDE_CONTRACT`에
 있다.
 
 - **자기 DOM 요소가 없는 10개** — `Dialog`·`Select`·`Tooltip`처럼 상태나 포털만 맡는 부품이다.
@@ -434,8 +438,6 @@ Badge.displayName = 'Badge';
   `SelectScrollDownButton`(스크롤 위치가 없다). 소스는 다른 부품처럼 `forwardRef`로 `ref`·`className`·나머지 속성을 넘기는
   꼴이지만 그려서 확인하지는 못했다.
 - **`SelectValue`** — Radix 부품을 그대로 내보낸 것인데 Radix가 `className`을 받지 않는다.
-- **`LinkThumbnail`** — `className`이 맨 바깥 요소가 아니라 `img`로 간다. 맨 바깥 요소로 옮기기로 정했고(2026-11-23,
-  [§1.5 "미뤄 둔 항목의 답"](#미뤄-둔-항목의-답)) 별도 PR에서 고친다.
 - **`Toaster`** — 맨 바깥 요소를 sonner가 그린다.
 
 조립 부품 36개의 표는 다섯으로 나뉜다. 셋 다 대상 요소로 가는 저수준 elements 8개, `className`만 맨 바깥 요소로 가는 12개,
@@ -487,8 +489,6 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 - **이 앱이 React 19로 올라갈 때.** `forwardRef`를 걷어 내고 `ref`를 속성으로 받는 꼴로 바꾼 뒤, 규칙 표의 "React 18을
   지원하는 동안" 문장을 고친다. 패키지가 React 18 프로젝트도 받쳐야 하면 그대로 둔다. 올릴 계획은 아직 없다.
 - **조립 부품에 `ref`나 `className`이 실제로 필요해질 때.** 계약 표의 그 줄과 코드를 함께 바꾼다.
-- **`LinkThumbnail`의 `className`을 맨 바깥 요소로 옮길 때.** 옮기기로 정했다(2026-11-23,
-  [§1.5 "미뤄 둔 항목의 답"](#미뤄-둔-항목의-답)). 별도 PR에서 코드를 고치면서 계약 테스트의 예외 줄을 지운다.
 
 ### 1.5 분리 리허설에서 알게 된 것과 정한 것
 
@@ -604,7 +604,7 @@ pnpm --filter @baechan/ui-example dev     # 개발 서버
 | 항목                             | 결정                                                                                                                                                                                                           | 기각한 대안                                                                                               | 적용 시점                                            |
 | -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
 | 보조 모듈의 자리                 | 부품을 옮길 때 패키지 `lib/`로 옮기고 앱도 패키지에서 가져다 쓴다. 앱 것과 섞인 세 파일([§5.5](#55-함께-옮길-보조-모듈))은 부품이 쓰는 이름만 떼어 옮긴다                                                      | 패키지와 앱에 사본을 하나씩 둔다(한쪽만 고치면 어긋난다)                                                  | 3단계                                                |
-| `LinkThumbnail`·`TooltipWrapper` | 둘 다 범용이다. 예제 앱에서 앱 코드 없이 그려졌다. `LinkThumbnail`의 `className`은 맨 바깥 요소로 보내고 `img`용 클래스는 새 속성으로 받는다([§1.4](#14-api-규칙)의 규칙에 맞춘다)                             | `className`을 지금처럼 `img`로 두고 예외로 기록한다(받는 쪽이 이 부품만 따로 기억해야 한다)               | 별도 계획·PR(1.5단계 뒤)                             |
+| `LinkThumbnail`·`TooltipWrapper` | 둘 다 범용이다. 예제 앱에서 앱 코드 없이 그려졌다. `LinkThumbnail`의 `className`은 맨 바깥 요소로 보내고 `img`용 클래스는 새 속성으로 받는다([§1.4](#14-api-규칙)의 규칙에 맞춘다)                             | `className`을 지금처럼 `img`로 두고 예외로 기록한다(받는 쪽이 이 부품만 따로 기억해야 한다)               | 2026-11-24에 했다(#684, [§6](#6-측정-명령) 18번)     |
 | 범용 부품의 스토리·테스트        | 부품을 패키지로 옮길 때 그 스토리·테스트도 패키지 방식으로 바꾼다. 문구가 필요한 테스트는 그때 `KO_UI_TEXTS`로 감싸는 패키지 `render`를 만들어 쓴다. `ImageViewer` 스토리의 앱 배선 둘은 앱 쪽 스토리로 나눈다 | 지금 미리 고친다(옮길 때 경로를 또 고친다), 고치지 않는다(앱 코드를 import하는 파일은 패키지로 못 옮긴다) | 3단계                                                |
 | 애니메이션 CSS                   | 패키지 토큰 CSS가 `tw-animate-css`를 가져오고 패키지 `dependencies`에 선언한다. 받는 쪽은 패키지 CSS 한 줄만 가져온다                                                                                          | 받는 쪽이 가져온다(빠뜨려도 오류가 없다)                                                                  | 둘째 PR                                              |
 | 버전 어긋남 막기                 | 루트와 패키지가 함께 선언한 패키지의 버전 문자열이 같은지 테스트로 본다                                                                                                                                        | `next-themes`를 peer로만 둔다(3단계의 "함께 쓸 패키지 범위"를 앞당긴다), 기록만 한다                      | 둘째 PR                                              |
@@ -802,31 +802,31 @@ flowchart TD
 
 ### 5.1 atoms (23개)
 
-| 부품             | 파일                                       | 분류 | 묶인 것                                                                                                              | 1단계에서 할 일                                                                       |
-| ---------------- | ------------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `AlertDialog`    | `src/shared/ui/atoms/alert-dialog.tsx`     | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                                              |
-| `Avatar`         | `src/shared/ui/atoms/avatar.tsx`           | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Badge`          | `src/shared/ui/atoms/badge.tsx`            | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Button`         | `packages/ui/src/atoms/button.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Card`           | `src/shared/ui/atoms/card.tsx`             | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Checkbox`       | `src/shared/ui/atoms/checkbox.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Dialog`         | `src/shared/ui/atoms/dialog.tsx`           | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                                              |
-| `Divider`        | `src/shared/ui/atoms/divider.tsx`          | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `DropdownMenu`   | `src/shared/ui/atoms/dropdown-menu.tsx`    | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `FeaturedIcon`   | `src/shared/ui/atoms/featured-icon.tsx`    | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Input`          | `src/shared/ui/atoms/input.tsx`            | 범용 | 문구 1개(`input.clear`). 보조: `useMergedRef`                                                                        | 끝 — 지우기 버튼 라벨을 `useUiTexts()`로 읽는다                                       |
-| `Kbd`            | `src/shared/ui/atoms/kbd.tsx`              | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Label`          | `src/shared/ui/atoms/label.tsx`            | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `LabeledDivider` | `src/shared/ui/atoms/labeled-divider.tsx`  | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `LinkThumbnail`  | `packages/ui/src/atoms/link-thumbnail.tsx` | 범용 | 보조: `failedImageCache`(실패한 이미지 주소를 세션 동안 기억한다)                                                    | 옮겼다. 범용으로 확정했다. `className`을 맨 바깥 요소로 옮기는 일은 별도 PR이다(§1.5) |
-| `RequiredMark`   | `src/shared/ui/atoms/required-mark.tsx`    | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Select`         | `src/shared/ui/atoms/select.tsx`           | 범용 | 보조: `useClickGuard`의 상수 `CLICK_GUARD_MS`                                                                        | 보조 모듈과 함께 옮긴다                                                               |
-| `Skeleton`       | `src/shared/ui/atoms/skeleton.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Toaster`        | `packages/ui/src/atoms/sonner.tsx`         | 범용 | CSS 변수 `--toast-offset-bottom`을 읽는다. 기본값 24px은 패키지 토큰 CSS에, 모바일 값은 `src/app/globals.css`에 있다 | 없음. 분리 리허설에서 기본값과 앱의 덮는 값으로 나눴다(§1.5)                          |
-| `Spinner`        | `packages/ui/src/atoms/spinner.tsx`        | 범용 | 문구 1개(`spinner.label`)                                                                                            | 끝 — 로딩 라벨을 `useUiTexts()`로 읽는다                                              |
-| `Switch`         | `src/shared/ui/atoms/switch.tsx`           | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Textarea`       | `src/shared/ui/atoms/textarea.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
-| `Tooltip`        | `packages/ui/src/atoms/tooltip.tsx`        | 범용 | —                                                                                                                    | 없음                                                                                  |
+| 부품             | 파일                                       | 분류 | 묶인 것                                                                                                              | 1단계에서 할 일                                                            |
+| ---------------- | ------------------------------------------ | ---- | -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `AlertDialog`    | `src/shared/ui/atoms/alert-dialog.tsx`     | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                                   |
+| `Avatar`         | `src/shared/ui/atoms/avatar.tsx`           | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Badge`          | `src/shared/ui/atoms/badge.tsx`            | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Button`         | `packages/ui/src/atoms/button.tsx`         | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Card`           | `src/shared/ui/atoms/card.tsx`             | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Checkbox`       | `src/shared/ui/atoms/checkbox.tsx`         | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Dialog`         | `src/shared/ui/atoms/dialog.tsx`           | 범용 | 문구 1개(`common.close`). 보조: `useOpenClickGuard`                                                                  | 끝 — 닫기 라벨을 `useUiTexts()`로 읽는다                                   |
+| `Divider`        | `src/shared/ui/atoms/divider.tsx`          | 범용 | —                                                                                                                    | 없음                                                                       |
+| `DropdownMenu`   | `src/shared/ui/atoms/dropdown-menu.tsx`    | 범용 | —                                                                                                                    | 없음                                                                       |
+| `FeaturedIcon`   | `src/shared/ui/atoms/featured-icon.tsx`    | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Input`          | `src/shared/ui/atoms/input.tsx`            | 범용 | 문구 1개(`input.clear`). 보조: `useMergedRef`                                                                        | 끝 — 지우기 버튼 라벨을 `useUiTexts()`로 읽는다                            |
+| `Kbd`            | `src/shared/ui/atoms/kbd.tsx`              | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Label`          | `src/shared/ui/atoms/label.tsx`            | 범용 | —                                                                                                                    | 없음                                                                       |
+| `LabeledDivider` | `src/shared/ui/atoms/labeled-divider.tsx`  | 범용 | —                                                                                                                    | 없음                                                                       |
+| `LinkThumbnail`  | `packages/ui/src/atoms/link-thumbnail.tsx` | 범용 | 보조: `failedImageCache`(실패한 이미지 주소를 세션 동안 기억한다)                                                    | 옮겼다. 범용으로 확정했다. `className`을 맨 바깥 요소로 옮겼다(#684, §1.4) |
+| `RequiredMark`   | `src/shared/ui/atoms/required-mark.tsx`    | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Select`         | `src/shared/ui/atoms/select.tsx`           | 범용 | 보조: `useClickGuard`의 상수 `CLICK_GUARD_MS`                                                                        | 보조 모듈과 함께 옮긴다                                                    |
+| `Skeleton`       | `src/shared/ui/atoms/skeleton.tsx`         | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Toaster`        | `packages/ui/src/atoms/sonner.tsx`         | 범용 | CSS 변수 `--toast-offset-bottom`을 읽는다. 기본값 24px은 패키지 토큰 CSS에, 모바일 값은 `src/app/globals.css`에 있다 | 없음. 분리 리허설에서 기본값과 앱의 덮는 값으로 나눴다(§1.5)               |
+| `Spinner`        | `packages/ui/src/atoms/spinner.tsx`        | 범용 | 문구 1개(`spinner.label`)                                                                                            | 끝 — 로딩 라벨을 `useUiTexts()`로 읽는다                                   |
+| `Switch`         | `src/shared/ui/atoms/switch.tsx`           | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Textarea`       | `src/shared/ui/atoms/textarea.tsx`         | 범용 | —                                                                                                                    | 없음                                                                       |
+| `Tooltip`        | `packages/ui/src/atoms/tooltip.tsx`        | 범용 | —                                                                                                                    | 없음                                                                       |
 
 ### 5.2 elements (34개)
 
@@ -991,6 +991,23 @@ flowchart TD
     `id`·`name`, `ActionChip`의 `aria-label` 줄이 있었고, 고친 뒤 표에는 없다. 세 속성을 인터페이스에 다시 적은 뒤(#661)
     같은 방법으로 `shared-ui-elements-actionchip--docs`와 `shared-ui-elements-filterchip--docs`의 표를 읽어 세 줄이 돌아온
     것을 확인했다.
+18. `LinkThumbnail`의 `className`을 맨 바깥 요소로 옮긴 전후(2026-11-24, #684):
+    - 계약 테스트: 13번 명령 → 89건 통과. atoms 61건, 조립 부품의 대상 요소 22건, 버튼을 감싼 부품의 고정 속성 4건, 표 검사
+      2건이다. 부품을 고치기 전에 계약 밖 표에서 `LinkThumbnail` 줄을 지우고 그리는 법(`src`·`alt`)을 더해 돌리면 그 한 건이
+      실패했다(`ref`와 나머지 속성이 닿지 않았다). 새 단위 테스트 4개(`packages/ui/src/atoms/link-thumbnail.test.tsx`)도 고치기
+      전에는 모두 실패했고, 고친 뒤 `className`과 `imageClassName`의 자리를 잠깐 맞바꾸면 그 가운데 3개와 계약 테스트의 한
+      건이 실패한다.
+    - atoms를 만드는 방식(14번을 두 폴더로 다시 셈):
+      `grep -hE "^(export )?const [A-Z][A-Za-z]* = (React\.)?forwardRef" src/shared/ui/atoms/*.tsx packages/ui/src/atoms/*.tsx`
+      → 58(내보내지 않는 `AlertDialogContentPanel` 포함). 내보낸 76개는 계약 테스트가 검사하는 61개와 계약 밖 15개이고, 일반
+      함수 컴포넌트로 남은 것은 `DropdownMenu`, `Select`, `Toaster` 3개다.
+    - 화면이 같은지: 임시 Playwright 스펙(e2e 모킹 도구를 쓰고 커밋하지 않았다)으로 `/post`를 열었다. 목 게시글에 `ogImage`를
+      넣고 이미지 요청에는 스펙이 만든 SVG를 돌려줬다. 첫 카드 썸네일의 `outerHTML`, 썸네일 링크에 마우스를 올리기 전과 올린
+      뒤 700ms의 계산값(`scale`·`transform`)과 그려진 크기(`getBoundingClientRect`), 그 링크의 스크린샷 2장을 고치기 전후로
+      떠서 비교했다 → 모두 같다(스크린샷은 SHA-256이 같다). 올리면 `img`의 `scale`만 `none`에서 `1.05`가 되고(폭 288.66px →
+      303.09px) 맨 바깥 `div`의 크기는 그대로다. 잰 것은 `chromium` 프로젝트(1280×720, 데스크톱 배치) 한 가지다.
+    - 이 앱에서 `scale-105`는 `transform`이 아니라 `scale` 속성으로 나온다. `transform` 계산값은 올리기 전후 모두 `none`이라,
+      호버 확대를 `transform`으로 읽으면 차이가 보이지 않는다.
 
 ## 7. 관련 문서
 

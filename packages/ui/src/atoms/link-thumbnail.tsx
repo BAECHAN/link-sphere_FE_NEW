@@ -1,13 +1,18 @@
 import { ImageOff } from 'lucide-react';
-import { useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { hasImageFailed, recordImageFailure } from '@baechan/ui/lib/image/failedImageCache';
 import { cn } from '@baechan/ui/lib/tailwind/utils';
 
-interface LinkThumbnailProps {
+interface LinkThumbnailProps extends Omit<React.ComponentPropsWithoutRef<'div'>, 'children'> {
   src?: string | null;
   alt: string;
-  /** 이미지 요소에 추가할 클래스 (호버 확대 등 호출부별 연출) */
+  /** 맨 바깥 요소(16:9 자리)에 추가할 클래스 */
   className?: string;
+  /**
+   * 이미지 요소에 추가할 클래스 (호버 확대 등 호출부별 연출).
+   * 이미지를 받지 못해 안내 아이콘으로 바뀐 동안에는 쓰이지 않는다.
+   */
+  imageClassName?: string;
   /**
    * LCP 후보로 화면에 바로 보이는 썸네일(예: 목록 첫 행)이면 true로 넘긴다.
    * `loading="eager"` + `fetchPriority="high"`로 바뀌어 브라우저가 이 이미지를 먼저 받는다.
@@ -24,56 +29,65 @@ interface LinkThumbnailProps {
  * 요소가 바뀌어 pointer/default가 반복 전환되는 문제가 있었다(2026-09-11, Playwright로
  * 마우스 고정 좌표를 이미지 성공/실패 조건만 바꿔 재현 — 41개 지점 중 30개에서 전환 확인).
  */
-export function LinkThumbnail({ src, alt, className, priority = false }: LinkThumbnailProps) {
-  const [hasError, setHasError] = useState(false);
-  const [prevSrc, setPrevSrc] = useState(src);
+const LinkThumbnail = forwardRef<HTMLDivElement, LinkThumbnailProps>(
+  ({ src, alt, className, imageClassName, priority = false, ...props }, ref) => {
+    const [hasError, setHasError] = useState(false);
+    const [prevSrc, setPrevSrc] = useState(src);
 
-  // src가 바뀌면(게시글 URL 수정 등) 이전 URL의 에러 상태를 들고 있지 않는다. effect가 아니라
-  // 렌더 중에 리셋한다 - effect에서 하면 새 src를 폴백으로 한 번 더 그린다
-  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
-  if (src !== prevSrc) {
-    setPrevSrc(src);
-    setHasError(false);
+    // src가 바뀌면(게시글 URL 수정 등) 이전 URL의 에러 상태를 들고 있지 않는다. effect가 아니라
+    // 렌더 중에 리셋한다 - effect에서 하면 새 src를 폴백으로 한 번 더 그린다
+    // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes)
+    if (src !== prevSrc) {
+      setPrevSrc(src);
+      setHasError(false);
+    }
+
+    if (!src) {
+      return null;
+    }
+
+    // 크롤링된 og:image가 http인 사이트가 있다 - https 페이지에서 그대로 쓰면 Mixed
+    // Content 경고가 뜬다. 브라우저가 어차피 https로 자동 업그레이드해 로딩하므로 직접
+    // 치환해도 동작은 동일하고 경고만 없어진다.
+    const httpsSrc = src.replace(/^http:\/\//, 'https://');
+
+    // 이번 세션에 이미 2회 실패한 URL은 <img>를 아예 만들지 않는다 - 만들면 실패 응답은
+    // 캐시되지 않아 재마운트마다 진짜 요청이 나간다(failedImageCache.ts 상단 주석 참고)
+    const showFallback = hasError || hasImageFailed(httpsSrc);
+
+    return (
+      <div
+        ref={ref}
+        className={cn('relative aspect-video w-full overflow-hidden bg-muted', className)}
+        {...props}
+      >
+        {showFallback ? (
+          <div className="flex h-full w-full items-center justify-center">
+            <ImageOff className="h-7 w-7 text-muted-foreground" />
+          </div>
+        ) : (
+          <img
+            src={httpsSrc}
+            alt={alt}
+            className={cn('object-cover w-full h-full', imageClassName)}
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
+            // 우리 도메인이 Referer로 노출되면 핫링크 차단으로 403을 주는 CDN이 있다(네이버
+            // blogthumb 등). Referer를 아예 보내지 않으면 정상 응답한다.
+            referrerPolicy="no-referrer"
+            onError={() => {
+              recordImageFailure(httpsSrc);
+              // 캐시는 반응형이 아니다 - 지금 떠 있는 이 인스턴스를 폴백으로 바꾸려면
+              // state 갱신이 함께 필요하다(이 줄을 지우면 실패해도 화면이 안 바뀐다)
+              setHasError(true);
+            }}
+          />
+        )}
+      </div>
+    );
   }
+);
+LinkThumbnail.displayName = 'LinkThumbnail';
 
-  if (!src) {
-    return null;
-  }
-
-  // 크롤링된 og:image가 http인 사이트가 있다 - https 페이지에서 그대로 쓰면 Mixed
-  // Content 경고가 뜬다. 브라우저가 어차피 https로 자동 업그레이드해 로딩하므로 직접
-  // 치환해도 동작은 동일하고 경고만 없어진다.
-  const httpsSrc = src.replace(/^http:\/\//, 'https://');
-
-  // 이번 세션에 이미 2회 실패한 URL은 <img>를 아예 만들지 않는다 - 만들면 실패 응답은
-  // 캐시되지 않아 재마운트마다 진짜 요청이 나간다(failedImageCache.ts 상단 주석 참고)
-  const showFallback = hasError || hasImageFailed(httpsSrc);
-
-  return (
-    <div className="relative aspect-video w-full overflow-hidden bg-muted">
-      {showFallback ? (
-        <div className="flex h-full w-full items-center justify-center">
-          <ImageOff className="h-7 w-7 text-muted-foreground" />
-        </div>
-      ) : (
-        <img
-          src={httpsSrc}
-          alt={alt}
-          className={cn('object-cover w-full h-full', className)}
-          loading={priority ? 'eager' : 'lazy'}
-          fetchPriority={priority ? 'high' : 'auto'}
-          decoding="async"
-          // 우리 도메인이 Referer로 노출되면 핫링크 차단으로 403을 주는 CDN이 있다(네이버
-          // blogthumb 등). Referer를 아예 보내지 않으면 정상 응답한다.
-          referrerPolicy="no-referrer"
-          onError={() => {
-            recordImageFailure(httpsSrc);
-            // 캐시는 반응형이 아니다 - 지금 떠 있는 이 인스턴스를 폴백으로 바꾸려면
-            // state 갱신이 함께 필요하다(이 줄을 지우면 실패해도 화면이 안 바뀐다)
-            setHasError(true);
-          }}
-        />
-      )}
-    </div>
-  );
-}
+export { LinkThumbnail };

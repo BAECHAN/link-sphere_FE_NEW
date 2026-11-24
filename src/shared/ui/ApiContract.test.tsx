@@ -151,8 +151,6 @@ const ATOMS_OUTSIDE_CONTRACT: Record<string, string> = {
     'jsdom에는 스크롤 위치가 없어 Radix가 그리지 않는다(@radix-ui/react-select 2.4.1 dist/index.mjs:1019)',
   SelectScrollDownButton:
     'jsdom에는 스크롤 위치가 없어 Radix가 그리지 않는다(@radix-ui/react-select 2.4.1 dist/index.mjs:1054)',
-  LinkThumbnail:
-    'className이 맨 바깥 요소가 아니라 img로 간다. 맨 바깥 요소로 옮기고 img용 속성을 따로 받기로 했고(2026-11-23, docs/DESIGN-SYSTEM-PRINCIPLES.md §1.5) 별도 PR에서 고친다',
   Toaster:
     '맨 바깥 요소를 sonner가 그린다. 단위 테스트는 sonner를 toast만 남긴 가짜로 바꿔(src/test/setup.ts) 그릴 수도 없다',
 };
@@ -197,6 +195,8 @@ const ATOM_RECIPES: Record<string, RenderRecipe> = {
   },
   FeaturedIcon: { props: { icon: Info } },
   LabeledDivider: { props: { children: 'or' } },
+  // src가 없으면 아무것도 그리지 않는다
+  LinkThumbnail: { props: { src: 'https://example.com/thumb.png', alt: 'thumbnail' } },
   SelectTrigger: { wrap: (part) => <Select>{part}</Select> },
   SelectContent: {
     wrap: (part) => (
