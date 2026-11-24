@@ -1,0 +1,118 @@
+name: Manual Check
+
+# 사람이 직접 해 봐야 하는 확인(라벨 manual-check가 붙은 "확인 이슈")이 "확인했다"는 말만으로 닫히지 않게 한다.
+# 단계마다 판정과 본 것이 댓글로 적혀 있는지, 적은 빌드가 확인할 변경을 포함하는지만 본다. 적은 내용이
+# 사실인지는 판단하지 않는다. 판정 규칙은 scripts/lib/manual-check.js, 배경은 docs/MANUAL-CHECK.md.
+#
+# issues·issue_comment 이벤트는 기본 브랜치에 있는 이 파일로만 돈다. PR 브랜치에서 고친 내용은 병합 뒤에야
+# 적용되므로 동작 확인은 병합 뒤 시험용 이슈로 한다(docs/MANUAL-CHECK.md §9).
+on:
+  issues:
+    types: [opened, edited, closed, reopened, labeled, unlabeled]
+  issue_comment:
+    types: [created, edited, deleted]
+
+# 같은 이슈의 실행은 차례로 돈다(상태 댓글을 둘이 동시에 만들지 않게). 기본값은 기다리는 실행을 하나만 두고
+# 새 실행이 오면 앞서 기다리던 실행을 취소한다. 이슈를 닫는 것은 댓글 이벤트로 온 실행뿐이라 그 실행이 취소되면
+# 닫히지 않으므로 queue: max로 기다리는 실행을 모두 차례로 돌린다. 실행마다 이벤트에 실려 온 내용이 아니라
+# 그 시점의 이슈·댓글을 API로 다시 받아 판정한다.
+concurrency:
+  group: manual-check-${{ github.event.issue.number }}
+  cancel-in-progress: false
+  queue: max
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    # issue_comment는 PR 댓글에도 뜬다. 라벨이 없는 이슈와 PR은 건너뛴다(건너뛴 실행 기록은 Actions 목록에 남는다).
+    # 라벨을 떼는 이벤트는 그 시점에 이미 라벨이 없어 따로 받는다.
+    if: >-
+      !github.event.issue.pull_request &&
+      (contains(github.event.issue.labels.*.name, 'manual-check') ||
+      (github.event.action == 'unlabeled' && github.event.label.name == 'manual-check'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      status: ${{ steps.evaluate.outputs.status }}
+      reopen: ${{ steps.evaluate.outputs.reopen }}
+      close: ${{ steps.evaluate.outputs.close }}
+      note_unlabeled: ${{ steps.evaluate.outputs.note_unlabeled }}
+      update_status: ${{ steps.evaluate.outputs.update_status }}
+      comment: ${{ steps.evaluate.outputs.comment }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # 답에 적힌 빌드가 main에 있고 확인할 빌드를 포함하는지 git 기록으로 본다
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: '.nvmrc'
+
+      - name: 이슈와 댓글 받기
+        # 본문·댓글은 누구나 쓸 수 있는 입력이라 run 안에 ${{ }}로 넣지 않고 API로 받아 파일로 읽는다
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER" > "$RUNNER_TEMP/issue.json"
+          gh api "repos/$GITHUB_REPOSITORY/issues/$ISSUE_NUMBER/comments?per_page=100" --paginate \
+            --jq '.[] | {body, url: .html_url, authorAssociation: .author_association, userType: .user.type}' \
+            > "$RUNNER_TEMP/comments.ndjson"
+
+      - name: 판정
+        id: evaluate
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          REMOVED_LABEL: ${{ github.event.label.name }}
+        run: node scripts/check-manual-issue.js --evaluate "$RUNNER_TEMP/issue.json" "$RUNNER_TEMP/comments.ndjson"
+
+  # 이슈 쓰기 권한은 판정 job과 분리한다(uptime-check.yml과 같은 형태). 이 job이 GITHUB_TOKEN으로 단 댓글과
+  # 다시 열기·닫기는 새 워크플로 실행을 만들지 않아 반복해서 돌지 않는다.
+  apply:
+    needs: evaluate
+    if: needs.evaluate.outputs.update_status == 'true' || needs.evaluate.outputs.note_unlabeled == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # checkout을 안 해서 gh CLI가 git remote로 레포를 추론할 수 없다 - 명시한다.
+      GH_REPO: ${{ github.repository }}
+      ISSUE_NUMBER: ${{ github.event.issue.number }}
+      COMMENT: ${{ needs.evaluate.outputs.comment }}
+    steps:
+      - name: 상태 댓글 갱신 (없으면 새로 단다)
+        # 이슈마다 하나다 - 맨 앞 표식 주석으로 이전 댓글을 찾는다(ci.yml "PR 영향 그래프"와 같은 방식)
+        if: needs.evaluate.outputs.update_status == 'true'
+        run: |
+          marker='<!-- manual-check-status -->'
+
+          comment_id=$(gh api "repos/$GH_REPO/issues/$ISSUE_NUMBER/comments?per_page=100" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | startswith(\"$marker\"))) | .id" \
+            | head -n 1)
+
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$comment_id" -f body="$COMMENT" > /dev/null
+          else
+            gh api -X POST "repos/$GH_REPO/issues/$ISSUE_NUMBER/comments" -f body="$COMMENT" > /dev/null
+          fi
+
+      - name: 라벨이 떼어진 사실 남기기
+        if: needs.evaluate.outputs.note_unlabeled == 'true'
+        run: gh api -X POST "repos/$GH_REPO/issues/$ISSUE_NUMBER/comments" -f body="$COMMENT" > /dev/null
+
+      - name: 모두 통과가 아닌 채 닫힌 이슈 다시 열기
+        if: needs.evaluate.outputs.reopen == 'true'
+        run: gh issue reopen "$ISSUE_NUMBER"
+
+      - name: 모두 통과한 이슈 닫기
+        if: needs.evaluate.outputs.close == 'true'
+        run: gh issue close "$ISSUE_NUMBER" --reason completed

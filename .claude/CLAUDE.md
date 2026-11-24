@@ -57,7 +57,8 @@
   삭제·개명을 막는다. 블록 형식은 `plan-doc-structure` skill.
 - **PR 본문 `## 의도 대비 결과`** — plan mode를 거치지 않은 작업은 원래 요청과 의도를 항목별로 적고, 한 일·결과와 증거·판정
   ("됐음"/"이탈(이유)"/"아직 모름(언제 어떻게 확인하나)")을 단다. 리뷰나 후속 요청으로 바뀌었으면 병합 전에 본문을 PR 전체
-  기준으로 다시 쓰고, 병합 뒤에 확인할 약속은 GitHub 이슈로 열어 링크한다. `gh pr create --body-file`로 열기 전에
+  기준으로 다시 쓰고, 병합 뒤에 확인할 약속은 GitHub 이슈로 열어 링크한다. 그 약속이 사람이 직접 해 봐야 하는 확인이면
+  확인 이슈 형식으로 연다(아래 Critical Rules, `docs/MANUAL-CHECK.md`). `gh pr create --body-file`로 열기 전에
   `pnpm check:pr-body <본문 파일>`을 돌린다(검사 규칙·근거: `docs/PR-BODY-CHECK.md`).
 - **다이어그램 안전망** — 사용자 범위 훅 `~/project/claude-base/hooks/plan-diagram-reminder.sh`가 경로에 `/plans/`가 든 `.md`를
   쓰거나 고친 직후, 150줄(`PLAN_DIAGRAM_MIN_LINES`로 조정) 이상인데 Mermaid 펜스가 없으면 알린다. 흐름이 없는 계획이면
@@ -78,6 +79,11 @@
   [`docs/DEPLOY.md` 12장](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/DEPLOY.md#12-운영-db-임시-조회-전용-읽기-계정-supabase--적용-완료-2026-10-20)
 - **Never** 키처럼 보이는 값을 묻지 않고 파일에 넣는다(공통 지침 "안전·권한") → 이 레포에서는 `.env.example`에 빈 값만 두고,
   값은 `gh secret set` 프롬프트나 파일에서 stdin으로 넘겨 대화에 노출하지 않는다(사고 경위: `docs/FCM-PUSH-NOTIFICATION.md` 시행착오)
+- **Never** 확인 이슈(라벨 `manual-check`가 붙은 GitHub 이슈)에 답 댓글을 쓰거나, 닫거나, 본문·라벨을 고치지 않는다 → 답은
+  확인한 사람이 직접 적고, 닫는 것은 검사 워크플로(`manual-check.yml`)가 한다. 사람이 직접 해 봐야 하는 확인(실기기·화면
+  키보드·체감)이 남으면 본문을 `pnpm check:manual-issue <본문 파일>`로 확인한 뒤 `gh issue create --label manual-check`로
+  확인 이슈를 연다. 대화에서 들은 "확인했어"는 증거로 치지 않고, 이슈에 단계별로 적어 달라고 안내한다. 실패한 단계의
+  분석·수정은 새 이슈·PR에서 `Refs #번호`로 건다(형식·판정 규칙: `docs/MANUAL-CHECK.md`, 2026-11-24 사용자 결정)
 - **Never** native `confirm()` → 항상 `useAlertDialog` + `openConfirm` 사용
 - **Never** API 레이어 건너뛰기 → API 호출은 반드시 `.api.ts` 에서만. transport(`shared/api/client.ts`)를 빼면 `.api.ts` 밖의
   `fetch`는 정적 파일을 읽는 `version.util.ts`(`/index.html`)·`build-info.util.ts`(`/version.json`) 2곳뿐이다
