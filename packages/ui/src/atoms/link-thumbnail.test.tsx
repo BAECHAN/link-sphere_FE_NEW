@@ -1,3 +1,4 @@
+import { createRef } from 'react';
 import { describe, it, expect } from 'vitest';
 import { fireEvent, render } from '@testing-library/react';
 import { LinkThumbnail } from '@baechan/ui/atoms/link-thumbnail';
@@ -118,5 +119,59 @@ describe('LinkThumbnail', () => {
 
     expect(container.querySelector('img')).not.toBeInTheDocument();
     expect(container.querySelector('svg')).toBeInTheDocument();
+  });
+
+  // 공용 UI 부품의 API 규칙: ref·className·나머지 속성은 맨 바깥 요소 하나로 간다
+  // (docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4). 이미지에 거는 연출은 imageClassName으로 따로 받는다.
+  it('className은 맨 바깥 요소에만 붙는다', () => {
+    const { container } = render(
+      <LinkThumbnail src="https://example.com/thumb.png" alt="제목" className="outer-class" />
+    );
+
+    expect([...container.querySelectorAll('.outer-class')]).toEqual([container.firstElementChild]);
+  });
+
+  it('imageClassName은 이미지 요소에만 붙는다', () => {
+    const { container, getByRole } = render(
+      <LinkThumbnail src="https://example.com/thumb.png" alt="제목" imageClassName="image-class" />
+    );
+
+    expect([...container.querySelectorAll('.image-class')]).toEqual([
+      getByRole('img', { name: '제목' }),
+    ]);
+  });
+
+  it('ref와 나머지 속성은 맨 바깥 요소에 닿는다', () => {
+    const ref = createRef<HTMLDivElement>();
+
+    const { container } = render(
+      <LinkThumbnail
+        ref={ref}
+        src="https://example.com/thumb.png"
+        alt="제목"
+        data-testid="thumbnail"
+      />
+    );
+
+    expect(container.firstElementChild).not.toBeNull();
+    expect(ref.current).toBe(container.firstElementChild);
+    expect(container.firstElementChild).toHaveAttribute('data-testid', 'thumbnail');
+  });
+
+  it('이미지 로드에 실패해 안내 아이콘으로 바뀌어도 className은 맨 바깥 요소에 남는다', () => {
+    const { container, getByRole } = render(
+      <LinkThumbnail
+        src="https://example.com/broken-with-class.png"
+        alt="제목"
+        className="outer-class"
+        imageClassName="image-class"
+      />
+    );
+
+    fireEvent.error(getByRole('img', { name: '제목' }));
+
+    expect([...container.querySelectorAll('.outer-class')]).toEqual([container.firstElementChild]);
+    // 이미지 요소가 없으면 imageClassName은 어디에도 쓰이지 않는다(안내 아이콘에 붙이지 않는다)
+    expect(container.querySelector('.image-class')).not.toBeInTheDocument();
   });
 });

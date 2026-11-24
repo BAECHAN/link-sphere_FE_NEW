@@ -8,6 +8,8 @@ const meta = {
   argTypes: {
     src: { control: 'text' },
     alt: { control: 'text' },
+    className: { control: 'text' },
+    imageClassName: { control: 'text' },
     priority: { control: 'boolean' },
   },
   decorators: [
@@ -56,4 +58,21 @@ export const Priority: Story = {
     alt: '우선순위 로딩 이미지',
     priority: true,
   },
+};
+
+// 이미지에만 거는 연출은 imageClassName으로 넘긴다(className은 맨 바깥 요소로 간다).
+// 감싼 요소(group)에 마우스를 올리면 이미지만 커지고, 넘친 부분은 맨 바깥 요소가 잘라 자리 크기는 그대로다
+export const ImageClassName: Story = {
+  args: {
+    src: 'https://picsum.photos/seed/link-sphere-hover/800/450',
+    alt: '마우스를 올리면 커지는 이미지',
+    imageClassName: 'group-hover:scale-105 transition-transform duration-300',
+  },
+  decorators: [
+    (Story) => (
+      <div className="group">
+        <Story />
+      </div>
+    ),
+  ],
 };
