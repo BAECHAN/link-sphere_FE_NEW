@@ -1,3 +1,8 @@
+### 2026-11-24 (BE)
+- 로그인 필터 예외 처리 강화 및 인증 에러 응답 표준화
+로그:
+- fix(post): 토큰 없이 보낸 로그인 전용 filter를 401 NOT_LOGGED_IN으로 거절 ([#227](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/227))
+
 ### 2026-11-24 (FE)
 - 공용 UI 패키지 명칭을 `@baechan/ui`로 변경하여 패키지 구조 최적화 및 관리 효율성 개선 ([#676](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/676))
 
