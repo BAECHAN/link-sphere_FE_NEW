@@ -16,6 +16,10 @@ dayjs.tz.setDefault('Asia/Seoul');
 
 type DateInput = string | number | Date | Dayjs | null | undefined;
 
+const MS_PER_MINUTE = 60 * 1000;
+const MS_PER_HOUR = 60 * MS_PER_MINUTE;
+const MS_PER_DAY = 24 * MS_PER_HOUR;
+
 export class DateUtil {
   /**
    * dayjs 객체로 변환
@@ -28,6 +32,18 @@ export class DateUtil {
       return dayjs().tz();
     }
     return dayjs(date).tz();
+  }
+
+  /**
+   * epoch 밀리초로 변환 - 시간대 변환(.tz())을 거치지 않는다. 두 시각의 차이만 볼 때 쓴다
+   * @returns 유효하지 않으면 NaN
+   */
+  private static toEpochMs(date: DateInput): number {
+    if (date === undefined) {
+      return dayjs().valueOf();
+    }
+
+    return dayjs(date).valueOf();
   }
 
   /**
@@ -219,16 +235,20 @@ export class DateUtil {
 
   /**
    * 상대 시간 포맷 (간단 버전)
+   * @param baseTime 기준 시각. 생략하면 부른 순간의 시각이다. 화면에 그릴 때는 RelativeTime이 넘겨 주는
+   *   값을 그대로 넘긴다 - 렌더가 시계를 직접 읽지 않아야 시간이 지났을 때 다시 그릴 수 있다
    * @example '방금 전', '3분 전', '2시간 전', '3일 전', '2025년 1월 20일'
    */
-  static formatRelativeShort(date: DateInput): string {
-    const d = this.toDayjs(date);
-    if (!d.isValid()) {
+  static formatRelativeShort(date: DateInput, baseTime?: DateInput): string {
+    // 차이는 시간대와 상관없어 .tz()를 거치지 않는다. 화면의 글자마다 1분에 한 번 불리는데, 변환 두 번이
+    // 한 번 부를 때 약 60µs라 글자 201개면 약 12ms였다(2026-11-24 Node 측정, 변환 없이는 0.1ms 미만)
+    const dateMs = this.toEpochMs(date);
+    if (Number.isNaN(dateMs)) {
       return '';
     }
 
-    const now = dayjs().tz();
-    const diffMinutes = now.diff(d, 'minute');
+    const elapsedMs = this.toEpochMs(baseTime) - dateMs;
+    const diffMinutes = Math.trunc(elapsedMs / MS_PER_MINUTE);
 
     if (diffMinutes < 1) {
       return '방금 전';
@@ -238,12 +258,12 @@ export class DateUtil {
       return `${diffMinutes}분 전`;
     }
 
-    const diffHours = now.diff(d, 'hour');
+    const diffHours = Math.trunc(elapsedMs / MS_PER_HOUR);
     if (diffHours < 24) {
       return `${diffHours}시간 전`;
     }
 
-    const diffDays = now.diff(d, 'day');
+    const diffDays = Math.trunc(elapsedMs / MS_PER_DAY);
     if (diffDays < 7) {
       return `${diffDays}일 전`;
     }

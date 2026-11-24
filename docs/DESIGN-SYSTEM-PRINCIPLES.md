@@ -1,7 +1,7 @@
 # 디자인 시스템 원칙과 부품 분류
 
 > **문서 성격**: 레퍼런스 — 공용 UI(`src/shared/ui`, 일부는 저장소 안 패키지 `packages/ui`)를 패키지로 꺼낼 때 누구를 위해 어디까지 꺼내는지의 원칙과, 지금 있는 부품
-> 57개가 그 기준에서 어디에 속하는지를 모았다. [`DESIGN-SYSTEM-ROADMAP.md`](./DESIGN-SYSTEM-ROADMAP.md) 0단계의 결과에 1단계(앱
+> 59개가 그 기준에서 어디에 속하는지를 모았다. [`DESIGN-SYSTEM-ROADMAP.md`](./DESIGN-SYSTEM-ROADMAP.md) 0단계의 결과에 1단계(앱
 > 결합 분리)에서 정한 것을 더했다. 부품이 지금 어떻게 동작하는지는 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md)가 정본이다.
 >
 > **대상 독자**: 로드맵의 다음 단계를 계획할 개발자와 AI 세션, 공용 UI에 부품을 더하거나 옮기는 개발자.
@@ -424,7 +424,7 @@ Badge.displayName = 'Badge';
 | 대상             | 보는 것                                                                                                                                                               | 못 보는 것                                                                                                                                             |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | atoms            | 폴더의 파일을 훑어 내보낸 부품 76개 가운데 60개를 그리고 `ref`·`className`·`data-*` 속성이 같은 요소에 닿는지 본다. 표에 적지 않은 새 부품도 단독으로 그려 검사한다   | 그 요소가 맨 바깥 요소인지(셋이 같은 요소인지만 본다). 계약 밖으로 뺀 16개. `data-*`가 아닌 속성이 중간에서 걸러지는지. 타입이 `ref`를 받는다고 적는지 |
-| elements·layouts | 내보낸 부품 35개가 모두 표에 있는지, 표에 "대상 요소로 간다"고 적은 칸(부품 21개)이 실제로 닿는지, 버튼을 감싼 4개가 스스로 정한 속성을 넘겨받은 값으로 바꾸지 않는지 | "받지 않는다"·"다른 요소로 간다"고 적은 칸 — 지금 동작을 적어 둔 것이고 고정하지 않는다. 타입에서 뺀 속성을 넘기면 타입 오류가 나는지                  |
+| elements·layouts | 내보낸 부품 36개가 모두 표에 있는지, 표에 "대상 요소로 간다"고 적은 칸(부품 22개)이 실제로 닿는지, 버튼을 감싼 4개가 스스로 정한 속성을 넘겨받은 값으로 바꾸지 않는지 | "받지 않는다"·"다른 요소로 간다"고 적은 칸 — 지금 동작을 적어 둔 것이고 고정하지 않는다. 타입에서 뺀 속성을 넘기면 타입 오류가 나는지                  |
 
 계약 밖으로 뺀 atoms 16개는 이렇게 나뉜다. 부품별 이유와 근거(설치본 `파일:줄`)는 테스트 파일의 `ATOMS_OUTSIDE_CONTRACT`에
 있다.
@@ -438,7 +438,7 @@ Badge.displayName = 'Badge';
   [§1.5 "미뤄 둔 항목의 답"](#미뤄-둔-항목의-답)) 별도 PR에서 고친다.
 - **`Toaster`** — 맨 바깥 요소를 sonner가 그린다.
 
-조립 부품 35개의 표는 다섯으로 나뉜다. 셋 다 대상 요소로 가는 저수준 elements 8개, `className`만 맨 바깥 요소로 가는 11개,
+조립 부품 36개의 표는 다섯으로 나뉜다. 셋 다 대상 요소로 가는 저수준 elements 8개, `className`만 맨 바깥 요소로 가는 12개,
 `className`은 맨 바깥 요소로 가고 나머지 속성은 안쪽 입력으로 가는 `FormInput`·`FormInputPassword`, `className`이 열렸을 때만
 있는 메뉴로 가는 `KebabMenu`, 셋 다 받지 않는 13개다.
 
@@ -775,22 +775,25 @@ flowchart TD
 3. 스토리의 접근성 검사를 통과한다(`.storybook/preview.tsx:42`의 `a11y.test: 'error'`).
 4. 부품 문서가 있다(4단계의 산출물).
 
-**지금 57개에는 상태를 붙이지 않는다.** 지금 부품은 운영에서 쓰이고 있어 "개념 증명·작업 중"이 아니고, 넷째 조건은 4단계에야
+**지금 59개에는 상태를 붙이지 않는다.** 지금 부품은 운영에서 쓰이고 있어 "개념 증명·작업 중"이 아니고, 넷째 조건은 4단계에야
 채울 수 있어 `Ready`도 아니다. 패키지에 들어가는 3단계에서 붙이고, 어디에 표시할지(Storybook 태그, 문서 머리)도 그때 정한다.
 
 ## 5. 부품 분류표
 
-| 분류    | 뜻                                                                                     | 개수   |
-| ------- | -------------------------------------------------------------------------------------- | ------ |
-| 범용    | 패키지 대상. 0단계의 39개, 1단계 첫 PR에서 고친 12개, 둘째 PR에서 나눈 `ImageViewer`다 | 52     |
-| 앱 전용 | 앱에 남긴다                                                                            | 5      |
-| 보류    | 지금은 없다                                                                            | 0      |
-| **합**  |                                                                                        | **57** |
+| 분류    | 뜻                                                                                                         | 개수   |
+| ------- | ---------------------------------------------------------------------------------------------------------- | ------ |
+| 범용    | 패키지 대상. 0단계의 39개, 1단계 첫 PR에서 고친 12개, 둘째 PR에서 나눈 `ImageViewer`, 그 뒤에 늘어난 2개다 | 54     |
+| 앱 전용 | 앱에 남긴다                                                                                                | 5      |
+| 보류    | 지금은 없다                                                                                                | 0      |
+| **합**  |                                                                                                            | **59** |
 
 - 0단계에는 55개였고 "범용(1단계 수정)"이 12개 있었다. 1단계 첫 PR에서 12개를 모두 고쳐 범용이 됐고("1단계에서 할 일" 칸이
   "끝"인 줄), 라우터와 잇는 앱 전용 부품 `RouteAlertDialogs`가 하나 늘었다.
 - 둘째 PR에서 보류였던 이미지 확대 창을 그리는 부품 `ImageViewer`(범용)와 앱 배선 `GlobalImageViewer`(앱 전용)로 나눠 하나가
   더 늘었다.
+- 그 뒤 범용 부품이 둘 늘었다. 2026-11-20에 이미지 첨부 부품 `ImageAttachmentField`를 `ImageAttachmentButton`과
+  `ImageAttachmentPreviews`로 나눴고(#664 — 그때 이 표의 합계는 고치지 않아 2026-11-24에 함께 맞췄다), 2026-11-24에 시간이
+  지나면 바뀌는 글자 `RelativeTime`을 더했다.
 - "묶인 것" 칸에는 `cn()`(`packages/ui/src/lib/tailwind/utils.ts`, 43개 파일이 쓴다)과 다른 부품을 적지 않았다.
 - "문구"는 범용 부품이면 `packages/ui/src/texts/ui-texts.ts`의 `UiTexts` 키이고([§1.2](#12-부품이-스스로-보여-주는-글자)), 앱
   전용 부품이면 `src/shared/config/texts.ts`의 `TEXTS` 키다.
@@ -825,7 +828,7 @@ flowchart TD
 | `Textarea`       | `src/shared/ui/atoms/textarea.tsx`         | 범용 | —                                                                                                                    | 없음                                                                                  |
 | `Tooltip`        | `packages/ui/src/atoms/tooltip.tsx`        | 범용 | —                                                                                                                    | 없음                                                                                  |
 
-### 5.2 elements (33개)
+### 5.2 elements (34개)
 
 | 부품                      | 파일                                                                | 분류    | 묶인 것                                                                                                                                                                                       | 1단계에서 할 일                                                                       |
 | ------------------------- | ------------------------------------------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
@@ -849,6 +852,7 @@ flowchart TD
 | `LoadMoreError`           | `src/shared/ui/elements/LoadMoreError.tsx`                          | 범용    | 문구 2개(`loadMoreError.failed`, `loadMoreError.retry`)                                                                                                                                       | 끝 — 문구를 `useUiTexts()`로 읽는다                                                   |
 | `MarkdownContent`         | `src/shared/ui/elements/MarkdownContent.tsx`                        | 앱 전용 | Supabase 이미지 주소 변환(`supabaseImage`), 라우터 이동(`NavigationService`), 뒤로가기 오버레이 등록부(`back-closable-overlay`), 코드 블록 분리(`codeBlock`), 이미지 확대 창 스토어, 문구 3개 | 앱에 남긴다                                                                           |
 | `PasswordInput`           | `src/shared/ui/elements/PasswordInput.tsx`                          | 범용    | 문구 2개(`passwordInput.show`, `passwordInput.hide`)                                                                                                                                          | 끝 — 라벨을 `useUiTexts()`로 읽는다                                                   |
+| `RelativeTime`            | `src/shared/ui/elements/RelativeTime.tsx`                           | 범용    | —. 글자는 쓰는 쪽이 `format` 함수로 넘긴다. 외부 패키지 `dayjs`로 지금 시각을 읽는다                                                                                                          | 없음(2026-11-24에 더했다)                                                             |
 | `SearchInput`             | `src/shared/ui/elements/SearchInput.tsx`                            | 범용    | 보조: `useKeydown`, `useMergedRef`                                                                                                                                                            | 보조 모듈과 함께 옮긴다                                                               |
 | `ToggleButton`            | `src/shared/ui/elements/ToggleButton.tsx`                           | 범용    | 보조: `useClickGuard`                                                                                                                                                                         | 보조 모듈과 함께 옮긴다                                                               |
 | `TooltipWrapper`          | `packages/ui/src/elements/TooltipWrapper.tsx`                       | 범용    | 보조: 토스트 래퍼 `toast`. 터치에서는 툴팁 대신 토스트로 이유를 알린다 — 받는 쪽이 패키지의 토스트(`Toaster`)를 함께 장착해야 보인다                                                          | 옮겼다. 범용으로 확정했다(§1.5)                                                       |
@@ -870,7 +874,7 @@ flowchart TD
 | `AuthLayout`  | `src/shared/ui/layouts/AuthLayout.tsx`  | 범용 | 문구 2개(`authLayout.root`, `authLayout.content`)                                                                 | 끝 — 라벨을 `useUiTexts()`로 읽는다                                        |
 | `ErrorLayout` | `src/shared/ui/layouts/ErrorLayout.tsx` | 범용 | 문구 3개(`errorLayout.root`, `errorLayout.content`, `errorLayout.detail`). 홈 버튼은 `homeAction` 속성으로 받는다 | 끝 — 라벨은 `useUiTexts()`로 읽고, 홈 버튼(문구와 링크)은 쓰는 쪽이 넘긴다 |
 
-### 5.4 부품 폴더 안의 스토어 (2개, 57개에 들지 않는다)
+### 5.4 부품 폴더 안의 스토어 (2개, 59개에 들지 않는다)
 
 | 스토어                | 파일                                                              | 분류    | 묶인 것                                            | 1단계에서 할 일                    |
 | --------------------- | ----------------------------------------------------------------- | ------- | -------------------------------------------------- | ---------------------------------- |
@@ -914,7 +918,8 @@ flowchart TD
 
 1. 부품 수(2026-11-19):
    `find src/shared/ui -name "*.tsx" -not -name "*.stories.tsx" -not -name "*.test.tsx"` → 58. 부품 57개(atoms 23, elements 32,
-   layouts 2)와 문구 Provider 1개(`texts/UiTextsProvider.tsx`)다.
+   layouts 2)와 문구 Provider 1개(`texts/UiTextsProvider.tsx`)다. 2026-11-24에 `packages/ui/src`를 함께 넣어 다시 세면 60(53 + 7)
+   이고, 부품 59개(atoms 23, elements 34, layouts 2)와 문구 Provider 1개다.
 2. 앱 문구·라우터·서비스 기능을 직접 가져다 쓰는 파일(2026-11-19):
    `grep -rlE "from '@/shared/config/texts'|from 'react-router-dom'|useAuthStore|NavigationService|ROUTES_PATHS|useBackClosableOverlay" src/shared/ui`에서
    스토리·테스트 파일을 뺀 수 → 6. 앱 전용 부품 5개와 스토어 1개이고, 모두 경계 린트의 예외 목록에 있다. 0단계에는 17이었다.

@@ -329,6 +329,14 @@
 
 ### Fixed
 
+- `shared` 열어 둔 탭에서 글·댓글의 작성 시각이 "방금 전"에 멈춰 있던 문제
+  <details><summary>배경·구현</summary>
+
+  방금 올린 글의 상세를 열어 둔 탭에 몇 시간 뒤 돌아와도 카드가 "방금 전"이었고, 새로고침해야 "18시간 전"이 됐다. 작성 시각 글자를 렌더하는 순간의 시계로 한 번만 계산했고, 그 뒤로 다시 그리게 하는 계기가 앱에 없었다. 글 카드는 `memo`라, 탭으로 돌아와 목록을 다시 받아도 내용이 같으면 다시 그리지 않는다. 이제 글 카드(피드·상세)·댓글·내 댓글 카드의 작성 시각은 공용 부품 `RelativeTime`이 그린다. 화면의 모든 글자가 타이머 하나(60초)를 함께 쓰고, 탭이 숨겨지면 타이머를 멈추고, 탭이 다시 보이거나 창에 포커스가 돌아오거나 `pageshow`가 오면 기다리지 않고 바로 다시 계산한다. 다시 그리는 것은 그 글자뿐이고 카드는 다시 그리지 않는다(테스트로 고정). 주기가 60초라 보고 있는 동안에는 최대 1분 늦을 수 있다. 부품이 "지금"을 state로 들고 넘기도록 `DateUtil.formatRelativeShort`에 선택 인자(기준 시각)를 더했다 — 넘기지 않으면 전과 같다. 이 함수가 글자마다 1분에 한 번 불리게 되면서, 부를 때마다 하던 시간대 변환 두 번이 눈에 띄는 비용이 됐다(댓글 200개가 모두 1시간 안에 쓰인 상세, 운영 빌드, CPU 4배 감속에서 틱 한 번 58.0~68.9ms). 분·시간·일 차이를 시간대 변환 없이 계산하게 바꿔 같은 조건에서 5.9~26.2ms(6번 중 5번이 16.7ms 초과, 중앙값 20.4ms), 댓글이 며칠 전인 조건에서 3.5~11.5ms가 됐다. 글자는 그대로다(경계값 테스트로 고정). JSX 안에서 `DateUtil.formatRelative*`를 바로 부르면 ESLint가 막는다(변수에 담아 그리거나 깊이 감싼 형태는 못 잡는다). 선례는 GitHub `relative-time-element`(공유 타이머)와 Mastodon `RelativeTimestamp`이고, 숨겨진 동안 멈추는 것과 창 포커스·`pageshow`를 듣는 것은 이 앱의 판단이다. 사람이 손으로 탭·창을 바꾸는 경우와 모바일 기기는 재지 못했다. 계획은 [`docs/plans/2026-11-24-relative-time-refresh.md`](docs/plans/2026-11-24-relative-time-refresh.md).
+  (`RelativeTime.tsx`(신규)·`.test.tsx`·`.stories.tsx`, `date.util.ts`, `PostCard.tsx`, `CommentItem.tsx`, `MyCommentCard.tsx`, `ApiContract.test.tsx`, `eslint.config.js`, `docs/DESIGN-SYSTEM-PRINCIPLES.md`, [PR #680](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/680))
+
+  </details>
+
 - `infra` 공개 Storybook 배포가 올린 산출물을 못 찾아 실패하던 문제
   <details><summary>배경·구현</summary>
 
