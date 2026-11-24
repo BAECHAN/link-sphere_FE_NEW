@@ -14,6 +14,7 @@ import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { TEXTS } from '@/shared/config/texts';
 import { ActionButton } from '@/shared/ui/elements/ActionButton';
 import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
+import { RelativeTime } from '@/shared/ui/elements/RelativeTime';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { MarkdownContent } from '@/shared/ui/elements/MarkdownContent';
@@ -129,9 +130,11 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
               {TEXTS.comment.item.authorBadge}
             </Badge>
           )}
-          <span className="text-xs text-muted-foreground shrink-0">
-            {DateUtil.formatRelativeShort(comment.createdAt)}
-          </span>
+          <RelativeTime
+            date={comment.createdAt}
+            format={(date, now) => DateUtil.formatRelativeShort(date, now)}
+            className="text-xs text-muted-foreground shrink-0"
+          />
           {isOwner && canShowActionBar && (
             // 수정·삭제를 동작 줄에 두면 좁은 폰(381px 미만)에서 줄이 화면 밖으로 밀린다(docs/COMMENT.md §5 "내 댓글 메뉴").
             // 음수 마진으로 터치 영역(44px)은 두고 이름 줄 높이(20px)는 밀어 올리지 않는다 - PostCard.tsx의 ⋮와 같다

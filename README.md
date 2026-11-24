@@ -234,7 +234,7 @@ features/<도메인>/<액션>/
 - [`docs/FE-ARCHITECTURE.md`](docs/FE-ARCHITECTURE.md) — FSD 변형 구조(정식 FSD와 다른 점 포함), 3-Layer API·Feature Hook 등 재사용 패턴, 네이밍 컨벤션
 - [`docs/SYSTEM-ARCHITECTURE.md`](docs/SYSTEM-ARCHITECTURE.md) — 시스템 컨텍스트·배포 파이프라인·FE/BE 구조 (Mermaid)
 - [`docs/DESIGN-SYSTEM-ROADMAP.md`](docs/DESIGN-SYSTEM-ROADMAP.md) — 공용 UI를 다른 프로젝트에서도 쓰는 디자인 시스템으로 키우는 로드맵: 준비 요소 11개 영역, 현재와의 차이, 단계와 상태
-- [`docs/DESIGN-SYSTEM-PRINCIPLES.md`](docs/DESIGN-SYSTEM-PRINCIPLES.md) — 디자인 시스템의 사용 대상, 범용과 앱 전용 부품의 경계 기준, 상태 단계, 공용 UI 부품 55개 분류표
+- [`docs/DESIGN-SYSTEM-PRINCIPLES.md`](docs/DESIGN-SYSTEM-PRINCIPLES.md) — 디자인 시스템의 사용 대상, 범용과 앱 전용 부품의 경계 기준, 상태 단계, 공용 UI 부품 59개 분류표
 - [`docs/SERVICE-GLOSSARY.md`](docs/SERVICE-GLOSSARY.md) — 프로젝트가 쓰는 클라우드·외부 서비스 용어 사전(EventBridge, Function URL 등)
 - [`docs/VERSION-COMPATIBILITY.md`](docs/VERSION-COMPATIBILITY.md) — BE·FE 버전 호환 매트릭스
 - [`docs/HISTORY.md`](docs/HISTORY.md) — 커밋 기반 변경 이력 (자동 생성, 직접 편집 금지)

@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { act, screen } from '@testing-library/react';
+import dayjs from 'dayjs';
 import { renderWithProviders } from '@/test/utils';
 import { TEXTS } from '@/shared/config/texts';
 import type { MyComment } from '@/entities/comment/model/comment.schema';
@@ -52,5 +53,56 @@ describe('MyCommentCard', () => {
 
     expect(screen.getByText('텍스트만 있는 댓글')).toBeInTheDocument();
     expect(screen.queryByText(/첨부 이미지/)).not.toBeInTheDocument();
+  });
+});
+
+function changeVisibility(visibilityState: DocumentVisibilityState) {
+  vi.spyOn(document, 'visibilityState', 'get').mockReturnValue(visibilityState);
+  document.dispatchEvent(new Event('visibilitychange'));
+}
+
+// 탭을 열어 둔 채 시간이 지나면 작성 시각 글자가 새로고침 없이 따라 바뀐다(RelativeTime.tsx)
+describe('MyCommentCard 작성 시각', () => {
+  const WRITTEN_AT = buildComment('').createdAt;
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(dayjs(WRITTEN_AT).valueOf());
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
+
+  it('열어 둔 채 5분이 지나면 "방금 전"이 "5분 전"으로 바뀐다', () => {
+    renderWithProviders(<MyCommentCard comment={buildComment('시간이 지나는 댓글')} />);
+
+    expect(screen.getByText('방금 전')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+
+    expect(screen.getByText('5분 전')).toBeInTheDocument();
+  });
+
+  it('탭이 숨겨진 채 18시간이 지난 뒤 다시 보이면 바로 "18시간 전"으로 바뀐다', () => {
+    renderWithProviders(<MyCommentCard comment={buildComment('오래 열어 둔 댓글')} />);
+
+    expect(screen.getByText('방금 전')).toBeInTheDocument();
+
+    act(() => {
+      changeVisibility('hidden');
+    });
+
+    // 타이머는 돌리지 않고 시계만 옮긴다 - 숨겨진 동안에는 다시 그리지 않는다
+    vi.setSystemTime(dayjs(WRITTEN_AT).add(18, 'hour').valueOf());
+
+    act(() => {
+      changeVisibility('visible');
+    });
+
+    expect(screen.getByText('18시간 전')).toBeInTheDocument();
   });
 });

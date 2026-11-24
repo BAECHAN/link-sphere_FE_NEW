@@ -22,6 +22,7 @@ import { NumberUtil } from '@/shared/utils/number.util';
 import { DropdownMenuItem } from '@/shared/ui/atoms/dropdown-menu';
 import { ActionChip } from '@/shared/ui/elements/ActionChip';
 import { KebabMenu } from '@/shared/ui/elements/KebabMenu';
+import { RelativeTime } from '@/shared/ui/elements/RelativeTime';
 import { Pencil, Trash } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LikePostButton } from '@/features/post/like/ui/LikePostButton';
@@ -120,7 +121,11 @@ export const PostCard = memo(function PostCard({
           />
           <span className="truncate">{author?.nickname || TEXTS.post.card.withdrawnAuthor}</span>
           <span className="text-xs shrink-0">•</span>
-          <span className="text-xs shrink-0">{DateUtil.formatRelativeShort(post.createdAt)}</span>
+          <RelativeTime
+            date={post.createdAt}
+            format={(date, now) => DateUtil.formatRelativeShort(date, now)}
+            className="text-xs shrink-0"
+          />
         </div>
 
         {isOwner && (

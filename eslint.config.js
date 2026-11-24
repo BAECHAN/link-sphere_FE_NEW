@@ -140,6 +140,20 @@ const RESTRICTED_SYNTAX_NO_NATIVE_DATE = [
   },
 ];
 
+// [금지] 화면에 그릴 상대 시간("3분 전")을 JSX 안에서 바로 계산
+// 이유: 렌더하는 순간의 시계로 한 번 계산하고 끝이라, 탭을 열어 둔 채 시간이 지나도 글자가 멈춰 있는다(2026-11-24
+// 사용자 보고 - 몇 시간 뒤에도 "방금 전"). RelativeTime이 1분마다·탭으로 돌아왔을 때 글자만 다시 그린다. JSX의
+// `{…}`(자식·속성 값) 바로 안의 호출과 그 안의 `&&`·삼항·템플릿 문자열 한 겹까지 잡는다 - 변수에 담아 그리거나 더
+// 깊이 감싼 형태는 못 잡는다. RelativeTime의 format 속성으로 넘긴 함수 안의 호출은 대상이 아니다.
+const RESTRICTED_SYNTAX_NO_STALE_RELATIVE_TIME = [
+  {
+    selector:
+      ':matches(JSXExpressionContainer, JSXExpressionContainer > LogicalExpression, JSXExpressionContainer > ConditionalExpression, JSXExpressionContainer > TemplateLiteral) > CallExpression[callee.object.name="DateUtil"][callee.property.name=/^formatRelative/]',
+    message:
+      '상대 시간을 JSX에서 바로 계산하면 탭을 열어 둔 채 시간이 지나도 글자가 바뀌지 않습니다. <RelativeTime date={…} format={(date, now) => DateUtil.formatRelativeShort(date, now)} />를 쓰세요(@/shared/ui/elements/RelativeTime).',
+  },
+];
+
 // [금지] 정규식 lookbehind((?<=…)·(?<!…))
 // 이유: 빌드 타깃 safari14(vite.config.ts)는 lookbehind를 모른다(Safari 16.4부터,
 // https://caniuse.com/js-regexp-lookbehind). esbuild(0.25.12)는 정규식 문법을 낮추지 못해 경고 없이
@@ -1329,6 +1343,7 @@ export default [
         'error',
         ...RESTRICTED_SYNTAX_COMMON,
         ...RESTRICTED_SYNTAX_NO_NATIVE_DATE,
+        ...RESTRICTED_SYNTAX_NO_STALE_RELATIVE_TIME,
         ...RESTRICTED_SYNTAX_NO_REGEXP_LOOKBEHIND,
         ...RESTRICTED_SYNTAX_NO_RAW_BACK_HANDLING,
         ...RESTRICTED_SYNTAX_NO_RAW_HTML,

@@ -339,6 +339,10 @@ const ASSEMBLY_CONTRACTS: Record<string, AssemblyContract> = {
   FormField: { ...CLASS_NAME_ONLY, wrap: inForm, props: { name: 'field' } },
   LoadMoreError: { ...CLASS_NAME_ONLY, props: { onRetry: noop } },
   MarkdownContent: { ...CLASS_NAME_ONLY, props: { content: 'text' } },
+  RelativeTime: {
+    ...CLASS_NAME_ONLY,
+    props: { date: '2026-01-01T00:00:00.000Z', format: () => 'label' },
+  },
   TooltipWrapper: {
     ...CLASS_NAME_ONLY,
     wrap: inTooltipProvider,

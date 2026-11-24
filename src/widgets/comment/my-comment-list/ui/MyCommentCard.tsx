@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ImageIcon, Link2 } from 'lucide-react';
 import { MyComment } from '@/entities/comment/model/comment.schema';
 import { Card } from '@/shared/ui/atoms/card';
+import { RelativeTime } from '@/shared/ui/elements/RelativeTime';
 import { DateUtil } from '@/shared/utils/date.util';
 import { splitContentImages } from '@/shared/lib/content/imageContent';
 import { cn } from '@baechan/ui/lib/tailwind/utils';
@@ -57,7 +58,11 @@ export function MyCommentCard({ comment }: MyCommentCardProps) {
               </span>
             )}
           </span>
-          <span className="shrink-0">{DateUtil.formatRelativeShort(comment.createdAt)}</span>
+          <RelativeTime
+            date={comment.createdAt}
+            format={(date, now) => DateUtil.formatRelativeShort(date, now)}
+            className="shrink-0"
+          />
         </div>
       </Card>
     </Link>
