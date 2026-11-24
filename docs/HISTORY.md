@@ -1,3 +1,6 @@
+### 2026-11-24 (FE)
+- 공용 UI 패키지 명칭을 `@baechan/ui`로 변경하여 패키지 구조 최적화 및 관리 효율성 개선 ([#676](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/676))
+
 ### 2026-11-23 (FE)
 - 로그아웃 상태에서 범위 칩이 조건 없이 노출되던 결함 수정 ([#675](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/675))
 
