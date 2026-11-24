@@ -25,6 +25,7 @@
     "check:deps": "node scripts/check-deps.js",
     "check:cloudfront": "node scripts/check-cloudfront-drift.js",
     "check:pr-body": "node scripts/check-pr-body.js",
+    "check:manual-issue": "node scripts/check-manual-issue.js",
     "check:fix": "pnpm lint:fix && pnpm format && pnpm type-check",
     "graph": "node scripts/dep-graph.js --reaches",
     "graph:focus": "node scripts/dep-graph.js --focus",

@@ -213,6 +213,7 @@ features/<도메인>/<액션>/
 - [`docs/DESIGN-SYSTEM.md`](docs/DESIGN-SYSTEM.md) — 디자인 토큰(색상·반경·z-index)·컴포넌트·ESLint 강제 규칙·Storybook 카탈로그
 - [`docs/E2E-FLAKY.md`](docs/E2E-FLAKY.md) — e2e 첫 시도 실패(flaky): 얼마나 잦은지, 공통 원인, CI가 잡는 방식, 흔들리면 고치는 순서
 - [`docs/FCM-PUSH-NOTIFICATION.md`](docs/FCM-PUSH-NOTIFICATION.md) — 댓글·답글 FCM 웹 푸시: 토큰 수명주기, 서비스워커, 알림 클릭 딥링크
+- [`docs/MANUAL-CHECK.md`](docs/MANUAL-CHECK.md) — 확인 이슈: 사람이 직접 해 봐야 하는 확인을 단계별 답 댓글로 닫는 형식과 검사, 무엇을 보고 못 보는지
 - [`docs/MYPAGE.md`](docs/MYPAGE.md) — 프로필 수정(계정 설정 화면 섹션): 닉네임·아바타 변경, 실패 시 입력값 유지
 - [`docs/NEW-VERSION-RELOAD.md`](docs/NEW-VERSION-RELOAD.md) — 배포 후 새 버전 감지 시 다음 라우트 이동에 맞춰 자동 새로고침
 - [`docs/OPENAPI-CODEGEN.md`](docs/OPENAPI-CODEGEN.md) — BE OpenAPI 스펙에서 FE 응답 타입을 생성하고 입력 제약 값을 스펙과 대조: 파이프라인, 드리프트 감지, override 패턴, 계약 테스트
