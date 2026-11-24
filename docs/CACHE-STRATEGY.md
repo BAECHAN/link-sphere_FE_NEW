@@ -408,6 +408,17 @@ aws cloudfront get-cache-policy --id <정책 ID> \
 - **실제 탭·앱 전환 때의 가시성 이벤트** — headless에서 재현하지 못했다. 모바일 기기 실측은 없다. React Query
   재조회는 TanStack 기본대로 `visibilitychange`만 보고(2026-10-14 `focus`/`blur`로 덮어쓰던 훅을 뺐다), 새 배포
   감지는 `focus`·`visibilitychange`를 모두 듣는다.
+  - **2026-11-24 실측(데스크톱 Chrome, 운영 `/post`, 로그아웃 상태)**: 배경 탭에 피드를 띄우고, 브라우저가 보낸
+    `visibilitychange`만으로 게시글 목록 재조회를 쟀다. 마지막 목록 응답 뒤 45초·92초에 탭이 다시 보였을 때는 목록
+    요청이 0건이었다. 3분 42초 뒤에 다시 보였을 때는 보임 이벤트 1ms 뒤부터 `GET /api/post?size=10`이 불러왔던
+    쪽 수(3쪽)만큼 차례로 나갔다(모두 200, 상단 진행 막대 0.73초). 기본 `staleTime` 3분
+    ([FE-ARCHITECTURE.md](./FE-ARCHITECTURE.md) §12)과 맞는다.
+  - **잰 방법**: Claude in Chrome 확장은 조작하는 탭을 "보임"으로 만들고, 조작을 멈추면 약 20초 뒤 배경 탭이 실제로
+    숨겨진다(`visibilitychange → hidden`). 그래서 탭을 3분 넘게 건드리지 않다가 조작해 `숨김 → 보임` 전환을 얻었다.
+    요청 시각은 페이지의 리소스 타이밍(`performance.getEntriesByType('resource')`)으로 읽었다.
+  - **여전히 재지 않은 것**: 사람이 손으로 탭·창을 바꾸는 경우와 모바일 기기. 창 `focus`만으로는 재조회하지 않는다는
+    것도 실측이 아니라, 설치본 `@tanstack/query-core` 5.107.1의 `focusManager`가 `visibilitychange`만 등록한다는
+    코드 확인이다.
 
 ## 12. 용어 사전
 
