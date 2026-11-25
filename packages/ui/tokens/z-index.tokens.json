@@ -1,0 +1,21 @@
+{
+  "z-index": {
+    "$description": "겹침 순서 8단계. 부품은 숫자 대신 이름 붙은 클래스로 쓴다(숫자를 직접 쓰면 린트가 막는다). 값은 2026-09-13에 흩어져 있던 숫자 8종을 그대로 모은 것이다. scrim은 Sidebar 백드롭과 CommentComposer 펼친 시트가 함께 쓴다. 둘 다 모바일 전용 fixed 요소라 동시에 뜨면 DOM 순서로 위아래가 정해지는 잠재 충돌이 있다(docs/DECISIONS.md 2026-09-13).",
+    "raised": { "$type": "number", "$value": 10, "$description": "카드/폼 내부 오버레이" },
+    "hitbox": { "$type": "number", "$value": 20, "$description": "댓글 첨부 드롭 히트박스" },
+    "panel": {
+      "$type": "number",
+      "$value": 40,
+      "$description": "RecentSearchPanel · CommentComposer 접힌 바"
+    },
+    "nav": { "$type": "number", "$value": 50, "$description": "Navbar / BottomTabBar / FAB" },
+    "scrim": {
+      "$type": "number",
+      "$value": 55,
+      "$description": "Sidebar 백드롭 · CommentComposer 펼친 시트 (같은 층 공유)"
+    },
+    "drawer": { "$type": "number", "$value": 60, "$description": "Sidebar 패널" },
+    "modal": { "$type": "number", "$value": 70, "$description": "Dialog" },
+    "popover": { "$type": "number", "$value": 80, "$description": "Dropdown / Select / Tooltip" }
+  }
+}

@@ -86,6 +86,14 @@
 
 ### Changed
 
+- `shared` 모서리 반경 토큰 4개를 기준 값 계산식에서 고정 값으로 바꿈
+  <details><summary>배경·구현</summary>
+
+  디자인 시스템 2단계(토큰)의 첫 PR이다. 범용 토큰의 값을 손으로 쓴 CSS 대신 원본 파일(DTCG 형식 JSON)에 두고 CSS·토큰 목록·토큰 표를 원본에서 만든다. 토큰의 이름과 값은 그대로 옮겼고 반경만 달라진다. 전에는 기준 값 하나(`--radius: 0.625rem`)에서 `calc(var(--radius) - 4px)`처럼 계산했는데, DTCG 형식은 계산식을 적을 수 없어 브라우저 기본 글자 크기 16px에서의 계산값을 고정 값으로 옮겼다(`sm` 0.375rem, `md` 0.5rem, `lg` 0.625rem, `xl` 0.875rem. 사용자 결정, 2026-11-24). 기본 글자 크기가 16px이면 화면이 같다(6·8·10·14px). 브라우저 설정에서 기본 글자 크기를 바꾼 경우에만 세 단계가 조금 달라진다 — 20px일 때 `sm` 8.5 → 7.5px, `md` 10.5 → 10px, `xl` 16.5 → 17.5px(`lg`는 12.5px 그대로, Chromium에서 측정). 반경 전체를 한 번에 바꾸던 `--radius` 변수는 없어졌다. 색·z-index·글자 크기 토큰은 계산값이 그대로다(토큰 100개를 라이트·다크에서 전후 비교해 차이 0건).
+  (`packages/ui/tokens/*.tokens.json`(신규), `packages/ui/scripts/build-tokens.js`(신규), `packages/ui/src/styles/tokens.gen.css`(신규)·`tokens.css`, `packages/ui/src/generated/tokens.gen.ts`(신규), `scripts/generate-token-docs.js`(신규), `docs/DESIGN-TOKENS.md`(신규), `docs/DESIGN-SYSTEM.md`, `docs/DECISIONS.md`, [PR #687](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/687))
+
+  </details>
+
 - `comment` 댓글 입력 폼의 이미지 첨부와 취소·등록 버튼을 한 줄로 합쳐 40px 낮춤
   <details><summary>배경·구현</summary>
 

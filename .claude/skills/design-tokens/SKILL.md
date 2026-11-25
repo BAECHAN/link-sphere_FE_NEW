@@ -20,6 +20,13 @@ UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카�
 `--navbar-height`처럼 이 앱에 묶인 것은 `src/app/globals.css`에 있다. 새 토큰도 같은 기준으로 둔다(기준:
 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.5).
 
+**범용 토큰의 값은 원본에서 만든다(2026-11-25).** 원본은 `packages/ui/tokens/*.tokens.json`이고, 저장소 루트의
+`pnpm tokens`가 토큰 CSS가 가져오는 `tokens.gen.css`, 토큰 목록 `packages/ui/src/generated/tokens.gen.ts`, 토큰 표
+[`docs/DESIGN-TOKENS.md`](../../../docs/DESIGN-TOKENS.md)를 만든다. 값을 바꾸거나 토큰을 더할 때는 원본을 고치고
+`pnpm tokens`를 돌려 생성물을 함께 커밋한다. 생성물을 직접 고치면 CI "토큰 생성물 최신성 확인"이 막는다. **토큰의 값과
+정한 이유는 토큰 표가 정본이다** — 아래에는 고르는 법과 쓰는 법만 둔다(구조: `docs/DESIGN-SYSTEM.md` §5 "토큰 원본과
+생성물"). 앱 전용 토큰은 원본이 없어 `globals.css`를 직접 고친다.
+
 무채색 의미 토큰의 값은 `:root`의 `--palette-*`(Primitive 층)를 참조한다. `--palette-*`는 Tailwind
 클래스가 없고, 컴포넌트에서 `var(--palette-*)`로 직접 쓰지도 않는다 — 항상 아래 의미 토큰을 쓴다
 (층 구조와 예외는 `docs/DESIGN-SYSTEM.md` §5 "색상 2층").
@@ -54,12 +61,9 @@ UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카�
 
 ### 반경 토큰
 
-| 토큰          | 클래스       | 값                          |
-| ------------- | ------------ | --------------------------- |
-| `--radius-sm` | `rounded-sm` | `calc(var(--radius) - 4px)` |
-| `--radius-md` | `rounded-md` | `calc(var(--radius) - 2px)` |
-| `--radius-lg` | `rounded-lg` | `var(--radius)`             |
-| `--radius-xl` | `rounded-xl` | `calc(var(--radius) + 4px)` |
+`rounded-sm`·`rounded-md`·`rounded-lg`·`rounded-xl` 네 단계다. 값은
+[토큰 표 "반경"](../../../docs/DESIGN-TOKENS.md#반경)에 있다. 2026-11-25부터 기준 값 하나(`--radius`)에서 계산하지 않고
+단계마다 고정 값이다 — `--radius` 변수는 없어졌으니 `var(--radius)`를 쓰지 않는다.
 
 ### z-index 토큰
 
@@ -68,19 +72,9 @@ UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카�
 있었다(`docs/DECISIONS.md` 2026-09-13 참고). ESLint `custom-tailwind/no-raw-z-index`가
 새 리터럴 사용을 차단한다.
 
-| 토큰        | 값  | 용도                                   |
-| ----------- | --- | -------------------------------------- |
-| `z-raised`  | 10  | 카드/폼 내부 오버레이                  |
-| `z-hitbox`  | 20  | 드롭 히트박스                          |
-| `z-panel`   | 40  | 패널·바 기본                           |
-| `z-nav`     | 50  | Navbar / 하단탭바 / FAB                |
-| `z-scrim`   | 55  | 전면 딤 (Sidebar·CommentComposer 공유) |
-| `z-drawer`  | 60  | 사이드바 패널                          |
-| `z-modal`   | 70  | Dialog                                 |
-| `z-popover` | 80  | Dropdown / Select / Tooltip            |
-
-Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를 시각적으로
-확인할 수 있다.
+아래에서 위로 `z-raised` < `z-hitbox` < `z-panel` < `z-nav` < `z-scrim` < `z-drawer` < `z-modal` < `z-popover` 순이다.
+층마다의 값과 쓰임은 [토큰 표 "겹침 순서"](../../../docs/DESIGN-TOKENS.md#겹침-순서)에 있고, Storybook
+`Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를 시각적으로 확인할 수 있다.
 
 ### 타이포그래피 토큰
 
@@ -94,16 +88,19 @@ Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를
 
 #### 역할 토큰 (우선 사용)
 
-| 토큰                    | 크기·줄높이·두께        | 용도                                                  | 대상 예시                                                                                                                   |
-| ----------------------- | ----------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `text-screen-title`     | t7 (20/27) · semibold   | 페이지 최상위 제목 (h1)                               | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/PostFeedPage.tsx`, `VersionPage.tsx`(예시, 전수 아님)                  |
-| `text-section-title`    | t6 (18/24) · semibold   | 섹션 제목 (h2), Dialog 제목                           | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                              |
-| `text-subsection-title` | t4 (14/19) · semibold   | 소제목, 보통 `text-muted-foreground`와 함께           | `MobileFolderList.tsx`                                                                                                      |
-| `text-micro`            | t1 (11/15), 두께 미지정 | 배지·단축키·카운트 같은 최소 라벨                     | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                               |
-| `text-card-title`       | t4 (14/19) · bold       | 포스트 카드 제목(반응형, `md:text-t6`과 조합)         | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                                                     |
-| `text-detail-title`     | t9 (24/32) · bold       | 상세 페이지 게시글 제목(반응형, `md:text-t11`과 조합) | `PostCard.tsx`(`isDetail`일 때)                                                                                             |
-| `text-group-label`      | t2 (12/16) · semibold   | 목록 섹션 라벨                                        | `FolderSidebar.tsx`, `BookmarkFolderSelectDialog.tsx`, `RecentSearchPanel.tsx`, `RecentSearchDropdown.tsx`(예시, 전수 아님) |
-| `text-display-title`    | 60/60 · bold            | 대형 에러 페이지 타이틀                               | `ErrorLayout.tsx`(404/403/500)                                                                                              |
+역할마다의 글자 크기·줄 높이·두께와 용도는 [토큰 표 "글자 역할"](../../../docs/DESIGN-TOKENS.md#글자-역할)에 있다. 고르기
+전에 그 표를 읽는다. 아래는 역할마다 실제로 쓰는 곳이다.
+
+| 토큰                    | 대상 예시                                                                                                                   |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `text-screen-title`     | `MyCommentPage.tsx`, `BookmarkPage.tsx`, `pages/post/PostFeedPage.tsx`, `VersionPage.tsx`(예시, 전수 아님)                  |
+| `text-section-title`    | `CommentList.tsx`, `dialog.tsx`(`DialogTitle`)                                                                              |
+| `text-subsection-title` | `MobileFolderList.tsx`                                                                                                      |
+| `text-micro`            | `NavbarSearch.tsx`(Kbd), `CommentItem.tsx`(배지), `LikePostButton.tsx`/`PostCard.tsx`(카운트)                               |
+| `text-card-title`       | `PostCard.tsx`(`<h3>{post.title}</h3>`)                                                                                     |
+| `text-detail-title`     | `PostCard.tsx`(`isDetail`일 때)                                                                                             |
+| `text-group-label`      | `FolderSidebar.tsx`, `BookmarkFolderSelectDialog.tsx`, `RecentSearchPanel.tsx`, `RecentSearchDropdown.tsx`(예시, 전수 아님) |
+| `text-display-title`    | `ErrorLayout.tsx`(404/403/500)                                                                                              |
 
 `text-micro`만 두께를 토큰에 묶지 않는다 — 호출부 4곳의 기존 두께가 제각각(Kbd는
 `font-medium`, 나머지는 미지정 상속)이라 하나로 합치면 그중 승인받지 않은 화면 변화가
@@ -113,10 +110,11 @@ Storybook `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를
 `TEXT_SIZE_PATTERN`). 역할 토큰·`t*` 스케일과 `font-bold`를 같이 쓰는 건 이 룰이
 못 잡으니 사람이 지킨다(제목이 아니라면 `eslint-disable-next-line`에 이유를 남긴다).
 
-**새 `--text-*` 토큰을 추가하면 `packages/ui/src/lib/tailwind/utils.ts`의 `TEXT_SIZE_TOKENS`에도 이름을 넣는다.**
+**글자 크기 토큰은 원본에 더하고 `pnpm tokens`를 돌리면 `cn()`에 함께 등록된다.** `packages/ui/src/lib/tailwind/utils.ts`가
+생성된 이름 목록(`TEXT_SIZE_TOKEN_NAMES`)을 읽는다 — 이름을 손으로 넣지 않는다(2026-11-25 전에는 손으로 넣었다).
 `cn()`(tailwind-merge)은 기본 설정으로 `xs`~`9xl`만 글자 크기로 알아, 등록하지 않은 토큰은 글자 색으로 본다 —
 그러면 같이 쓴 색 클래스를 지우고 컴포넌트 기본 크기(`Button`의 `text-sm` 등)는 남겨 토큰 크기가 무시된다
-(2026-10-28 발견, 경위 `docs/DESIGN-SYSTEM.md` §10). 빠뜨리면 `utils.test.ts`가 토큰 CSS와 대조해 실패한다.
+(2026-10-28 발견, 경위 `docs/DESIGN-SYSTEM.md` §10). `utils.test.ts`가 토큰 목록의 글자 크기 토큰을 하나씩 확인한다.
 반대로 역할 토큰 위에 기본 크기를 덮으면(`DialogTitle className="text-base"`) `cn()`이 토큰을 통째로 지워 두께도
 빠지니 두께를 함께 준다.
 
@@ -137,22 +135,9 @@ https://claude.ai/artifact/HFhnbYBfxXTYL2HmbQQY12). `text-display-title`(60px/60
 
 #### 스케일 층 (t1~t14, 역할이 안 맞을 때만)
 
-| 토큰       | 크기             | 줄 높이          | 비고         |
-| ---------- | ---------------- | ---------------- | ------------ |
-| `text-t1`  | 0.6875rem (11px) | 0.9375rem (15px) |              |
-| `text-t2`  | 0.75rem (12px)   | 1rem (16px)      |              |
-| `text-t3`  | 0.8125rem (13px) | 1.125rem (18px)  |              |
-| `text-t4`  | 0.875rem (14px)  | 1.1875rem (19px) |              |
-| `text-t5`  | 1rem (16px)      | 1.375rem (22px)  |              |
-| `text-t6`  | 1.125rem (18px)  | 1.5rem (24px)    |              |
-| `text-t7`  | 1.25rem (20px)   | 1.6875rem (27px) |              |
-| `text-t8`  | 1.375rem (22px)  | 1.875rem (30px)  |              |
-| `text-t9`  | 1.5rem (24px)    | 2rem (32px)      |              |
-| `text-t10` | 1.625rem (26px)  | 2.1875rem (35px) |              |
-| `text-t11` | 1.75rem (28px)   | 2.375rem (38px)  | sm 이상 권장 |
-| `text-t12` | 2rem (32px)      | 2.625rem (42px)  | sm 이상 권장 |
-| `text-t13` | 2.5rem (40px)    | 3.25rem (52px)   | sm 이상 권장 |
-| `text-t14` | 3rem (48px)      | 3.75rem (60px)   | sm 이상 권장 |
+작은 것부터 `text-t1`~`text-t14` 14단계다. 단계마다의 글자 크기와 줄 높이는
+[토큰 표 "글자 크기 눈금"](../../../docs/DESIGN-TOKENS.md#글자-크기-눈금)에 있다. `text-t11`~`text-t14`는 sm 이상
+화면에서만 쓰기를 권장한다.
 
 폰트 두께는 스케일 층 자체엔 별도 토큰 없음 — SEED medium(500)/bold(700)이 Tailwind
 기본 `font-medium`/`font-bold`와 값이 같다. Storybook `Shared/UI/Tokens/DesignTokens`

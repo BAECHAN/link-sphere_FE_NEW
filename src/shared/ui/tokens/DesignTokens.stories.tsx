@@ -1,17 +1,21 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { TOKENS } from '@baechan/ui/tokens';
 
-// 이 파일은 단일 컴포넌트가 아니라 디자인 토큰(범용 토큰은 공용 UI 패키지의 packages/ui/src/styles/tokens.css,
+// 이 파일은 단일 컴포넌트가 아니라 디자인 토큰(범용 토큰은 공용 UI 패키지의 packages/ui/tokens/ 원본,
 // 앱 전용 토큰은 src/app/globals.css)을 한눈에 보여주는 카탈로그다. 값을 복제하지 않고 CSS 커스텀 프로퍼티 원본 이름(var(--primary) 등, `var(--${token})`)을
 // 인라인 style로 직접 읽어 렌더링한다 - 토큰이 바뀌면 이 스토리도 자동으로 따라간다.
 // (Tailwind의 `bg-${token}`처럼 클래스명을 동적으로 조합하면 JIT 스캐너가 정적 문자열만
 // 인식하기 때문에 생성되지 않는다 - 그래서 여기서는 클래스가 아니라 CSS 변수를 직접 쓴다.)
+// 범용 토큰의 이름과 쓰임 설명은 원본에서 만든 목록(TOKENS)에서 읽는다. 앱 전용 토큰은 원본이 없어 아래에 손으로 적는다.
 // 다크모드는 툴바의 테마 토글(.storybook/preview.tsx)로 확인한다.
 
-interface ColorToken {
+type PackageColorName = Extract<(typeof TOKENS)[number], { group: 'color' }>['name'];
+
+interface ColorToken<Name extends string = string> {
   /** Tailwind 색상 유틸리티 접미사 (bg-{token}) */
-  token: string;
+  token: Name;
   /** 짝을 이루는 foreground 토큰이 있으면 그 위에 샘플 텍스트를 얹는다 */
-  foreground?: string;
+  foreground?: Name;
 }
 
 interface ColorGroup {
@@ -19,41 +23,33 @@ interface ColorGroup {
   tokens: ColorToken[];
 }
 
-// 토큰 CSS(packages/ui/src/styles/tokens.css)와 src/app/globals.css의 @theme inline 블록 색 토큰과 1:1 대응.
+/** 범용(패키지) 색 묶음. 묶음 제목은 원본에 없어 여기서 정하고, 색 이름이 원본에 없으면 타입 오류가 난다. */
+function packageColors(title: string, tokens: ColorToken<PackageColorName>[]): ColorGroup {
+  return { title, tokens };
+}
+
+// 범용 색은 packageColors로, 앱 전용 색(src/app/globals.css의 @theme inline 블록)은 그대로 적는다.
 const COLOR_GROUPS: ColorGroup[] = [
-  {
-    title: '기본',
-    tokens: [{ token: 'background', foreground: 'foreground' }],
-  },
-  {
-    title: '딤(Scrim) — 이미지 뷰어·모달 오버레이 전용, 테마 무관',
-    tokens: [{ token: 'scrim', foreground: 'scrim-foreground' }],
-  },
-  {
-    title: '표면',
-    tokens: [
-      { token: 'card', foreground: 'card-foreground' },
-      { token: 'popover', foreground: 'popover-foreground' },
-    ],
-  },
-  {
-    title: '액션',
-    tokens: [
-      { token: 'primary', foreground: 'primary-foreground' },
-      { token: 'secondary', foreground: 'secondary-foreground' },
-      { token: 'muted', foreground: 'muted-foreground' },
-      { token: 'accent', foreground: 'accent-foreground' },
-    ],
-  },
-  {
-    title: '상태',
-    tokens: [
-      { token: 'destructive', foreground: 'destructive-foreground' },
-      { token: 'info', foreground: 'info-foreground' },
-      { token: 'warning', foreground: 'warning-foreground' },
-      { token: 'success', foreground: 'success-foreground' },
-    ],
-  },
+  packageColors('기본', [{ token: 'background', foreground: 'foreground' }]),
+  packageColors('딤(Scrim) — 이미지 뷰어·모달 오버레이 전용, 테마 무관', [
+    { token: 'scrim', foreground: 'scrim-foreground' },
+  ]),
+  packageColors('표면', [
+    { token: 'card', foreground: 'card-foreground' },
+    { token: 'popover', foreground: 'popover-foreground' },
+  ]),
+  packageColors('액션', [
+    { token: 'primary', foreground: 'primary-foreground' },
+    { token: 'secondary', foreground: 'secondary-foreground' },
+    { token: 'muted', foreground: 'muted-foreground' },
+    { token: 'accent', foreground: 'accent-foreground' },
+  ]),
+  packageColors('상태', [
+    { token: 'destructive', foreground: 'destructive-foreground' },
+    { token: 'info', foreground: 'info-foreground' },
+    { token: 'warning', foreground: 'warning-foreground' },
+    { token: 'success', foreground: 'success-foreground' },
+  ]),
   {
     title: '도메인 (link-sphere 고유 — 다른 프로젝트로 이식 시 재검토 대상)',
     tokens: [
@@ -68,10 +64,7 @@ const COLOR_GROUPS: ColorGroup[] = [
       { token: 'category-8', foreground: 'category-8-foreground' },
     ],
   },
-  {
-    title: '폼 / 포커스',
-    tokens: [{ token: 'border' }, { token: 'input' }, { token: 'ring' }],
-  },
+  packageColors('폼 / 포커스', [{ token: 'border' }, { token: 'input' }, { token: 'ring' }]),
   {
     title: '차트',
     tokens: [
@@ -121,10 +114,24 @@ function ColorSwatch({ token, foreground }: ColorToken) {
   );
 }
 
+// 원본에 색을 더하고 위 묶음에 넣지 않아도 카탈로그에서 빠지지 않게, 묶이지 않은 범용 색을 따로 모은다(지금은 없다).
+const GROUPED_COLOR_NAMES = new Set(
+  COLOR_GROUPS.flatMap(({ tokens }) =>
+    tokens.flatMap(({ token, foreground }) => [token, foreground])
+  )
+);
+const UNGROUPED_PACKAGE_COLORS: ColorToken[] = TOKENS.filter(
+  (token) => token.group === 'color' && !GROUPED_COLOR_NAMES.has(token.name)
+).map((token) => ({ token: token.name }));
+const ALL_COLOR_GROUPS: ColorGroup[] =
+  UNGROUPED_PACKAGE_COLORS.length > 0
+    ? [...COLOR_GROUPS, { title: '묶음에 넣지 않은 범용 색', tokens: UNGROUPED_PACKAGE_COLORS }]
+    : COLOR_GROUPS;
+
 function ColorsCatalog() {
   return (
     <div className="flex flex-col gap-8 p-4">
-      {COLOR_GROUPS.map((group) => (
+      {ALL_COLOR_GROUPS.map((group) => (
         <div key={group.title} className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">{group.title}</h3>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-6">
@@ -138,92 +145,59 @@ function ColorsCatalog() {
   );
 }
 
-const RADIUS_TOKENS = ['sm', 'md', 'lg', 'xl'] as const;
+const RADIUS_TOKENS = TOKENS.filter((token) => token.group === 'radius');
 
 function RadiusCatalog() {
   return (
     <div className="flex gap-6 p-4">
-      {RADIUS_TOKENS.map((r) => (
-        <div key={r} className="flex flex-col items-center gap-2">
+      {RADIUS_TOKENS.map(({ name, cssVar }) => (
+        <div key={name} className="flex flex-col items-center gap-2">
           <div
             className="h-16 w-16 border-2 border-primary bg-muted"
-            style={{ borderRadius: `var(--radius-${r})` }}
+            style={{ borderRadius: `var(${cssVar})` }}
           />
-          <code className="text-xs text-muted-foreground">rounded-{r}</code>
+          <code className="text-xs text-muted-foreground">rounded-{name}</code>
         </div>
       ))}
     </div>
   );
 }
 
-interface ZIndexLayer {
-  token: string;
-  usage: string;
-}
-
-// 토큰 CSS(packages/ui/src/styles/tokens.css)의 @theme static z-index 블록과 1:1 대응. 값이 큰 순서(위로 올라오는 순서)로
-// 나열한다.
-const Z_INDEX_LAYERS: ZIndexLayer[] = [
-  { token: 'popover', usage: 'Dropdown / Select / Tooltip' },
-  { token: 'modal', usage: 'Dialog' },
-  { token: 'drawer', usage: 'Sidebar 패널' },
-  { token: 'scrim', usage: 'Sidebar 백드롭 · CommentComposer 펼친 시트 (같은 층 공유)' },
-  { token: 'nav', usage: 'Navbar / BottomTabBar / FAB' },
-  { token: 'panel', usage: 'RecentSearchPanel · CommentComposer 접힌 바' },
-  { token: 'hitbox', usage: '댓글 첨부 드롭 히트박스' },
-  { token: 'raised', usage: '카드/폼 내부 오버레이' },
-];
+// 원본은 값이 작은 순서다. 여기서는 값이 큰 순서(위로 올라오는 순서)로 보인다. 쓰임 설명은 원본의 설명이다.
+const Z_INDEX_LAYERS = TOKENS.filter((token) => token.group === 'z-index').reverse();
 
 function ZIndexCatalog() {
   return (
     <div className="flex flex-col gap-2 p-4">
-      {Z_INDEX_LAYERS.map(({ token, usage }) => (
+      {Z_INDEX_LAYERS.map(({ name, cssVar, description }) => (
         <div
-          key={token}
+          key={name}
           className="flex items-center gap-4 rounded-md border bg-card px-4 py-2"
-          style={{ zIndex: `var(--z-index-${token})` }}
+          style={{ zIndex: `var(${cssVar})` }}
         >
-          <code className="w-40 shrink-0 text-xs text-muted-foreground">z-{token}</code>
-          <span className="text-sm">{usage}</span>
+          <code className="w-40 shrink-0 text-xs text-muted-foreground">z-{name}</code>
+          <span className="text-sm">{description}</span>
         </div>
       ))}
     </div>
   );
 }
 
-// 토큰 CSS(packages/ui/src/styles/tokens.css) @theme static 타이포 스케일 블록(t1~t14)과 1:1 대응. 값 출처는
-// https://seed-design.io/foundations/typography - t11~t14는 sm 이상 권장이라는
+// 글자 크기 눈금(t1~t14). 값 출처는 https://seed-design.io/foundations/typography - t11~t14는 sm 이상 권장이라는
 // 표시를 함께 보여준다.
-const TYPOGRAPHY_SCALE = [
-  't1',
-  't2',
-  't3',
-  't4',
-  't5',
-  't6',
-  't7',
-  't8',
-  't9',
-  't10',
-  't11',
-  't12',
-  't13',
-  't14',
-] as const;
-const LARGE_TITLE_SCALE = new Set(['t11', 't12', 't13', 't14']);
+const TYPOGRAPHY_SCALE = TOKENS.filter((token) => token.group === 'font-size');
+const LARGE_TITLE_SCALE = new Set<string>(['t11', 't12', 't13', 't14']);
 
 function TypographyCatalog() {
   return (
     <div className="flex flex-col gap-3 p-4">
-      {TYPOGRAPHY_SCALE.map((t) => (
-        <div key={t} className="flex items-baseline gap-4 border-b pb-3">
+      {TYPOGRAPHY_SCALE.map(({ name, cssVar }) => (
+        <div key={name} className="flex items-baseline gap-4 border-b pb-3">
           <code className="w-28 shrink-0 text-xs text-muted-foreground">
-            --text-{t}
-            {LARGE_TITLE_SCALE.has(t) && ' (sm~)'}
+            {cssVar}
+            {LARGE_TITLE_SCALE.has(name) && ' (sm~)'}
           </code>
-          <span
-            style={{ fontSize: `var(--text-${t})`, lineHeight: `var(--text-${t}--line-height)` }}
-          >
+          <span style={{ fontSize: `var(${cssVar})`, lineHeight: `var(${cssVar}--line-height)` }}>
             텍스트 스케일 미리보기 Aa 12
           </span>
         </div>
@@ -232,39 +206,24 @@ function TypographyCatalog() {
   );
 }
 
-interface RoleToken {
-  token: string;
-  usage: string;
-}
-
-// 토큰 CSS(packages/ui/src/styles/tokens.css)의 (static 아닌) @theme 역할 토큰 블록과 1:1 대응. 스케일 층(t1~t14)에서
-// 실제 화면에 쓰이는 값만 골라 이름 붙인 것 - TYPOGRAPHY_SCALE과 달리 매 항목이
-// 곧 실제 컴포넌트가 쓰는 클래스다.
-const ROLE_TOKENS: RoleToken[] = [
-  { token: 'screen-title', usage: '페이지 최상위 제목 (h1)' },
-  { token: 'section-title', usage: '섹션 제목 (h2), Dialog 제목' },
-  { token: 'subsection-title', usage: '소제목, 보통 text-muted-foreground와 함께' },
-  { token: 'micro', usage: '배지·단축키·카운트 같은 최소 라벨 (두께는 토큰에 없음)' },
-  { token: 'card-title', usage: '포스트 카드 제목 (md:text-t6과 조합해 반응형)' },
-  { token: 'detail-title', usage: '상세 페이지 게시글 제목 (md:text-t11과 조합해 반응형)' },
-  { token: 'group-label', usage: '목록 섹션 라벨 (폴더 그룹, 최근 검색 등)' },
-  { token: 'display-title', usage: '대형 에러 페이지 타이틀 (404/403/500)' },
-];
+// 글자 역할 토큰. 눈금(t1~t14)에서 실제 화면에 쓰이는 값만 골라 이름 붙인 것 - TYPOGRAPHY_SCALE과 달리 매 항목이
+// 곧 실제 컴포넌트가 쓰는 클래스다. 역할 하나가 글자 크기·줄 높이·두께 토큰으로 나뉘어 있어 글자 크기 토큰으로 역할을 센다.
+const ROLE_TOKENS = TOKENS.filter((token) => token.group === 'text' && token.part === 'font-size');
 
 function RoleTokensCatalog() {
   return (
     <div className="flex flex-col gap-4 p-4">
-      {ROLE_TOKENS.map(({ token, usage }) => (
-        <div key={token} className="flex items-baseline gap-4 border-b pb-4">
-          <code className="w-44 shrink-0 text-xs text-muted-foreground">--text-{token}</code>
+      {ROLE_TOKENS.map(({ name, cssVar, description }) => (
+        <div key={name} className="flex items-baseline gap-4 border-b pb-4">
+          <code className="w-44 shrink-0 text-xs text-muted-foreground">{cssVar}</code>
           <span
             style={{
-              fontSize: `var(--text-${token})`,
-              lineHeight: `var(--text-${token}--line-height)`,
-              fontWeight: `var(--text-${token}--font-weight, 400)`,
+              fontSize: `var(${cssVar})`,
+              lineHeight: `var(${cssVar}--line-height)`,
+              fontWeight: `var(${cssVar}--font-weight, 400)`,
             }}
           >
-            {usage}
+            {description}
           </span>
         </div>
       ))}

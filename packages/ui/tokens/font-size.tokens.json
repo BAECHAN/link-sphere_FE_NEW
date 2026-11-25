@@ -1,0 +1,35 @@
+{
+  "font-size": {
+    "$description": "글자 크기 눈금 14단계(t1~t14). 당근 SEED 디자인 시스템의 글자 크기 값을 그대로 가져왔다(https://seed-design.io/foundations/typography 의 $font-size.t1~t14). Tailwind 기본 글자 크기 클래스는 그대로 두고, 이 눈금은 주로 역할 토큰(text)의 재료로 쓴다. 부품이 직접 쓰는 것은 역할 토큰에 묶지 않은 반응형 제목의 데스크톱 크기뿐이다. 글자 두께는 토큰을 두지 않는다(SEED의 medium 500, bold 700이 Tailwind 기본 클래스와 값이 같다). 줄 높이는 line-height의 같은 이름 토큰이 짝이다.",
+    "t1": { "$type": "dimension", "$value": { "value": 0.6875, "unit": "rem" } },
+    "t2": { "$type": "dimension", "$value": { "value": 0.75, "unit": "rem" } },
+    "t3": { "$type": "dimension", "$value": { "value": 0.8125, "unit": "rem" } },
+    "t4": { "$type": "dimension", "$value": { "value": 0.875, "unit": "rem" } },
+    "t5": { "$type": "dimension", "$value": { "value": 1, "unit": "rem" } },
+    "t6": { "$type": "dimension", "$value": { "value": 1.125, "unit": "rem" } },
+    "t7": { "$type": "dimension", "$value": { "value": 1.25, "unit": "rem" } },
+    "t8": { "$type": "dimension", "$value": { "value": 1.375, "unit": "rem" } },
+    "t9": { "$type": "dimension", "$value": { "value": 1.5, "unit": "rem" } },
+    "t10": { "$type": "dimension", "$value": { "value": 1.625, "unit": "rem" } },
+    "t11": {
+      "$type": "dimension",
+      "$value": { "value": 1.75, "unit": "rem" },
+      "$description": "sm 이상 화면에서만 쓰기를 권장(SEED 문서)"
+    },
+    "t12": {
+      "$type": "dimension",
+      "$value": { "value": 2, "unit": "rem" },
+      "$description": "sm 이상 화면에서만 쓰기를 권장(SEED 문서)"
+    },
+    "t13": {
+      "$type": "dimension",
+      "$value": { "value": 2.5, "unit": "rem" },
+      "$description": "sm 이상 화면에서만 쓰기를 권장(SEED 문서)"
+    },
+    "t14": {
+      "$type": "dimension",
+      "$value": { "value": 3, "unit": "rem" },
+      "$description": "sm 이상 화면에서만 쓰기를 권장(SEED 문서)"
+    }
+  }
+}

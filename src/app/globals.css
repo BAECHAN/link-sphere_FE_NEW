@@ -5,6 +5,12 @@
 @import '@baechan/ui/styles.css';
 @import 'nprogress/nprogress.css';
 
+/* 토큰 원본(JSON)과 원본에서 만든 토큰 표 문서는 Tailwind가 훑지 않게 한다. 이 앱의 Tailwind는 저장소 전체를
+   훑어서, 두 곳에 적힌 토큰 종류 이름과 설명 글이 쓰지 않는 유틸리티로 만들어진다. 생성된 토큰 목록(TS)은
+   패키지 CSS가 뺀다(packages/ui/src/styles/tokens.css) */
+@source not '../../packages/ui/tokens';
+@source not '../../docs/DESIGN-TOKENS.md';
+
 /*
  * hover:와 같되, 이 요소 안의 팝업 트리거(드롭다운·셀렉트·팝오버)가 열려 있는 동안에도 유지된다.
  * 팝업 콘텐츠는 Portal로 <body>에 렌더돼 커서가 메뉴로 들어가면 부모의 :hover가 풀리기 때문이다.

@@ -356,13 +356,19 @@ src/
 packages/ui/
 ├── package.json                 # @baechan/ui — 빌드 없이 TS 소스를 내보낸다(exports), private
 ├── vitest.config.ts             # 앱 setup 없이 도는 패키지 전용 테스트 프로젝트(src/test/setup.ts)
+├── tokens/                      # 토큰 원본(DTCG 형식 JSON, 사람이 고친다). 고친 뒤 저장소 루트에서 pnpm tokens
+├── scripts/build-tokens.js      # 원본 → styles/tokens.gen.css, generated/tokens.gen.ts (DESIGN-SYSTEM.md §5)
 └── src/
     ├── atoms/                   # Button, Spinner, Tooltip, Toaster(sonner.tsx), LinkThumbnail
     ├── elements/                # TooltipWrapper
     ├── lib/                     # tailwind/utils.ts(cn), toast/(sonner 래퍼 — 직접 import 금지), image/failedImageCache.ts
     ├── texts/                   # UiTexts 타입, UiTextsProvider·useUiTexts, 한국어 묶음 KO_UI_TEXTS
     │                            # (부품이 스스로 넣는 글자 — DESIGN-SYSTEM-PRINCIPLES.md §1.2)
-    └── styles/tokens.css        # 범용 토큰(색·반경·z-index·글자 크기·다크·기본 커서·동작 줄이기)과 tw-animate-css. 앱 globals.css가 import
+    ├── generated/tokens.gen.ts  # 생성된 토큰 목록(직접 고치지 않는다). @baechan/ui/tokens로 import
+    └── styles/
+        ├── tokens.css           # 생성 CSS를 가져오고, 손으로 쓰는 규칙(기본 테두리·커서·동작 줄이기)과 tw-animate-css를 둔다.
+        │                        # 앱 globals.css가 @baechan/ui/styles.css로 import
+        └── tokens.gen.css       # 생성된 범용 토큰 선언(색·반경·z-index·글자 크기·다크). 직접 고치지 않는다
 ```
 
 이 패키지를 다른 프로젝트에서 받아 쓰는 모습을 확인하는 예제 앱이 `examples/next`에 있다(2026-11-23). 앱 코드(`src/`)를 가져다

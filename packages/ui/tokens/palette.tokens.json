@@ -1,0 +1,47 @@
+{
+  "palette": {
+    "$description": "무채색 팔레트(원시 층). 의미 색(color)이 무채색 값을 숫자 대신 이 토큰으로 가리킨다. 값은 Tailwind 기본 neutral 팔레트와 같지만, Tailwind 버전이 팔레트를 바꿔도 테마가 따라 바뀌지 않도록 직접 정의한다. 실제로 가리키는 단계만 둔다. 모드와 무관해 다크에서 다시 정하지 않는다. Tailwind 테마 키로 내보내지 않아 팔레트 이름의 유틸리티 클래스는 생기지 않는다(부품은 의미 색만 쓴다). 유채색은 2026-10-29에 숫자로 두기로 했다(docs/DESIGN-SYSTEM.md §5).",
+    "white": {
+      "$type": "color",
+      "$value": { "colorSpace": "oklch", "components": [1, 0, 0] }
+    },
+    "neutral": {
+      "50": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.985, 0, 0] }
+      },
+      "100": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.97, 0, 0] }
+      },
+      "200": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.922, 0, 0] }
+      },
+      "400": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.708, 0, 0] }
+      },
+      "500": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.556, 0, 0] }
+      },
+      "800": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.269, 0, 0] }
+      },
+      "900": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.205, 0, 0] }
+      },
+      "950": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.145, 0, 0] }
+      }
+    },
+    "black": {
+      "$type": "color",
+      "$value": { "colorSpace": "oklch", "components": [0, 0, 0] }
+    }
+  }
+}

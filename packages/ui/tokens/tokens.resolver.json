@@ -1,0 +1,28 @@
+{
+  "name": "baechan-ui-tokens",
+  "version": "2025.10",
+  "description": "어느 파일이 기본(라이트)이고 어느 파일이 다크에서 덮어쓰는지 적는다. 형식은 DTCG 2025.10 Resolver 모듈이다. Style Dictionary 5.8은 이 파일을 읽지 못해 생성 스크립트(scripts/build-tokens.js)가 직접 읽는다.",
+  "sets": {
+    "base": {
+      "sources": [
+        { "$ref": "palette.tokens.json" },
+        { "$ref": "color.tokens.json" },
+        { "$ref": "radius.tokens.json" },
+        { "$ref": "z-index.tokens.json" },
+        { "$ref": "font-size.tokens.json" },
+        { "$ref": "line-height.tokens.json" },
+        { "$ref": "text.tokens.json" }
+      ]
+    }
+  },
+  "modifiers": {
+    "theme": {
+      "contexts": {
+        "light": [],
+        "dark": [{ "$ref": "color.dark.tokens.json" }]
+      },
+      "default": "light"
+    }
+  },
+  "resolutionOrder": [{ "$ref": "#/sets/base" }, { "$ref": "#/modifiers/theme" }]
+}
