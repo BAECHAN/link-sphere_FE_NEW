@@ -13,9 +13,9 @@ const ROOT = path.resolve(__dirname, '..');
 
 const HEADING = '## 뮤테이션 테스트 (정보용 — 머지를 막지 않음)';
 
-/** 대상에서 빼는 .ts 파일. 테스트 인프라·생성 타입은 로직이 아니고, 테스트·스토리는 뮤테이션 대상이 아니다. */
+/** 대상에서 빼는 .ts 파일. 테스트 인프라·생성 타입·생성 토큰 목록은 로직이 아니고, 테스트·스토리는 뮤테이션 대상이 아니다. */
 const EXCLUDED_PATTERN =
-  /^src\/(test\/|mocks\/|shared\/api\/generated\/)|^packages\/ui\/src\/test\/|\.(test|spec|stories)\.ts$|\.d\.ts$/;
+  /^src\/(test\/|mocks\/|shared\/api\/generated\/)|^packages\/ui\/src\/(test|generated)\/|\.(test|spec|stories)\.ts$|\.d\.ts$/;
 
 /** 대상을 고르는 폴더. 공용 UI 패키지 파일도 패키지 테스트로 잰다(vitest.stryker.config.ts) */
 const TARGET_DIRS = ['src', 'packages/ui/src'];

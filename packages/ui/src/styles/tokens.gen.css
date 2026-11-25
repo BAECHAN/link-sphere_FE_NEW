@@ -1,0 +1,177 @@
+/*
+ * 생성 파일 - 직접 고치지 않는다.
+ * 원본: packages/ui/tokens/*.tokens.json, 다시 만들기: 저장소 루트에서 pnpm tokens
+ * 값과 이유를 정리한 표: docs/DESIGN-TOKENS.md
+ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-scrim: var(--scrim);
+  --color-scrim-foreground: var(--scrim-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@theme static {
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+}
+
+@theme static {
+  --z-index-raised: 10;
+  --z-index-hitbox: 20;
+  --z-index-panel: 40;
+  --z-index-nav: 50;
+  --z-index-scrim: 55;
+  --z-index-drawer: 60;
+  --z-index-modal: 70;
+  --z-index-popover: 80;
+}
+
+@theme static {
+  --text-t1: 0.6875rem;
+  --text-t1--line-height: 0.9375rem;
+  --text-t2: 0.75rem;
+  --text-t2--line-height: 1rem;
+  --text-t3: 0.8125rem;
+  --text-t3--line-height: 1.125rem;
+  --text-t4: 0.875rem;
+  --text-t4--line-height: 1.1875rem;
+  --text-t5: 1rem;
+  --text-t5--line-height: 1.375rem;
+  --text-t6: 1.125rem;
+  --text-t6--line-height: 1.5rem;
+  --text-t7: 1.25rem;
+  --text-t7--line-height: 1.6875rem;
+  --text-t8: 1.375rem;
+  --text-t8--line-height: 1.875rem;
+  --text-t9: 1.5rem;
+  --text-t9--line-height: 2rem;
+  --text-t10: 1.625rem;
+  --text-t10--line-height: 2.1875rem;
+  --text-t11: 1.75rem;
+  --text-t11--line-height: 2.375rem;
+  --text-t12: 2rem;
+  --text-t12--line-height: 2.625rem;
+  --text-t13: 2.5rem;
+  --text-t13--line-height: 3.25rem;
+  --text-t14: 3rem;
+  --text-t14--line-height: 3.75rem;
+}
+
+@theme {
+  --text-screen-title: 1.25rem;
+  --text-screen-title--line-height: 1.6875rem;
+  --text-screen-title--font-weight: 600;
+  --text-section-title: 1.125rem;
+  --text-section-title--line-height: 1.5rem;
+  --text-section-title--font-weight: 600;
+  --text-subsection-title: 0.875rem;
+  --text-subsection-title--line-height: 1.1875rem;
+  --text-subsection-title--font-weight: 600;
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 0.9375rem;
+  --text-card-title: 0.875rem;
+  --text-card-title--line-height: 1.1875rem;
+  --text-card-title--font-weight: 700;
+  --text-detail-title: 1.5rem;
+  --text-detail-title--line-height: 2rem;
+  --text-detail-title--font-weight: 700;
+  --text-group-label: 0.75rem;
+  --text-group-label--line-height: 1rem;
+  --text-group-label--font-weight: 600;
+  --text-display-title: 3.75rem;
+  --text-display-title--line-height: 3.75rem;
+  --text-display-title--font-weight: 700;
+}
+
+:root {
+  --palette-white: oklch(1 0 0);
+  --palette-neutral-50: oklch(0.985 0 0);
+  --palette-neutral-100: oklch(0.97 0 0);
+  --palette-neutral-200: oklch(0.922 0 0);
+  --palette-neutral-400: oklch(0.708 0 0);
+  --palette-neutral-500: oklch(0.556 0 0);
+  --palette-neutral-800: oklch(0.269 0 0);
+  --palette-neutral-900: oklch(0.205 0 0);
+  --palette-neutral-950: oklch(0.145 0 0);
+  --palette-black: oklch(0 0 0);
+  --background: var(--palette-white);
+  --foreground: var(--palette-neutral-950);
+  --card: var(--palette-white);
+  --card-foreground: var(--palette-neutral-950);
+  --popover: var(--palette-white);
+  --popover-foreground: var(--palette-neutral-950);
+  --primary: var(--palette-neutral-900);
+  --primary-foreground: var(--palette-neutral-50);
+  --secondary: var(--palette-neutral-100);
+  --secondary-foreground: var(--palette-neutral-900);
+  --muted: var(--palette-neutral-100);
+  --muted-foreground: oklch(0.542 0 0);
+  --accent: var(--palette-neutral-100);
+  --accent-foreground: var(--palette-neutral-900);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: var(--palette-white);
+  --scrim: var(--palette-black);
+  --scrim-foreground: var(--palette-white);
+  --info: oklch(0.575 0.233 262);
+  --info-foreground: var(--palette-white);
+  --warning: oklch(0.769 0.188 85);
+  --warning-foreground: var(--palette-neutral-950);
+  --success: oklch(0.543 0.194 142);
+  --success-foreground: var(--palette-white);
+  --border: var(--palette-neutral-200);
+  --input: var(--palette-neutral-200);
+  --ring: var(--palette-neutral-400);
+}
+
+.dark {
+  --background: var(--palette-neutral-950);
+  --foreground: var(--palette-neutral-50);
+  --card: var(--palette-neutral-900);
+  --card-foreground: var(--palette-neutral-50);
+  --popover: var(--palette-neutral-900);
+  --popover-foreground: var(--palette-neutral-50);
+  --primary: var(--palette-neutral-200);
+  --primary-foreground: var(--palette-neutral-900);
+  --secondary: var(--palette-neutral-800);
+  --secondary-foreground: var(--palette-neutral-50);
+  --muted: var(--palette-neutral-800);
+  --muted-foreground: var(--palette-neutral-400);
+  --accent: var(--palette-neutral-800);
+  --accent-foreground: var(--palette-neutral-50);
+  --destructive: oklch(0.704 0.191 22.216);
+  --info: oklch(0.707 0.165 254);
+  --info-foreground: var(--palette-white);
+  --warning: oklch(0.769 0.188 85);
+  --warning-foreground: var(--palette-neutral-950);
+  --success: oklch(0.749 0.155 152);
+  --success-foreground: var(--palette-white);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--palette-neutral-500);
+}

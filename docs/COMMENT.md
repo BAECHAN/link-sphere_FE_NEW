@@ -1609,7 +1609,7 @@ Chrome 157, macOS, 사용자가 평소 쓰는 한글 입력기(종류는 기록�
   폼 컨테이너를 ref로 찾아 스크롤하고 포커스한다 — DOM id가 아니라 이 effect가 해석하는 신호다.
 - **맨 위로 버튼(`BackToTopButton`)** — 300px 넘게 내리면 우하단에 뜨는 전역 플로팅 버튼
   (`src/shared/ui/elements/BackToTopButton.tsx`). 어느 화면에 그릴지는 `AppLayout.tsx`가 정한다.
-- **`z-panel` / `z-scrim`** — `packages/ui/src/styles/tokens.css:63-65`의 z-index 토큰(40 / 55).
+- **`z-panel` / `z-scrim`** — z-index 토큰 `panel`·`scrim`(40 / 55). 값은 [토큰 표](./DESIGN-TOKENS.md#겹침-순서)가 정본이다.
 - **`ImageUploadError`** — 이미지 업로드 단계(서명 URL 발급·스토리지 PUT)의 실패. `reason`
   (형식·용량·한도·저장소·네트워크·원인 불명)과 한도일 때 `retryAfterSeconds`를 담는다
   (`src/shared/types/common.type.ts`).

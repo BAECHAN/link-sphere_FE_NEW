@@ -1,22 +1,16 @@
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { cn } from '@baechan/ui/lib/tailwind/utils';
+import { TOKENS } from '@baechan/ui/tokens';
 
-// 패키지 토큰 CSS(styles/tokens.css) @theme의 글자 크기 토큰(--text-t1, --text-micro 등). --text-*--line-height 같은
-// 하위 변수는 뺀다. 이 파일 기준 경로로 읽는다 - 패키지 테스트는 어느 폴더에서 실행해도 같은 파일을 읽어야 한다.
-// `new URL(상대 경로, import.meta.url)`은 쓰지 않는다 - jsdom 환경의 전역 URL은 jsdom 것이라 fs가 파일 주소로 받지 않는다
-const tokensCss = readFileSync(
-  join(dirname(fileURLToPath(import.meta.url)), '../../styles/tokens.css'),
-  'utf-8'
-);
-const textSizeTokens = [...tokensCss.matchAll(/--text-([a-z0-9]+(?:-[a-z0-9]+)*):/g)].map(
-  (match) => match[1]
-);
+// 글자 크기를 정하는 토큰의 이름: 눈금(text-t1 등)과 역할 토큰의 글자 크기 부분(text-micro 등). 줄 높이·두께 같은 하위 값은
+// 뺀다. 토큰 원본에서 만든 전체 목록(src/generated/tokens.gen.ts)에서 직접 고른다 - cn()이 읽는 이름 목록
+// (TEXT_SIZE_TOKEN_NAMES)을 그대로 쓰면 그 목록이 토큰을 빠뜨려도 여기서 걸리지 않는다
+const textSizeTokens = TOKENS.filter(
+  (token) => token.group === 'font-size' || (token.group === 'text' && token.part === 'font-size')
+).map((token) => token.name);
 
 describe('cn()의 글자 크기 토큰 병합', () => {
-  it('토큰 CSS에서 글자 크기 토큰을 읽어 온다', () => {
+  it('토큰 목록에서 글자 크기 토큰을 읽어 온다', () => {
     expect(textSizeTokens).toContain('t1');
     expect(textSizeTokens).toContain('micro');
     expect(textSizeTokens).not.toContain('micro--line-height');

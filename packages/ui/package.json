@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "tokens:build": "node scripts/build-tokens.js"
   },
   "sideEffects": [
     "**/*.css"
@@ -16,6 +17,7 @@
     "./texts/UiTextsProvider": "./src/texts/UiTextsProvider.tsx",
     "./texts/ui-texts": "./src/texts/ui-texts.ts",
     "./texts/ko-ui-texts": "./src/texts/ko-ui-texts.ts",
+    "./tokens": "./src/generated/tokens.gen.ts",
     "./styles.css": "./src/styles/tokens.css"
   },
   "peerDependencies": {
@@ -48,6 +50,7 @@
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^4.7.0",
     "jsdom": "28.1.0",
+    "style-dictionary": "^5.8.0",
     "vitest": "^4.1.12"
   }
 }

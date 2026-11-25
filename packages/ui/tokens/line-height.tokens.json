@@ -1,0 +1,19 @@
+{
+  "line-height": {
+    "$description": "글자 크기 눈금(font-size)의 짝이 되는 줄 높이 14단계. 값 출처는 font-size와 같다(SEED의 $line-height.t1~t14). 같은 이름의 글자 크기 클래스를 쓰면 함께 적용된다.",
+    "t1": { "$type": "dimension", "$value": { "value": 0.9375, "unit": "rem" } },
+    "t2": { "$type": "dimension", "$value": { "value": 1, "unit": "rem" } },
+    "t3": { "$type": "dimension", "$value": { "value": 1.125, "unit": "rem" } },
+    "t4": { "$type": "dimension", "$value": { "value": 1.1875, "unit": "rem" } },
+    "t5": { "$type": "dimension", "$value": { "value": 1.375, "unit": "rem" } },
+    "t6": { "$type": "dimension", "$value": { "value": 1.5, "unit": "rem" } },
+    "t7": { "$type": "dimension", "$value": { "value": 1.6875, "unit": "rem" } },
+    "t8": { "$type": "dimension", "$value": { "value": 1.875, "unit": "rem" } },
+    "t9": { "$type": "dimension", "$value": { "value": 2, "unit": "rem" } },
+    "t10": { "$type": "dimension", "$value": { "value": 2.1875, "unit": "rem" } },
+    "t11": { "$type": "dimension", "$value": { "value": 2.375, "unit": "rem" } },
+    "t12": { "$type": "dimension", "$value": { "value": 2.625, "unit": "rem" } },
+    "t13": { "$type": "dimension", "$value": { "value": 3.25, "unit": "rem" } },
+    "t14": { "$type": "dimension", "$value": { "value": 3.75, "unit": "rem" } }
+  }
+}

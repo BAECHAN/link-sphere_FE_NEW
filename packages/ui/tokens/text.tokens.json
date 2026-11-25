@@ -1,0 +1,76 @@
+{
+  "text": {
+    "$description": "글자 역할 토큰 8종. 눈금(font-size, line-height)에서 실제 화면에 쓰는 값만 골라 이름을 붙였다. 클래스 하나가 글자 크기, 줄 높이, 두께(있는 경우)를 함께 정한다. 제목류는 두께까지 묶어 따로 두께 클래스를 겹쳐 쓰지 않게 했다(screen-title은 2026-09-16에 semibold로 통일). micro는 쓰는 곳마다 두께가 달라 묶지 않는다. card-title과 detail-title은 반응형이라 데스크톱 크기를 역할에 묶지 않고 쓰는 곳에서 눈금 클래스로 올린다. group-label과 display-title은 원래 쓰던 Tailwind 기본 클래스 조합과 계산값이 같다. 처음 4개와 뒤에 더한 것들의 승인 경위는 docs/plans/2026-09-16-typography-tokens-a11y-gate.md에 있다.",
+    "screen-title": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 1.25, "unit": "rem" },
+        "$description": "페이지 최상위 제목 (h1)"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 1.6875, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 600 }
+    },
+    "section-title": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 1.125, "unit": "rem" },
+        "$description": "섹션 제목 (h2), Dialog 제목"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 1.5, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 600 }
+    },
+    "subsection-title": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 0.875, "unit": "rem" },
+        "$description": "소제목, 보통 text-muted-foreground와 함께"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 1.1875, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 600 }
+    },
+    "micro": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 0.6875, "unit": "rem" },
+        "$description": "배지·단축키·카운트 같은 최소 라벨 (두께는 토큰에 없음)"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 0.9375, "unit": "rem" } }
+    },
+    "card-title": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 0.875, "unit": "rem" },
+        "$description": "포스트 카드 제목 (md:text-t6과 조합해 반응형)"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 1.1875, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 700 }
+    },
+    "detail-title": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 1.5, "unit": "rem" },
+        "$description": "상세 페이지 게시글 제목 (md:text-t11과 조합해 반응형)"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 2, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 700 }
+    },
+    "group-label": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 0.75, "unit": "rem" },
+        "$description": "목록 섹션 라벨 (폴더 그룹, 최근 검색 등)"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 1, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 600 }
+    },
+    "display-title": {
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 3.75, "unit": "rem" },
+        "$description": "대형 에러 페이지 타이틀 (404/403/500)"
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 3.75, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 700 }
+    }
+  }
+}

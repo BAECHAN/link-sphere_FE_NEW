@@ -1,0 +1,21 @@
+{
+  "radius": {
+    "$description": "모서리 반경 4단계. 부품은 rounded-<이름> 클래스로 쓴다. 원래는 기준 값 하나(--radius, 0.625rem)에서 calc()로 계산했다(sm = 기준 - 4px 등). DTCG 형식은 계산식을 적을 수 없어 브라우저 기본 글자 크기(16px)에서의 계산값을 고정 값으로 옮겼다(2026-11-24 사용자 결정). 기본 글자 크기를 바꾼 브라우저에서는 sm·md·xl이 예전과 조금 다르다(20px일 때 sm 8.5px에서 7.5px, md 10.5px에서 10px, xl 16.5px에서 17.5px). 기준 값 변수(--radius)는 없앴다.",
+    "sm": {
+      "$type": "dimension",
+      "$value": { "value": 0.375, "unit": "rem" }
+    },
+    "md": {
+      "$type": "dimension",
+      "$value": { "value": 0.5, "unit": "rem" }
+    },
+    "lg": {
+      "$type": "dimension",
+      "$value": { "value": 0.625, "unit": "rem" }
+    },
+    "xl": {
+      "$type": "dimension",
+      "$value": { "value": 0.875, "unit": "rem" }
+    }
+  }
+}

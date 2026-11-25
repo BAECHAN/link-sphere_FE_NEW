@@ -58,6 +58,7 @@ export default defineConfig({
         'src/main.tsx',
         'src/vite-env.d.ts',
         'src/shared/api/generated/**',
+        'packages/ui/src/generated/**',
       ],
     },
   },

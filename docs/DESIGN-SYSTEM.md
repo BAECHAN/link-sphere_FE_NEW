@@ -10,7 +10,7 @@
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
 > spacing 토큰은 왜 없는지, 지금까지 찾은 a11y 위반을 어떻게 해소했는지도 안다.
 >
-> **마지막 검토**: 2026-11-18
+> **마지막 검토**: 2026-11-25
 
 ## 1. 쉬운 설명
 
@@ -50,8 +50,9 @@ flowchart TD
 ## 2. 전제 지식
 
 이 문서는 Tailwind v4의 CSS-first 설정(`@theme` 지시자)과 이 레포의 `cn()`/`cva`
-패턴을 이미 안다고 가정한다. 색상·반경 토큰의 전체 표와 다크모드·커서 규칙은 이 문서가
-아니라 [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md)이 정본이다
+패턴을 이미 안다고 가정한다. 범용 토큰의 값과 정한 이유는 원본에서 만든 토큰 표
+[`DESIGN-TOKENS.md`](./DESIGN-TOKENS.md)가, 색을 고르는 법과 다크모드·커서 규칙은
+[`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md)이 정본이다
 — 여기서 복제하지 않는다. `tailwind.config.ts`가 왜 사라졌는지의 배경은
 [`docs/DECISIONS.md`](DECISIONS.md) 2026-09-13 항목 참고.
 
@@ -146,8 +147,75 @@ import하지 못하게 막아, 구조적으로 도메인 로직과 분리돼 있
   의미 토큰만 쓴다(명명 팔레트 클래스는 `custom-tailwind/no-raw-color`가 이미 막는다).
 - **숫자로 남긴 예외 4개**: `--muted-foreground`(0.542 — a11y 대비 때문에 팔레트 0.556에서
   내린 값), 다크 `--border`·`--input`·`--sidebar-border`(흰색 + 투명도 — `var()` 뒤에 알파를
-  붙일 수 없다). 각 자리에 이유 주석이 있다.
+  붙일 수 없다). 패키지 토큰 셋의 이유는 원본의 설명에 적혀 토큰 표에 실리고, 앱 토큰 `--sidebar-border`의
+  이유는 `globals.css` 주석에 있다.
 - 안 쓰는 단계(300·600·700)는 정의하지 않는다 — 필요해지면 그때 추가한다.
+
+### 토큰 원본과 생성물 (2026-11-25)
+
+범용 토큰(패키지 `@baechan/ui`)의 값은 손으로 쓴 CSS가 아니라 **원본 파일**에 있다. 원본은 사람이 고치는 JSON이고,
+CSS·토큰 목록·토큰 표는 원본에서 만드는 **생성물**이라 직접 고치지 않는다. 그 전에는 `tokens.css` 한 파일이 원본이자
+결과물이었고, 같은 값을 카탈로그 스토리·skill·문서에 손으로 베껴 적었다. 앱 전용 토큰(`globals.css`)은 이 구조 밖이고
+지금처럼 CSS를 직접 고친다. 위 "구조" 그림이 다섯 겹 전체를 보인다면 아래 그림은 그중 토큰 한 겹의 안쪽이다.
+
+- **DTCG**: W3C 커뮤니티 그룹이 정한 토큰 파일 형식이다(2025.10판,
+  [Format](https://www.designtokens.org/tr/2025.10/format/)). 색은 `{ colorSpace, components }` 객체로, 크기는
+  `{ value, unit }`으로 적는다. 값 자리에 `{palette.neutral.900}`처럼 다른 토큰의 경로를 적으면 그 토큰을 가리킨다(별칭).
+- **Style Dictionary**: 토큰 파일을 읽어 별칭을 풀고 플랫폼별 코드로 바꾸는 도구다(여기서는 5.8.0,
+  `packages/ui`의 `devDependencies`).
+
+```mermaid
+flowchart LR
+    S["원본 - 사람이 고친다<br/>packages/ui/tokens/*.tokens.json<br/>tokens.resolver.json: 라이트, 다크 파일 목록"]
+    B["packages/ui/scripts/build-tokens.js<br/>파일 합치기, 별칭 풀기(Style Dictionary),<br/>값 모양 검사, CSS 글자로 바꾸기"]
+    C["tokens.gen.css<br/>테마 블록 5개, :root, .dark"]
+    T["tokens.gen.ts<br/>토큰 목록: 이름, 값, 설명"]
+    G["scripts/generate-token-docs.js"]
+    D["docs/DESIGN-TOKENS.md<br/>토큰 표"]
+    S --> B
+    B --> C
+    B --> T
+    C --> E["tokens.css가 import<br/>화면"]
+    T --> K["카탈로그 스토리,<br/>cn()의 글자 크기 이름"]
+    T --> G --> D
+    CI["CI: 토큰 생성물 최신성 확인<br/>pnpm tokens 뒤 git status"] -. "커밋된 것과 다르면 실패" .-> C
+```
+
+|             | 당근(SEED)                  | 토스(TDS)                               | 우리                                          | 이유                                                                                                              |
+| ----------- | --------------------------- | --------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 원본        | YAML 파일(자체 형식)        | Figma 플러그인이 GitHub에 커밋하는 파일 | DTCG JSON. 손으로 고친다                      | 당근의 YAML은 당근 생성기만 읽는다. Figma 연동은 하지 않기로 했다(`DECISIONS.md` 2026-11-18)                      |
+| 생성 도구   | 자체 생성기                 | Style Dictionary                        | Style Dictionary + 생성 스크립트 하나         | 자체 생성기를 만들 규모가 아니다. 도구 기본 출력은 우리 CSS 구조와 달라 스크립트가 메운다(아래)                   |
+| 생성물      | CSS 변수, TS, Tailwind 테마 | CSS, TS 등                              | Tailwind 테마 블록이 든 CSS, TS 목록, 토큰 표 | 표와 카탈로그를 손으로 베끼지 않으려는 것이 이 구조의 목적이다                                                    |
+| 생성물 관리 | —                           | —                                       | 커밋하고 CI가 다시 만들어 같은지 본다         | 이 레포의 선례다(`openapi.gen.ts`, `ci.yml` "생성 타입 최신성 확인"). 당근·토스가 어떻게 하는지는 확인하지 않았다 |
+
+당근은 [ARCHITECTURE.md](https://github.com/daangn/seed-design/blob/dev/ARCHITECTURE.md)와
+[packages/rootage](https://github.com/daangn/seed-design/tree/dev/packages/rootage)를, 토스는 기술 블로그
+[달리는 기차 바퀴 칠하기: 7년만의 컬러 시스템 업데이트](https://toss.tech/article/tds-color-system-update)를 2026-11-24에
+읽었다. 토스 저장소는 비공개라 그 글이 근거의 전부다. 도구를 고른 경위와 기각한 쪽은 `DECISIONS.md` 2026-11-24 항목에 있다.
+
+**생성 스크립트가 직접 하는 일** — Style Dictionary 5.8.0의 기본 동작이 우리 CSS와 달라서다(2026-11-24·25에 실제로 돌려 확인):
+
+| 일                            | 기본 동작                                                                              | 그래서                                                                                                                        |
+| ----------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 색을 CSS 글자로               | 내장 `css` 변환 묶음은 색을 hex·rgba로 바꾼다(`oklch(0.577 0.245 27.325)` → `#e7000b`) | `oklch()`를 원본 숫자 그대로 적는다. 패키지 색 6개가 sRGB 밖이라(§9 2026-11-25) hex로 바꾸면 넓은 색역 화면에서 색이 달라진다 |
+| Tailwind 테마 블록            | `@theme inline`·`@theme static` 블록과 `--text-<이름>--line-height` 하위 키를 모른다   | 블록 배치와 변수 이름을 스크립트가 정한다(`renderCss`, `cssVarName`)                                                          |
+| 라이트·다크                   | DTCG의 모드 파일(리졸버)을 읽지 못한다                                                 | 스크립트가 `tokens.resolver.json`을 읽어 라이트 한 번, 다크 한 번 빌드한다                                                    |
+| 같은 토큰이 두 파일에 있을 때 | 토큰을 속성 단위로 깊게 합친다                                                         | 스크립트가 토큰을 통째로 바꿔 합친 뒤 넘긴다(§10 "다크 토큰에 라이트 설명이 딸려 왔다")                                       |
+| 값 모양 확인                  | 타입과 안 맞는 값(숫자 자리에 `"50px"`, 성분이 2개인 색)을 그대로 통과시킨다           | 스크립트의 변환기가 타입마다 모양을 보고 틀리면 멈춘다                                                                        |
+| 오류 문구                     | 끊긴 별칭과 변환 실패를 개수로만 알린다("참조 1개를 찾지 못함")                        | 스크립트가 별칭 대상을 먼저 확인하고 변환기의 문구를 모아, 토큰 경로와 받은 값을 대며 멈춘다                                  |
+
+**값을 고치는 순서**
+
+1. `packages/ui/tokens/<축>.tokens.json`에서 값이나 설명(`$description`)을 고친다. 다크에서만 다른 색은
+   `color.dark.tokens.json`에 적는다(다크 파일에는 기본 파일에 있는 토큰만 적을 수 있다).
+2. 저장소 루트에서 `pnpm tokens`를 돌린다(패키지 생성 → prettier → 토큰 표).
+3. 원본과 생성물 세 개(`tokens.gen.css`, `tokens.gen.ts`, `docs/DESIGN-TOKENS.md`)를 함께 커밋한다. 생성물만 고치거나
+   원본만 고치면 CI "토큰 생성물 최신성 확인"이 실패한다.
+
+**반경은 고정 값이 됐다(사용자 결정, 2026-11-24)**: 전에는 기준 값 하나(`--radius: 0.625rem`)에서
+`calc(var(--radius) - 4px)`처럼 계산했다. DTCG 형식은 계산식을 적을 수 없어 브라우저 기본 글자 크기(16px)에서의 계산값을
+단계마다 고정 값으로 옮겼다. 16px에서는 화면이 같고, 기본 글자 크기를 바꾼 브라우저에서만 `sm`·`md`·`xl`이 조금 달라진다
+(§9 2026-11-25의 표). 반경 전체를 한 번에 바꾸던 `--radius` 변수는 없어졌다.
 
 **신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
 `Divider`(`divider.tsx`), `FeaturedIcon`(`featured-icon.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
@@ -169,19 +237,21 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 이 기능은 Zustand 스토어나 React Query 키를 도입하지 않는다 — 상태는 CSS 커스텀
 프로퍼티뿐이다. 새로 추가된 네임스페이스:
 
-| 네임스페이스                                                                                | 정의 위치                                                                              | 정본                                                                                  |
-| ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `--z-index-*` (8개)                                                                         | `packages/ui/src/styles/tokens.css`의 `@theme static` 블록                             | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "z-index 토큰"      |
-| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | `packages/ui/src/styles/tokens.css`의 `:root` (테마 무관, `.dark`에 재정의 없음)       | 위와 동일 문서 "주요 색상 토큰" 표                                                    |
-| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | `packages/ui/src/styles/tokens.css`의 `@theme static` 블록                             | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md) "타이포그래피 토큰" |
-| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | `packages/ui/src/styles/tokens.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
-| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정                      | 위와 동일 문서, `entities/category/config/category.const.ts`                          |
-| `--text-card-title`/`group-label`/`display-title` (역할 층, 2026-09-16 추가)                | `packages/ui/src/styles/tokens.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
-| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | `packages/ui/src/styles/tokens.css`의 (static 아닌) `@theme` 블록                      | 위와 동일 문서 "타이포그래피 토큰" 표                                                 |
-| `--palette-*` (무채색 Primitive 10개, 2026-10-29 추가)                                      | `packages/ui/src/styles/tokens.css`의 `:root` 맨 앞 (테마 무관, `.dark`에 재정의 없음) | 이 문서 §5 "색상 2층", 토큰 CSS 블록 주석                                             |
+| 네임스페이스                                                                                | 정의 위치                                                                                                                | 정본                                                                                                            |
+| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `--z-index-*` (8개)                                                                         | 원본 `packages/ui/tokens/z-index.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록                             | [토큰 표](./DESIGN-TOKENS.md) "겹침 순서"                                                                       |
+| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | 원본 `packages/ui/tokens/color.tokens.json` → 생성 `tokens.gen.css`의 `:root` (테마 무관, 다크 파일에 없음)              | 토큰 표 "의미 색"                                                                                               |
+| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | 원본 `packages/ui/tokens/font-size.tokens.json`·`line-height.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록 | 토큰 표 "글자 크기 눈금"                                                                                        |
+| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | 원본 `packages/ui/tokens/text.tokens.json` → 생성 `tokens.gen.css`의 (static 아닌) `@theme` 블록                         | 토큰 표 "글자 역할"                                                                                             |
+| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정                                                        | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md), `entities/category/config/category.const.ts` |
+| `--text-card-title`/`group-label`/`display-title` (역할 층, 2026-09-16 추가)                | 위 역할 층과 같은 원본·블록                                                                                              | 토큰 표 "글자 역할"                                                                                             |
+| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | 위 역할 층과 같은 원본·블록                                                                                              | 토큰 표 "글자 역할"                                                                                             |
+| `--palette-*` (무채색 Primitive 10개, 2026-10-29 추가)                                      | 원본 `packages/ui/tokens/palette.tokens.json` → 생성 `tokens.gen.css`의 `:root` 맨 앞 (테마 무관, 다크 파일에 없음)      | 이 문서 §5 "색상 2층", 토큰 표 "팔레트"                                                                         |
 
-전체 59개 색상 값 자체는 옮겨적지 않는다 — 토큰 CSS(`packages/ui/src/styles/tokens.css`, 범용 28개)와
-`globals.css`(앱 전용 31개)가 SSOT다(`@theme inline` 블록의 `--color-*` 개수, 2026-11-20 `grep -c` 재확인).
+패키지 토큰의 "정의 위치"는 2026-11-25부터 원본 파일이다(§5 "토큰 원본과 생성물"). 전체 58개 색상 값 자체는 옮겨적지
+않는다 — 범용 27개는 토큰 원본(`packages/ui/tokens/color.tokens.json`)이, 앱 전용 31개는 `globals.css`가 SSOT다
+(`--color-*` 선언 개수. 범용은 생성 CSS에서, 앱 전용은 `grep -cE "^\s+--color-[a-z0-9-]+:" src/app/globals.css`로
+2026-11-25에 다시 셌다. 그 전에 적혀 있던 범용 28개·전체 59개는 `grep -c`가 토큰 CSS의 주석 한 줄까지 센 값이다).
 
 ## 7. 운영 파라미터
 
@@ -189,21 +259,22 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 
 ## 8. 코드 지도와 자주 하는 수정
 
-| 하려는 것                                                                              | 위치                                                                                                                  | 방법                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 새 z-index 층 추가                                                                     | `packages/ui/src/styles/tokens.css`의 `@theme static` 블록 (§ z-index 주석)                                           | `--z-index-<name>: <값>` 추가 → `design-tokens` skill 표 갱신 → `DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS` 배열에 항목 추가                                                                                                                                                                                                                                                                                                                                   |
-| 새 색 토큰 추가                                                                        | 범용이면 `packages/ui/src/styles/tokens.css`, 이 앱에만 묶이면 `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑 | 값 정의(무채색이면 숫자 대신 `var(--palette-neutral-<단계>)` — 필요한 단계가 없으면 `:root` 팔레트 블록에 먼저 추가, 유채색은 숫자 그대로) → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신                                                                                                                                                                                                                                                      |
-| 새 Tailwind 커스텀 ESLint 룰 추가                                                      | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화)        | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기                                                                                                                                                                   |
-| 새 타이포 역할 토큰 추가                                                               | `packages/ui/src/styles/tokens.css`의 (static 아닌) `@theme` 블록                                                     | `--text-<role>`/`--text-<role>--line-height`(필요시 `--font-weight`) 추가 → `packages/ui/src/lib/tailwind/utils.ts`의 `TEXT_SIZE_TOKENS`에 이름 추가(빠뜨리면 `utils.test.ts` 실패, §10) → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표 갱신                                                                                                                                                                                                   |
-| 토스트의 버튼 자리·닫기 X 바꾸기                                                       | `packages/ui/src/lib/toast/toast-layout.ts`                                                                           | 호출부는 모양 옵션을 넘길 수 없고 래퍼가 정한다(`FE-ARCHITECTURE.md` §14 "버튼 배치"). 새 모양은 `packages/ui/src/lib/toast/`에 함수로 만들고 `sonner.stories.tsx`에 견본을 더한다                                                                                                                                                                                                                                                                               |
-| 토스트 종류별 색 바꾸기                                                                | `packages/ui/src/atoms/sonner.tsx`의 `KIND_TOKENS`·`KIND_COLOR_VARS`                                                  | 오류·경고·성공·안내 토스트의 배경·테두리·글자색은 `--destructive`·`--warning`·`--success`·`--info`에서 `color-mix`로 만든다(배경 8%·테두리 30%는 바탕색과, 글자 60%는 본문색과 섞는다). 토큰 값을 바꾸면 따라 바뀐다. 비율이나 토큰을 바꾸면 Storybook `Kinds`·`Notice`에서 밝은·어두운 테마의 제목 대비(4.5:1 이상)를 다시 잰다. sonner가 문서화하지 않은 변수 이름에 기대므로 sonner를 올릴 때도 같은 스토리를 확인한다(`DECISIONS.md` 2026-11-18 "토스트 색") |
-| 범용 부품이 스스로 보여 주는 글자 더하기                                               | `packages/ui/src/texts/`(타입·한국어 묶음·Provider), `src/app/providers/UiTextsProvider.tsx`(이 앱이 넘기는 값)       | 부품에 `TEXTS`를 import하지 않는다. `ui-texts.ts` 타입 → `ko-ui-texts.ts` 묶음 → `APP_UI_TEXTS` 순서로 키를 더하고 부품에서 `useUiTexts()`로 읽는다. 순서와 묶는 규칙은 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §1.2                                                                                                                                               |
-| 새 공용 UI 부품이 경계 린트(`custom-design-system/no-app-import-in-generic-ui`)에 걸림 | `scripts/lib/ui-boundary-rule.js`(허용 목록), `eslint.config.js`의 같은 규칙 블록 `ignores`(앱 전용 예외 목록)        | 범용 부품이면 걸린 import를 뗀다(글자는 `useUiTexts()`, 라우터·앱 상태는 쓰는 쪽이 속성으로 넘긴다). 이 앱에서만 쓰는 부품이면 예외 목록에 파일을 더하고 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §5 분류표에 "앱 전용"으로 적는다. 허용 목록에 모듈을 더하는 것은 그 모듈이 패키지와 함께 옮겨질 때만이다(§5.5)                                                                                                                             |
-| 토큰 카탈로그에 새 섹션 추가                                                           | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                       | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                                                                                                                                                                                                                                                                       |
-| Storybook에서 다크모드 확인                                                            | `.storybook/preview.tsx`의 툴바 테마 토글                                                                             | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                                                                                                                                                                                                                                                                                                                                       |
-| a11y 위반을 로컬에서 확인                                                              | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                       | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가                                                                                                                                                                                                                                                                                                                    |
-| 새 스토리를 a11y 예외로 낮추기                                                         | 해당 `*.stories.tsx`의 story 객체(또는 파일 전체가 해당하면 `meta`)                                                   | `parameters: { a11y: { test: 'todo' } }` 추가 + 이유 주석 + `docs/DESIGN-SYSTEM.md` §11 "a11y 잔여 목록" 표에 행 추가                                                                                                                                                                                                                                                                                                                                            |
-| CI가 "Storybook 테스트 중 의존성 재최적화"로 실패                                      | `.github/workflows/ci.yml`의 "Run Storybook a11y tests" 단계 로그                                                     | 출력된 `new dependencies optimized:` 목록 확인 → 스토리가 없는 경로(이미지 `src` 등)를 요청해 `index.html` 폴백이 나지 않았는지 `DEBUG=vite:html-fallback pnpm test:storybook`으로 먼저 확인(§10) → 스토리가 실제로 쓰는 의존성이면 `vitest.config.ts` storybook 프로젝트에 `optimizeDeps.include`로 추가                                                                                                                                                        |
+| 하려는 것                                                                              | 위치                                                                                                                                                                             | 방법                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 새 z-index 층 추가                                                                     | 원본 `packages/ui/tokens/z-index.tokens.json`                                                                                                                                    | 토큰을 값이 작은 것부터 순서에 맞춰 더하고 `$description`에 쓰는 곳을 적는다 → `pnpm tokens` → 원본과 생성물을 함께 커밋. 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS`)는 생성 목록을 읽어 따로 고치지 않는다 → `design-tokens` skill의 순서 문장에 이름 추가                                                                                                                                                                                                                            |
+| 새 색 토큰 추가                                                                        | 범용이면 원본 `packages/ui/tokens/color.tokens.json`(다크에서 값이 다르면 `color.dark.tokens.json`에도), 이 앱에만 묶이면 `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑 | **범용**: 원본에 토큰을 더한다(무채색이면 숫자 대신 `{palette.neutral.<단계>}` 별칭 — 필요한 단계가 없으면 `palette.tokens.json`에 먼저 추가, 유채색은 숫자 그대로) → `pnpm tokens`(`--color-<name>` 매핑과 토큰 표가 함께 만들어진다) → 카탈로그의 색 묶음(`DesignTokens.stories.tsx`의 `packageColors(...)`)에 이름 추가(안 넣으면 "묶음에 넣지 않은 범용 색"에 나온다). **앱 전용**: 값 정의(무채색이면 `var(--palette-neutral-<단계>)`) → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신 |
+| 새 Tailwind 커스텀 ESLint 룰 추가                                                      | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화)                                                                   | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기                                                                                                                                                                                                               |
+| 새 타이포 역할 토큰 추가                                                               | 원본 `packages/ui/tokens/text.tokens.json`                                                                                                                                       | 역할 아래에 `font-size`·`line-height`(필요하면 `font-weight`) 토큰을 더한다 → `pnpm tokens`(`cn()`이 읽는 글자 크기 이름 목록 `TEXT_SIZE_TOKEN_NAMES`에 함께 등록된다. 등록이 왜 필요한지는 §10) → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표에 대상 예시 추가                                                                                                                                                                                                                           |
+| 새 토큰 축 추가(모션·그림자 등)                                                        | 원본 `packages/ui/tokens/<축>.tokens.json`, `packages/ui/tokens/tokens.resolver.json`, `packages/ui/scripts/build-tokens.js`, `scripts/generate-token-docs.js`                   | 원본 파일을 만들고 `tokens.resolver.json`의 기본 파일 목록에 더한다 → `build-tokens.js`의 `describePath`(경로를 축·이름으로 나눔)·`cssVarName`(변수 이름)·`renderCss`(어느 테마 블록에 낼지)·`toCssValue`(새 값 타입이면)에 축을 더한다 → `generate-token-docs.js`의 `SECTIONS`에 절을 더한다. 어느 하나를 빠뜨리면 `pnpm tokens`가 그 축 이름을 대며 멈춘다                                                                                                                                                 |
+| 토스트의 버튼 자리·닫기 X 바꾸기                                                       | `packages/ui/src/lib/toast/toast-layout.ts`                                                                                                                                      | 호출부는 모양 옵션을 넘길 수 없고 래퍼가 정한다(`FE-ARCHITECTURE.md` §14 "버튼 배치"). 새 모양은 `packages/ui/src/lib/toast/`에 함수로 만들고 `sonner.stories.tsx`에 견본을 더한다                                                                                                                                                                                                                                                                                                                           |
+| 토스트 종류별 색 바꾸기                                                                | `packages/ui/src/atoms/sonner.tsx`의 `KIND_TOKENS`·`KIND_COLOR_VARS`                                                                                                             | 오류·경고·성공·안내 토스트의 배경·테두리·글자색은 `--destructive`·`--warning`·`--success`·`--info`에서 `color-mix`로 만든다(배경 8%·테두리 30%는 바탕색과, 글자 60%는 본문색과 섞는다). 토큰 값을 바꾸면 따라 바뀐다. 비율이나 토큰을 바꾸면 Storybook `Kinds`·`Notice`에서 밝은·어두운 테마의 제목 대비(4.5:1 이상)를 다시 잰다. sonner가 문서화하지 않은 변수 이름에 기대므로 sonner를 올릴 때도 같은 스토리를 확인한다(`DECISIONS.md` 2026-11-18 "토스트 색")                                             |
+| 범용 부품이 스스로 보여 주는 글자 더하기                                               | `packages/ui/src/texts/`(타입·한국어 묶음·Provider), `src/app/providers/UiTextsProvider.tsx`(이 앱이 넘기는 값)                                                                  | 부품에 `TEXTS`를 import하지 않는다. `ui-texts.ts` 타입 → `ko-ui-texts.ts` 묶음 → `APP_UI_TEXTS` 순서로 키를 더하고 부품에서 `useUiTexts()`로 읽는다. 순서와 묶는 규칙은 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §1.2                                                                                                                                                                                           |
+| 새 공용 UI 부품이 경계 린트(`custom-design-system/no-app-import-in-generic-ui`)에 걸림 | `scripts/lib/ui-boundary-rule.js`(허용 목록), `eslint.config.js`의 같은 규칙 블록 `ignores`(앱 전용 예외 목록)                                                                   | 범용 부품이면 걸린 import를 뗀다(글자는 `useUiTexts()`, 라우터·앱 상태는 쓰는 쪽이 속성으로 넘긴다). 이 앱에서만 쓰는 부품이면 예외 목록에 파일을 더하고 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §5 분류표에 "앱 전용"으로 적는다. 허용 목록에 모듈을 더하는 것은 그 모듈이 패키지와 함께 옮겨질 때만이다(§5.5)                                                                                                                                                                         |
+| 토큰 카탈로그에 새 섹션 추가                                                           | `src/shared/ui/tokens/DesignTokens.stories.tsx`                                                                                                                                  | 새 `export const <Name>: Story` 추가(기존 `Colors`/`Radius`/`ZIndex` 참고)                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Storybook에서 다크모드 확인                                                            | `.storybook/preview.tsx`의 툴바 테마 토글                                                                                                                                        | 별도 설정 불필요 — 이미 `.dark` 클래스를 토글하도록 연결됨                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| a11y 위반을 로컬에서 확인                                                              | `pnpm test:storybook` (전체) 또는 `pnpm exec vitest run --project=storybook <파일>` (단일 파일)                                                                                  | 실패 메시지의 axe 규칙 링크(dequeuniversity.com)로 원인 확인 → 고치거나 `parameters.a11y.test: 'todo'` + 사유 주석으로 낮추고 §11 목록에 추가                                                                                                                                                                                                                                                                                                                                                                |
+| 새 스토리를 a11y 예외로 낮추기                                                         | 해당 `*.stories.tsx`의 story 객체(또는 파일 전체가 해당하면 `meta`)                                                                                                              | `parameters: { a11y: { test: 'todo' } }` 추가 + 이유 주석 + `docs/DESIGN-SYSTEM.md` §11 "a11y 잔여 목록" 표에 행 추가                                                                                                                                                                                                                                                                                                                                                                                        |
+| CI가 "Storybook 테스트 중 의존성 재최적화"로 실패                                      | `.github/workflows/ci.yml`의 "Run Storybook a11y tests" 단계 로그                                                                                                                | 출력된 `new dependencies optimized:` 목록 확인 → 스토리가 없는 경로(이미지 `src` 등)를 요청해 `index.html` 폴백이 나지 않았는지 `DEBUG=vite:html-fallback pnpm test:storybook`으로 먼저 확인(§10) → 스토리가 실제로 쓰는 의존성이면 `vitest.config.ts` storybook 프로젝트에 `optimizeDeps.include`로 추가                                                                                                                                                                                                    |
 
 ## 9. 검증 결과
 
@@ -399,6 +470,61 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
   2건이 잡혔다.
 - `pnpm type-check`/`pnpm test`(141개 파일 1,590개)/`prettier --check` 통과
 
+2026-11-25 실측 (범용 토큰을 원본에서 생성하도록 전환, 워크트리 `ds-tokens-stage2-source`, `main` `3b0451ad` 기준) —
+직접 측정. 스크립트는 커밋하지 않았다(설치된 Tailwind의 내부 API를 쓴다).
+
+- **빌드된 CSS 비교**: 바꾸기 전·후 커밋을 `git archive`로 따로 풀고, 설치된 Tailwind(`@tailwindcss/node`의 `compile`,
+  `@tailwindcss/oxide`의 `Scanner` — PostCSS 플러그인이 쓰는 것과 같은 경로)로 진입 CSS를 각각 빌드했다. 클래스 후보도
+  트리마다 따로 긁어, 새 파일이나 사라진 글자 때문에 생기거나 없어진 유틸리티까지 보이게 했다. 규칙(선택자 경로) 단위로
+  선언을 비교한 결과:
+
+  | 진입 CSS                                | 규칙 수(전 → 후) | 바뀐 규칙    | 전에만 있던 규칙 | 후에만 있는 규칙 |
+  | --------------------------------------- | ---------------- | ------------ | ---------------- | ---------------- |
+  | 앱 `src/app/globals.css`                | 1,167 → 1,157    | 7(모두 반경) | 11               | 1                |
+  | 예제 앱 `examples/next/app/globals.css` | 268 → 268        | 3(모두 반경) | 0                | 0                |
+  - 바뀐 규칙: 테마 층의 반경 변수 4개, 반경 유틸리티 5개(`sm`·`md`·`lg`·`xl`과 `sm:` 변형의 `lg`)가 계산식 대신
+    `var(--radius-<단계>)`를 쓰고, `:root`의 `--radius`가 없어졌다. 예제 앱은 쓰는 반경 유틸리티가 `md` 하나이고, 전에는
+    출력되지 않던 반경 변수 4개가 테마 층에 나온다(반경을 `@theme static`으로 낸다). 색·z-index·글자 크기 규칙은 선언이 한
+    글자도 바뀌지 않았고 공통 규칙의 순서도 같다.
+  - 전에만 있던 11개: 글자 크기 눈금 t2~t10·t12·t13의 유틸리티 클래스다. 코드에는 쓰는 곳이 없고 `design-tokens` skill의
+    눈금 표에 클래스 이름이 적혀 있어 만들어지던 것이다(§10 첫 항목과 같은 현상). 표를 토큰 표 링크로 바꾸면서 사라졌다.
+    카탈로그는 클래스가 아니라 변수(`@theme static`이라 늘 출력된다)를 읽어 그대로 그려진다.
+  - 후에만 있는 1개: 계획 스냅샷(`docs/plans/2026-11-24-design-tokens-stage2.md`)에 글자 유틸리티에 변수를 괄호로 넘기는
+    꼴을 클래스 그대로 적어 생긴 유령 유틸리티다. 쓰는 곳이 없어 화면 영향은 없다. 승인된 계획 원문이라 고치지 않았다
+    (§10 "같은 문제가 이번엔 고칠 수 없는 자리에서 재발했다"와 같은 실수다).
+
+- **브라우저 계산값**: 위 앱 빌드 CSS 둘을 Chromium(Playwright, `setContent`라 네트워크 요청 없음)에 올려 읽었다.
+  - CSS에 선언된 사용자 지정 속성 287개의 `getComputedStyle` 문자열을 라이트와 `.dark`에서 비교: 차이 4건, 모두 반경이다
+    (`--radius`가 없어졌고 `sm`·`md`·`xl`은 `calc(0.625rem - 4px)` 꼴이 `0.375rem` 꼴로 바뀌었다).
+  - 패키지 토큰 100개를 탐침 요소의 실제 속성(배경색·반경·z-index·글자 크기·줄 높이·두께)에 입혀 읽은 계산값: 브라우저
+    기본 글자 크기 16px에서 라이트·다크 모두 차이 0건.
+  - 기본 글자 크기를 20px로 바꾸면(CDP `Page.setFontSizes`, 브라우저 설정에서 글자 크기를 키운 것과 같다) 반경 3단계만
+    달라진다. 전에는 "기준 값(rem) ± 고정 px"이었고 이제는 전부 rem이라 글자 크기에 비례한다:
+
+    | 단계 | 16px (전 = 후) | 20px 전 | 20px 후 |
+    | ---- | -------------- | ------- | ------- |
+    | `sm` | 6px            | 8.5px   | 7.5px   |
+    | `md` | 8px            | 10.5px  | 10px    |
+    | `lg` | 10px           | 12.5px  | 12.5px  |
+    | `xl` | 14px           | 16.5px  | 17.5px  |
+
+- **sRGB 밖 색 6개**: 라이트 `destructive`·`warning`·`success`, 다크 `destructive`·`info`·`warning`. OKLCH 값을 선형 sRGB로
+  바꿔 성분이 0~1을 벗어나는지 임시 스크립트로 계산했다(2026-11-24). `oklch()`를 hex로 바꾸면 이 색들이 sRGB 안으로
+  잘리므로 생성 스크립트가 숫자를 그대로 적는다(§5 "생성 스크립트가 직접 하는 일").
+- **검사가 실제로 막는지**(고쳤다가 되돌림):
+  - 원본의 반경 값만 고치고 `pnpm tokens`를 돌리면 CI 단계와 같은 `git status --porcelain <생성물 경로>`가 세 파일을 낸다.
+  - 크기 자리에 글자(`"6px"`)를 넣거나, 없는 토큰을 가리키거나(`{palette.whit}`), 다크 파일에만 토큰을 두면 `pnpm tokens`가
+    그 토큰의 경로와 이유를 대며 멈춘다.
+  - `cn()` 등록에서 이름 하나를 빼면 `utils.test.ts`가 실패한다(`expected 'text-sm text-t1' to be 'text-t1'`).
+- **검사 묶음**(같은 커밋, 잠자기를 막으려고 `caffeinate -dims`로 묶음): `pnpm check`, `pnpm test`(파일 219개, 테스트
+  3,197개), `pnpm check:docs`, `pnpm build`, `pnpm build-storybook`, `pnpm test:storybook`(파일 60개, 테스트 218개), 예제 앱
+  빌드, `pnpm test:e2e`(chromium·mobile-chrome 396개, 재시도 없음)가 모두 통과했다.
+- **의존성 감사**: `pnpm audit`의 9건(설정으로 무시한 1건 포함)은 모두 전부터 있던 것이다. Style Dictionary도 경고가 걸린
+  `glob` 13.0.7을 거친다 — [GHSA-3g3m-2fjr-6pw4](https://github.com/advisories/GHSA-3g3m-2fjr-6pw4)의 제목은 _"AbortSignal
+  취소 우회로 시간 초과 뒤에도 파일 시스템 탐색이 계속된다"_ (번역)이다. Storybook이 같은 판을 이미 써서 건수는 그대로이고
+  감사 표에는 Storybook 경로만 나온다. 설치본 Style Dictionary 5.8.0은 설정에 `include`나 `source`(파일 목록)가 있을
+  때만 이 함수를 부르고(`StyleDictionary.js`), 생성 스크립트는 원본을 `tokens` 객체로 넘겨 그 경로를 타지 않는다.
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -526,6 +652,40 @@ a11y 12건, e2e 3건).
 - **반대 방향 부작용**: 이제 역할 토큰 위에 기본 크기를 덮으면 `cn()`이 토큰을 통째로 지워 두께도 빠진다.
   `BookmarkFolderSelectDialog.tsx`의 `DialogTitle className="text-base"`가 그 자리라 `font-semibold`를 함께 줘 지금
   모습(16px·600)을 지켰다. 같은 이유로 #440의 important(`md:text-screen-title!`)는 뺐다.
+- **그 뒤(2026-11-25)**: 이름 목록을 손으로 적지 않는다. `utils.ts`는 원본에서 만든 `TEXT_SIZE_TOKEN_NAMES`를 읽고,
+  `utils.test.ts`는 토큰 CSS 대신 생성된 토큰 목록(`@baechan/ui/tokens`의 `TOKENS`)과 대조한다(§5 "토큰 원본과 생성물").
+
+**다크 토큰에 라이트 설명이 딸려 왔다 — Style Dictionary가 같은 토큰을 속성 단위로 합친다(2026-11-25 발견).**
+토큰 원본을 처음 만들 때 라이트 파일과 다크 파일을 Style Dictionary 5.8.0에 `source` 목록으로 함께 넘겼다.
+
+- **발견**: 생성된 토큰 표의 `info`·`success` 행에서 "다크:" 뒤에 라이트의 설명이 한 번 더 나왔다. 다크 파일의 두
+  토큰에는 설명(`$description`)이 없다.
+- **원인**: 같은 경로의 토큰이 두 파일에 있으면 뒤 파일이 앞 파일을 통째로 바꾸지 않고 속성 하나씩 덮어쓴다. 다크
+  토큰에 없는 속성은 라이트 것이 남는다. 설명만 그런 것이 아니라 값 객체 안쪽도 같다 — 라이트 값이
+  `{ components: [0.5, 0.1, 30], alpha: 0.5 }`, 다크 값이 `{ components: [0.9, 0.2, 60] }`인 토큰을 두 파일로 넘기면
+  합친 값이 `{ components: [0.9, 0.2, 60], alpha: 0.5 }`가 된다(직접 실행). 지금 패키지 토큰에는 라이트에만 알파가
+  있는 색이 없어 값은 틀리지 않았다.
+- **고침**: 파일 합치기를 `build-tokens.js`의 `addToTree`가 한다. 토큰을 통째로 놓고, 합친 나무 하나를
+  Style Dictionary에 `tokens`로 넘긴다. 다크 파일에만 있는 토큰이나 기본 파일끼리 겹치는 토큰은 실수로 보고 멈춘다.
+- **남는 한계**: 그룹에 붙은 `$type`을 다크 파일이 다르게 적어도 잡지 않는다(다크 파일의 `$` 속성은 읽지 않고
+  기본 파일 것을 쓴다).
+
+**뮤테이션 테스트만 `@baechan/ui/tokens`를 못 찾았다 — Stryker 설정의 별칭이 공개 경로를 폴더로 풀었다(2026-11-25 발견).**
+`cn()`이 생성된 토큰 목록을 읽게 바꾼 PR(#687)에서, 단위 테스트·e2e는 모두 통과했는데 PR의 뮤테이션 댓글만 "보고서가 없다"고
+했다(뮤테이션 잡은 정보용이라 실패해도 통과로 표시된다).
+
+- **발견**: CI 로그에서 Stryker가 바꾼 파일 `utils.ts`를 대상으로 골랐고, 변이를 넣기 전 첫 테스트 실행에서 _"One or more
+  tests failed in the initial test run"_ 으로 멈췄다. Stryker가 쓰는 Vitest 설정으로 직접 돌리니 테스트 파일 61개가
+  _"Failed to resolve import "@baechan/ui/tokens" from "packages/ui/src/lib/tailwind/utils.ts""_ 로 실패했다.
+- **원인**: `vitest.stryker.config.ts`는 `@baechan/ui`를 패키지 `src` 폴더로 바꾸는 별칭을 둔다(sandbox 사본을 보게
+  하려고, [원칙 문서 §1.5](./DESIGN-SYSTEM-PRINCIPLES.md)). 그러면 `@baechan/ui/tokens`가 없는 폴더 `packages/ui/src/tokens`로
+  풀리는데, 패키지 `exports`에서 이 경로는 `packages/ui/src/generated/tokens.gen.ts`를 가리켜 폴더 구조와 다르다. 앱
+  테스트(`unit` 프로젝트)만 이 별칭을 물려받고, 패키지 자체 테스트는 패키지 설정으로 풀려 통과했다.
+- **고침**: `@baechan/ui/tokens` 별칭을 일괄 별칭보다 먼저 적었다. 설치본 Vite 6.4.6은 객체로 적은 별칭을 키 순서대로
+  배열로 바꾸고 import마다 처음 맞는 항목을 쓴다(`normalizeAlias`, 별칭 플러그인의 `entries.find`). 고친 뒤 같은 설정에서
+  테스트 파일 219개가 모두 통과한다.
+- **남는 한계**: 패키지에 공개 경로를 더할 때 `src` 폴더 구조와 다르면 이 별칭에도 한 줄을 더해야 하고, 검사로는 막지
+  않는다. 뮤테이션 댓글이 "보고서가 없다"고 하면 잡 로그의 첫 테스트 실행부터 본다.
 
 ### raw 팔레트 클래스가 공용 UI에 남아 있었다 (2026-09-09)
 

@@ -408,10 +408,15 @@ CLAUDE.md가 984줄까지 길어진 것을 계기로 이 절을 분리했다 —
 
 Tailwind v4 CSS 변수 기반 테마. 범용 토큰은 공용 UI 패키지의 토큰 CSS, 앱 전용 토큰(카테고리·사이드바 등)은 `globals.css`에
 있다. **하드코딩 색상 클래스 사용 금지** — 두 파일의 색 토큰
-기반 Tailwind 클래스(`text-destructive`, `bg-success` 등)를 쓴다. 전체 색상/반경 토큰 표,
+기반 Tailwind 클래스(`text-destructive`, `bg-success` 등)를 쓴다. 토큰을 고르는 법,
 클릭 가능 요소의 전역 커서 규칙, 다크모드·폰트는 `design-tokens` skill
 (`.claude/skills/design-tokens/SKILL.md`)에 있다 — 컴포넌트를 스타일링할 때 그 skill을
 먼저 읽는다(2026-09-09, CLAUDE.md 길이 감사 후 이 절을 분리했다).
+
+범용 토큰의 값은 CSS에 손으로 적지 않는다(2026-11-25). 원본 `packages/ui/tokens/*.tokens.json`을 고치고 저장소 루트에서
+`pnpm tokens`를 돌려 생성물(`tokens.gen.css`, `packages/ui/src/generated/tokens.gen.ts`, 값 표 `docs/DESIGN-TOKENS.md`)을 함께
+커밋한다. 생성물만 고치거나 원본만 고치면 CI "토큰 생성물 최신성 확인"이 실패한다. 구조와 새 축을 더하는 순서는
+`docs/DESIGN-SYSTEM.md` §5 "토큰 원본과 생성물"·§8. 앱 전용 토큰은 지금처럼 `globals.css`를 직접 고친다.
 
 ---
 
