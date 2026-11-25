@@ -1,4 +1,7 @@
 ### 2026-11-25 (FE)
+- Lighthouse CI 결과 파일 탐색 패턴 수정 및 PR 댓글 리포트 정확도 개선 ([#688](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/688))
+
+### 2026-11-25 (FE)
 - DTCG 표준 기반의 디자인 토큰 자동 생성 구조 도입으로 범용 UI 토큰 관리 체계 최적화 ([#687](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/687))
 
 ### 2026-11-24 (FE)
