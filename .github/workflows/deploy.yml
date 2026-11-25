@@ -156,14 +156,16 @@ jobs:
           aws s3 sync dist/fonts/ s3://${{ secrets.S3_BUCKET_NAME }}/fonts/ \
             --cache-control "public, max-age=31536000, immutable"
           # 그 외 파일 (favicon, manifest 등) — 최신 유지. 이 sync는 --delete라
-          # 버킷 안의 dist/에 없는 객체를 전부 지운다
+          # 버킷 안의 dist/에 없는 객체를 전부 지운다. og-thumbnails/는 BE가 쓰는 줄인 og:image 사본이라
+          # 빼야 한다(빠지면 배포마다 사본이 지워진다, src/test/scripts/deploy-workflow.test.ts가 확인)
           aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete \
             --exclude "index.html" \
             --exclude "404.html" \
             --exclude "firebase-messaging-sw.js" \
             --exclude "version.json" \
             --exclude "assets/*" \
-            --exclude "fonts/*"
+            --exclude "fonts/*" \
+            --exclude "og-thumbnails/*"
           # Service Worker — 캐시 없이 서빙 (브라우저가 항상 최신 버전 체크)
           aws s3 cp dist/firebase-messaging-sw.js s3://${{ secrets.S3_BUCKET_NAME }}/firebase-messaging-sw.js \
             --cache-control "no-cache, no-store, must-revalidate" \
