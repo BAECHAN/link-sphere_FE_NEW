@@ -1,4 +1,9 @@
 ### 2026-11-25 (FE)
+- 배포 프로세스 최적화 및 리소스 관리 개선
+로그:
+- ci(deploy): 배포가 BE의 og 썸네일 사본을 지우지 않게 함 ([#689](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/689))
+
+### 2026-11-25 (FE)
 - Lighthouse CI 결과 파일 탐색 패턴 수정 및 PR 댓글 리포트 정확도 개선 ([#688](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/688))
 
 ### 2026-11-25 (FE)
