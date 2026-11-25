@@ -5,6 +5,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { isLhrFile } from './lib/lighthouse-report.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -16,7 +17,6 @@ const CATEGORIES = [
   ['best-practices', 'Best Practices'],
   ['seo', 'SEO'],
 ];
-const LHR_FILE_PATTERN = /^lhr-\d+\.json$/;
 
 function readJson(file, fallback) {
   return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : fallback;
@@ -89,7 +89,7 @@ function buildReport(lhciDir) {
   const lhrs = fs.existsSync(lhciDir)
     ? fs
         .readdirSync(lhciDir)
-        .filter((file) => LHR_FILE_PATTERN.test(file))
+        .filter((file) => isLhrFile(file))
         .map((file) => readJson(path.join(lhciDir, file)))
     : [];
 
