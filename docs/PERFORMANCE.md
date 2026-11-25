@@ -108,6 +108,11 @@ npx lhci collect --no-lighthouserc --url=https://linksphere.click/post \
     권한다. 기준(0.9)을 낮추는 방법은 진짜 회귀까지 가려 쓰지 않았다.
   - 남는 흔들림: CI 빌드가 운영 API의 실제 피드를 그리므로, 응답에 `Set-Cookie`를 싣는 외부 썸네일이 피드 첫
     화면에 있으면 `inspector-issues`(가중치 1)가 깎인다(2026-10-26 `skills.sh/og.jpeg`).
+  - 남는 감점: 상세 페이지는 조회 기록 요청(`…/view`)도 막는다(측정이 운영 조회수에 섞이지 않게, `lighthouserc.cjs`).
+    막힌 요청을 앱의 transport가 `API 요청 실패`로 `console.error`에 남겨(`src/shared/api/client.ts`) 5회 모두
+    `errors-in-console`(가중치 1)이 깎이고 Best Practices가 96이 된다. Lighthouse가 무시하는 것은 브라우저의 차단
+    메시지(`ERR_BLOCKED_BY_CLIENT.Inspector`)뿐이다. 운영에서는 막지 않는 요청이라 사용자 문제는 아니다(2026-11-12
+    #607·2026-11-25 #687 CI 결과. 그 실행에서 실패한 API 요청이 `…/view` 하나뿐이라 둘을 이었다).
 - **결과 보기**: `scripts/lighthouse-report.js`가 페이지별 4개 카테고리 중앙값, 기준을 못 넘은 항목, 실행 과반에서
   실패한 Best Practices 감사를 표로 만들어 PR 댓글 1개(다시 push하면 갱신)와 job Step Summary에 싣는다. 로컬에서는
   `pnpm perf:lh` 뒤 `node scripts/lighthouse-report.js`로 같은 표를 본다.
@@ -115,8 +120,9 @@ npx lhci collect --no-lighthouserc --url=https://linksphere.click/post \
   `include-hidden-files: true` 없이는 업로드가 통째로 빠졌다(2026-10-26 이전 run 전부). 댓글의 리포트 링크는 LHCI
   임시 저장소라 며칠 뒤 지워진다.
 - **CI가 못 보는 것**: 빈 프로필로 재므로 측정자 쿠키 저장소에 따라 달라지는 감점(아래 "Best Practices 77점 사례")은
-  재현되지 않는다. 엔진도 `@lhci/cli` 0.15.1에 묶인 Lighthouse 12.6.1이라 DevTools(13.x)와 점수가 조금
-  다를 수 있다(13은 Best Practices에서 `viewport`·`font-size`를 뺐다).
+  재현되지 않는다. 엔진은 `@lhci/cli` 0.16.0에 묶인 Lighthouse 13.6.0이다(#618, 2026-11-13. 그 전 0.15.1은
+  12.6.1이었다). 측정하는 Lighthouse 버전이 다르면 점수가 조금 다를 수 있다(13은 Best Practices에서
+  `viewport`·`font-size`를 뺐다).
 - **로그인 필요 페이지는 CI에 없다** — 테스트 계정 비밀번호를 GitHub Actions secret으로 등록하는 별도 절차가 필요해
   넣지 않았다(추가하려면 `LH_TEST_PASSWORD`를 레포 secret으로 등록하고 `lighthouserc.auth.cjs`로 job을 하나 더 두면
   된다).
@@ -946,3 +952,9 @@ Lighthouse 13의 적용 대상 가중치 합이 26이라 20/26 = 77점이다.
   `localhost:4173`에서 호출해도 정상 동작해야 한다. 그래도 막히면 BE 쪽 CORS 설정이
   바뀌었을 가능성이 높다. Lambda Function URL을 직접 부르면 OAC 잠금(2026-09-29) 이후
   CORS가 아니라 403이다.
+- **PR 댓글이 "측정 결과가 없다"인데 job 로그와 아티팩트에는 측정이 있다** — 보고 스크립트가 결과 파일을 못 고른
+  경우다. `scripts/lib/lighthouse-report.js`의 `isLhrFile`은 LHCI가 결과를 다시 읽을 때 쓰는 패턴(`@lhci/utils`
+  패키지 `saved-reports.js`의 `LHR_REGEX`)과 같아야 한다. `@lhci/cli`를 0.15.1에서 0.16.0으로 올린 #618(2026-11-13)부터
+  파일 이름 뒤에 `-<숫자>`가 붙었는데 스크립트가 옛 꼴만 받아, 그때부터 이 수정까지 PR 댓글의 점수 표가 비었다.
+  job의 성공·실패는 `lhci autorun`의 기준 검사가 정하므로 그동안에도 Best Practices 판정은 돌았다. LHCI를 올리는
+  PR에서는 아티팩트 `lighthouse-report`를 받아 `node scripts/lighthouse-report.js <받은 폴더>`로 표가 나오는지 본다.
