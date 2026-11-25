@@ -1,3 +1,6 @@
+### 2026-11-25 (FE)
+- DTCG 표준 기반의 디자인 토큰 자동 생성 구조 도입으로 범용 UI 토큰 관리 체계 최적화 ([#687](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/687))
+
 ### 2026-11-24 (FE)
 - LinkThumbnail 컴포넌트의 스타일 결합 방식 개선을 위해 className 적용 위치를 최상위 요소로 변경하여 스타일 확장성 확보 ([#684](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/684))
 
