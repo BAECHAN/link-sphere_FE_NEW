@@ -1205,6 +1205,7 @@ export interface components {
       isPrivate: boolean;
       isSemanticMatch: boolean;
       ogImage?: string | null;
+      ogImageThumbnail?: string | null;
       stats: components['schemas']['PostStats'];
       tags?: string[] | null;
       title: string;

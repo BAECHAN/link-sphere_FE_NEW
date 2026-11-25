@@ -281,8 +281,9 @@ export const PostCard = memo(function PostCard({
             raisedClassName
           )}
         >
+          {/* 목록은 BE가 가로 960px로 줄여 둔 사본(없으면 원본)을, 최대 896px로 크게 그리는 상세는 원본을 쓴다 */}
           <LinkThumbnail
-            src={post.ogImage}
+            src={isDetail ? post.ogImage : (post.ogImageThumbnail ?? post.ogImage)}
             alt={post.title}
             imageClassName="group-hover:scale-105 transition-transform duration-300"
             priority={priorityThumbnail}

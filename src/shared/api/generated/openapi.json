@@ -974,6 +974,9 @@
           "ogImage": {
             "type": ["string", "null"]
           },
+          "ogImageThumbnail": {
+            "type": ["string", "null"]
+          },
           "stats": {
             "$ref": "#/components/schemas/PostStats"
           },

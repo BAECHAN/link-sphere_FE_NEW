@@ -14,6 +14,7 @@ export const mockPost: Post = {
     },
   ],
   ogImage: null,
+  ogImageThumbnail: null,
   aiSummary: null,
   aiStatus: 'NONE',
   stats: {

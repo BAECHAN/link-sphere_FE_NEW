@@ -1,7 +1,7 @@
 # 성능 측정 가이드
 
 이 문서는 Lighthouse 측정을 재현하는 절차 문서(how-to)다. "왜 이 방식을 골랐는가"는
-`docs/DECISIONS.md`(LHCI assertion 단계, og 이미지 파이프라인 검토), "무엇을 언제
+`docs/DECISIONS.md`(LHCI assertion 단계, 2026-11-25 "피드 외부 썸네일"), "무엇을 언제
 바꿨는가"는 `docs/plans/2026-09-25-lighthouse-perf.md`(계획)와 `CHANGELOG.md`를 본다.
 실사용자(필드) 데이터는 이 문서가 아니라 [`docs/RUM.md`](RUM.md)에서 다룬다.
 
@@ -107,7 +107,9 @@ npx lhci collect --no-lighthouserc --url=https://linksphere.click/post \
     서드파티 연동을 끈다)"_ (번역, [troubleshooting.md](https://github.com/GoogleChrome/lighthouse-ci/blob/main/docs/troubleshooting.md))고
     권한다. 기준(0.9)을 낮추는 방법은 진짜 회귀까지 가려 쓰지 않았다.
   - 남는 흔들림: CI 빌드가 운영 API의 실제 피드를 그리므로, 응답에 `Set-Cookie`를 싣는 외부 썸네일이 피드 첫
-    화면에 있으면 `inspector-issues`(가중치 1)가 깎인다(2026-10-26 `skills.sh/og.jpeg`).
+    화면에 있으면 `inspector-issues`(가중치 1)가 깎인다(2026-10-26 `skills.sh/og.jpeg`). 2026-11-25부터 목록 카드는
+    사본이 있으면 같은 출처(`/og-thumbnails/`, `Set-Cookie` 없음)에서 받으므로, 사본이 없는 글이 첫 화면에 올 때만 남는다
+    (아래 "피드 썸네일 사본").
   - 남는 감점: 상세 페이지는 조회 기록 요청(`…/view`)도 막는다(측정이 운영 조회수에 섞이지 않게, `lighthouserc.cjs`).
     막힌 요청을 앱의 transport가 `API 요청 실패`로 `console.error`에 남겨(`src/shared/api/client.ts`) 5회 모두
     `errors-in-console`(가중치 1)이 깎이고 Best Practices가 96이 된다. Lighthouse가 무시하는 것은 브라우저의 차단
@@ -898,6 +900,76 @@ zstd`로 `curl` 1회씩 받은 전송 크기. "전"은 같은 날 `bb8d49e0`에�
 - `cloudfront-drift-check.yml`을 수동으로 돌려 LIVE Function 코드가 레포 파일과 같은 것을 확인했다(run 43813379606).
 - FCP·LCP 변화는 재지 않았다.
 
+### 피드 썸네일 사본 (직접 측정, 2026-11-25)
+
+목록 카드(피드·북마크)는 BE가 글을 쓸 때 가로 960px로 줄여 둔 사본(`ogImageThumbnail`)을 그리고, 사본이 없으면 원본
+(`ogImage`)을 그린다. 상세 화면은 카드를 최대 896px로 크게 그려 원본을 쓴다(`PostCard.tsx`의 `isDetail`). 고른 이유와 기각한
+안은 [`DECISIONS.md`](./DECISIONS.md) 2026-11-25 "피드 외부 썸네일", 사본을 만드는 흐름은 BE
+[`docs/OG-THUMBNAIL.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/OG-THUMBNAIL.md)에 있다.
+
+```mermaid
+flowchart LR
+    L["목록 카드"] --> Q{"ogImageThumbnail이 있나"}
+    Q -- 예 --> C["linksphere.click/og-thumbnails/…<br/>같은 출처, 1년 캐시, Set-Cookie 없음"]
+    Q -- 아니오 --> O["외부 사이트의 원본"]
+    D["상세 카드(isDetail)"] --> O
+```
+
+**기존 글 소급 결과**(운영, 2026-11-25. 수는 읽기 전용 계정으로 `posts`를 셌고, 실패 이유·사이트는 소급 잡의 CloudWatch 항목별
+로그 `[OgThumbnail] 사본 없음`의 `reason`·`host`를 셌다):
+
+| 항목           | 값                               |
+| -------------- | -------------------------------- |
+| 이미지 있는 글 | 314                              |
+| 사본이 생긴 글 | 293(JPEG 289, PNG 4)             |
+| 못 만든 글     | 21(아래 표). 원본을 계속 받는다  |
+| 첫 사본        | 원본 392,553B → 53,752B, 960×540 |
+
+| 못 만든 이유         | 사이트(글 수)                                                                                             |
+| -------------------- | --------------------------------------------------------------------------------------------------------- |
+| 읽을 수 없는 형식(8) | `i.ytimg.com`(5), `a.storyblok.com`, `static.api7.ai`, `yt3.ggpht.com`                                    |
+| 404(7)               | `i.ytimg.com`(2), `i9.ytimg.com`, `kciter.so`, `claude-code.mintlify.app`, `vercel.com`, `labelstud.io`   |
+| 415(3)               | `img1.daumcdn.net`(3)                                                                                     |
+| 429(2)               | `opengraph.githubassets.com`(2). 요청 제한 응답이라 소급을 다시 부르면 생길 수 있다(다시 부르지는 않았다) |
+| 403(1)               | `repository-images.githubusercontent.com`                                                                 |
+
+**배포 뒤 새 글**(운영, 2026-11-25 22:00~22:14 UTC, 읽기 전용 계정과 CloudWatch): 새 글 5개 가운데 og 이미지가 있는 3개(봇 글
+2, 사람 글 1)에 모두 사본이 생겼다. 사람 글은 등록 약 1.8초 뒤 사본이 저장됐다. 그 등록 요청에서 `og-thumbnail` 발행이 먼저
+나가 첫 발행 비용(`[LambdaSelfInvoker] 첫 발행 구간` totalMs=712)을 냈고, 이어진 `ai-analysis` 발행은 51ms였다(로그 시각
+차이). 첫 발행 비용은 전에도 AI 발행이 내던 것이라, 등록 응답에 더해진 시간은 두 번째 발행 약 51ms로 본다. 표본은 1건이다.
+
+- 사본 하나를 GET하면 200, `content-type: image/jpeg`, `cache-control: public, max-age=31536000, immutable`이고 `Set-Cookie`가
+  없다(`curl -D -`, 2026-11-25).
+- 500KB를 넘는 원본 22개를 줄였을 때의 합계(원본 31.8MB → 960px 2.36MB)는 계획
+  [`plans/2026-11-25-og-thumbnail.md`](./plans/2026-11-25-og-thumbnail.md) "운영 실측"에 있다.
+
+**Lighthouse CI `/post`**(PR CI, 데스크톱 프리셋 5회, job 아티팩트 `lighthouse-report`. 그리는 피드는 측정할 때의 운영 피드다.
+두 측정 사이에 새 글 3개가 맨 위에 올라와, #689 첫 화면에 있던 토스·위시켓·카카오 글 3개가 #690 첫 화면에서 빠졌다):
+
+| 측정                         | 이미지 합계(`resource-summary.image.size`) | Performance 중앙값 |
+| ---------------------------- | ------------------------------------------ | ------------------ |
+| #689 CI(2026-11-25, 사본 전) | 1,730,230B(경고 기준 1,000,000 초과)       | 95                 |
+| #690 CI(2026-11-26, 이 변경) | 595,602~595,814B(5회 모두 기준 안)         | 95                 |
+
+첫 화면이 달라 위 두 값의 차이에는 큰 이미지 글이 밀려난 몫도 섞여 있다. 그래서 두 화면을 각각 원본과 사본으로 받았을 때를
+셌다. 두 실행에 있는 이미지는 그 전송 크기(`network-requests`의 `transferSize`)를 쓰고, 한쪽에만 있는 6장은 2026-11-26에 원본·
+사본을 1회씩 GET한 본문 크기로 채웠다(헤더 몇백 바이트 차이는 무시).
+
+| 첫 화면(썸네일 7장 + 프로필 사진 2장) | 원본으로 받으면  | 사본으로 받으면 |
+| ------------------------------------- | ---------------- | --------------- |
+| #689 때                               | 1,730,230B(실측) | 약 327,500B     |
+| #690 때                               | 약 1,196,900B    | 595,730B(실측)  |
+
+- 두 화면 모두 원본이면 기준을 넘고, 사본이면 기준 안이다.
+- 줄어든 몫은 큰 PNG에서 나왔다. 토스 1,443,892 → 32,183, 새 토스 글 914,184 → 373,764(PNG로 저장됨. BE는 투명 픽셀이 있을
+  때만 PNG로 저장한다), 네이버 D2 153,676 → 66,856, 카카오 95,026 → 56,605.
+- 썸네일 10장 중 5장은 사본이 원본보다 컸다. YouTube `hqdefault.jpg` 4장은 480×360이라 줄이지 않고 JPEG 품질 80으로 다시
+  저장만 해 약 45% 커졌고(14,965~23,858 → 22,239~34,676), 위시켓 PNG는 77,263 → 105,871이었다. 이 경우를 어떻게 할지는 아직
+  정하지 않았다(계획 결과 블록 "남은 것").
+- 5회 중 첫 실행만 Performance 85였다. LCP(1,352ms)는 다른 실행(1,249~1,684ms)과 비슷했고, TBT 207ms·Speed Index 2,212ms가
+  점수를 깎았다(나머지 실행은 TBT 0ms). #688에서 85가 나온 실행들은 LCP가 약 1.2초 길었어서(2,602~2,646ms) 모양이 다르다.
+  원인은 확인하지 않았다.
+
 ## Best Practices 77점 사례 (2026-10-26)
 
 사용자가 평소 쓰는 Chrome(로그인 상태)의 DevTools Lighthouse 13.4.1로 운영 `/post/:id`를 재자 Best
@@ -905,7 +977,8 @@ Practices가 77점이 나왔다. 감점은 `third-party-cookies`(가중치 5)와
 Lighthouse 13의 적용 대상 가중치 합이 26이라 20/26 = 77점이다.
 
 - **원인**: og 썸네일(`packages/ui/src/atoms/link-thumbnail.tsx`)은 외부 사이트 이미지를 `<img>`로 바로 불러온다.
-  그러면 브라우저가 사용자 쿠키 저장소에 이미 있던 그 사이트 쿠키를 함께 보낸다. 리포트에는 jobkorea·thevc
+  그러면 브라우저가 사용자 쿠키 저장소에 이미 있던 그 사이트 쿠키를 함께 보낸다. 2026-11-25부터 목록 카드는 사본이 있으면
+  같은 출처에서 받지만, 이 사례의 상세 화면과 사본이 없는 글은 지금도 외부 이미지를 바로 받는다(위 "피드 썸네일 사본"). 리포트에는 jobkorea·thevc
   배너 이미지 요청에 실린 Hotjar(`_hjSession*`)·RTB House(`__rtbh.*`) 쿠키 8개가 찍혔다.
 - **CI·headless에서 재현되지 않는 이유**: 쿠키 저장소가 비어 있어 실을 쿠키가 없다. 같은 날 운영을 headless
   Lighthouse 12.6.1로 재면 96~100점이었다. 점수는 "피드에 뜬 외부 이미지 × 측정하는 사람의 쿠키 저장소"에 따라

@@ -86,6 +86,14 @@
 
 ### Changed
 
+- `post` 목록 카드 썸네일을 외부 원본 대신 BE가 줄여 둔 사본으로 받음
+  <details><summary>배경·구현</summary>
+
+  피드 첫 화면의 외부 og 이미지 한 장이 1.44MB라 Lighthouse CI의 `/post` 이미지 합계가 경고 기준 1,000,000바이트를 넘었다(#689 CI 1,730,230). 500KB를 넘는 원본은 한 사이트가 아니라 10곳에서 나왔다. BE(#230)가 글을 쓸 때 og 이미지를 받아 가로 960px로 줄인 사본을 FE 버킷의 `og-thumbnails/`에 두고 응답에 `ogImageThumbnail`로 준다. 피드·북마크의 목록 카드는 사본이 있으면 사본(사이트와 같은 주소, 1년 캐시)을, 없으면 원본을 그린다. 상세 화면은 카드를 최대 896px로 크게 그려 원본을 쓴다. 기존 글 314개 중 293개에 사본이 생겼고(첫 사본 392,553B → 53,752B), 나머지 21개(형식 미지원·404 등)는 원본을 계속 받는다. 방식(글을 쓸 때 사본을 만든다)·저장 위치·크기는 사용자 결정, 비교한 안은 `docs/DECISIONS.md` 2026-11-25 "피드 외부 썸네일". 계획은 [`docs/plans/2026-11-25-og-thumbnail.md`](docs/plans/2026-11-25-og-thumbnail.md).
+  (`src/widgets/post/post-card/ui/PostCard.tsx`, `PostCard.test.tsx`(신규), `src/shared/api/generated/openapi.json`·`openapi.gen.ts`, `src/mocks/fixtures/post.fixtures.ts`, `docs/PERFORMANCE.md`, `docs/DECISIONS.md`, `docs/DEPLOY.md`, `docs/CACHE-STRATEGY.md`, `docs/SYSTEM-ARCHITECTURE.md`, `docs/SERVICE-GLOSSARY.md`, `docs/ONBOARDING.md`, [PR #690](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/690))
+
+  </details>
+
 - `shared` 모서리 반경 토큰 4개를 기준 값 계산식에서 고정 값으로 바꿈
   <details><summary>배경·구현</summary>
 
@@ -737,6 +745,7 @@
 
 ### Notes
 
+- BE API 의존: `link-sphere_BE_NEW` [PR #230](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/230) 필요(게시글 응답에 `ogImageThumbnail`, null 허용). **배포 순서: FE 배포 제외 줄(#689) → 컬럼 SQL → BE → FE**(2026-11-25 모두 BE까지 반영). 필드가 없거나 null이면 FE가 원본을 그려, 어느 순서로 엇갈려도 화면은 깨지지 않는다. 제외 줄 없이 FE를 배포하면 사본이 지워진다.
 - 배포 순서: **FE(범위 칩 로그인 유도) 먼저 → BE**. `link-sphere_BE_NEW` [PR #227](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/227)이 토큰 없는 범위 필터 요청(`GET /post?filter=isMyPosts` 등)을 401 `NOT_LOGGED_IN`으로 거절한다(FE는 2026-11-23, BE는 2026-11-24에 배포). FE는 그 요청을 보내지 않아 BE 응답과 무관하게 동작한다. BE를 먼저 올리면 옛 화면에서 로그아웃 상태로 칩을 누를 때 로그인 페이지로 이동한다.
 - BE API 의존: `link-sphere_BE_NEW` [PR #194](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/194) 필요(`POST /post/{id}/view` 응답 `data`가 빈 객체에서 `{ viewCount }`로 바뀌고, 같은 회원·IP는 UTC 하루에 한 번만 센다). **배포 순서: BE 먼저 → FE** — FE를 먼저 올리면 상세 조회수가 0으로 보인다. 그 사이에는 다시 본 글만 화면에 1 많게 보이고 DB는 맞다. 되돌릴 때는 FE 먼저.
 - BE API 의존: `link-sphere_BE_NEW` [PR #159](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/159) 필요(`POST /post/{id}/view` 신규, `GET /post/{id}`는 조회수를 올리지 않음). **배포 순서: BE 먼저 → FE 바로** — 그 사이에는 조회가 안 세지고 에러는 없다.
