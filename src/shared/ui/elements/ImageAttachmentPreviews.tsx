@@ -38,7 +38,7 @@ export function ImageAttachmentPreviews({ previewUrls, onRemove }: ImageAttachme
               'absolute -top-2 -right-2 h-5 w-5 rounded-full',
               'bg-scrim border border-scrim shadow-sm',
               'text-scrim-foreground hover:bg-scrim/70 hover:scale-110',
-              'flex items-center justify-center transition-all duration-150'
+              'flex items-center justify-center transition-all duration-d3'
             )}
           >
             <X className="h-3 w-3" strokeWidth={2.5} />

@@ -261,7 +261,7 @@ export function Sidebar() {
         ref={drawerRef}
         className={cn(
           'md:hidden fixed top-0 left-0 z-drawer h-full w-64 bg-background border-r flex flex-col',
-          'duration-200',
+          'duration-d4',
           // invisible이라야 닫힌 메뉴가 키보드 이동·읽기 순서에서 빠진다. visibility를 트랜지션에 넣으면 닫는
           // 동안은 보이다 끝에 숨는다. 열 때는 트랜지션에서 빼야 바로 보여 위의 focus()가 통한다
           isMobileOpen

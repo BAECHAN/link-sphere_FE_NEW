@@ -33,7 +33,7 @@ describe('SheetDialogContent', () => {
     const { panel, overlay } = renderSheet(false);
 
     expect(panel.sort().join(' ')).toBe(
-      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-200 fixed flex flex-col gap-0 left-[50%] max-h-[calc(100dvh-2rem)] max-w-sm overflow-hidden p-0 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
+      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-d4 fixed flex flex-col gap-0 left-[50%] max-h-[calc(100dvh-2rem)] max-w-sm overflow-hidden p-0 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
     );
     expect(overlay).toContain('bg-scrim/80');
   });
@@ -47,7 +47,7 @@ describe('SheetDialogContent', () => {
 
   it('모바일 분기는 딤 32%이고, 딤과 시트가 같은 시간·곡선을 쓰며 시트는 밀기만 한다', () => {
     const { panel, overlay } = renderSheet(true);
-    const timing = ['duration-300', 'ease-[cubic-bezier(0.32,0.72,0,1)]'];
+    const timing = ['duration-d6', 'ease-sheet'];
 
     expect(overlay).toContain('bg-scrim/32');
     expect(overlay).not.toContain('bg-scrim/80');
@@ -59,6 +59,6 @@ describe('SheetDialogContent', () => {
         'data-[state=closed]:slide-out-to-bottom',
       ])
     );
-    expect(panel.filter((name) => /fade-|zoom-|duration-200/.test(name))).toEqual([]);
+    expect(panel.filter((name) => /fade-|zoom-|duration-d4/.test(name))).toEqual([]);
   });
 });

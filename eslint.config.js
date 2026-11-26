@@ -12,6 +12,7 @@ import { mutationRetryRule } from './scripts/lib/mutation-retry-rule.js';
 import { noIndexFileRule, noValueReExportRule } from './scripts/lib/no-barrel-rules.js';
 import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.js';
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
+import { noRawMotionRule } from './scripts/lib/no-raw-motion-rule.js';
 import { noStoryNameRule } from './scripts/lib/no-story-name-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
 import { classNameLastRule, cvaVariantKeysRule } from './scripts/lib/ui-api-rule.js';
@@ -482,6 +483,10 @@ const customTailwindRulesPlugin = {
         };
       },
     },
+    // [금지] 숫자·Tailwind 기본 이름·대괄호 값의 시간·곡선 유틸리티 - 토큰 클래스(duration-d4, ease-easing 등)를 쓴다
+    // 이유: 같은 시간이 여러 파일에 숫자로, 일부는 JS 타이머에도 따로 적혀 있었다(2026-11-26 게이트 2에서 토큰으로 옮김).
+    // 본체는 단위 테스트를 위해 scripts/lib/no-raw-motion-rule.js에 둔다 - 그 파일 머리말 참고
+    'no-raw-motion': noRawMotionRule,
     // [금지] px 단위 임의값(bracket) 폰트 크기 유틸리티
     // 이유: 12곳(h1 5·h2 3·마이크로 라벨 4)이 이런 임의값이거나 서로 다른 크기로
     //       갈려 있었다(2026-09-16 조사). 토큰 CSS(packages/ui/src/styles/tokens.css)에 역할 토큰(screen-title 등)과
@@ -2023,6 +2028,7 @@ export default [
       'custom-tailwind/no-raw-z-index': 'error',
       'custom-tailwind/no-raw-color': 'error',
       'custom-tailwind/no-raw-text-size': 'error',
+      'custom-tailwind/no-raw-motion': 'error',
       'custom-tailwind/no-raw-title': 'error',
       'custom-tailwind/no-classname-template-literal': 'error',
     },

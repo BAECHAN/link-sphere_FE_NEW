@@ -11,7 +11,9 @@
         { "$ref": "z-index.tokens.json" },
         { "$ref": "font-size.tokens.json" },
         { "$ref": "line-height.tokens.json" },
-        { "$ref": "text.tokens.json" }
+        { "$ref": "text.tokens.json" },
+        { "$ref": "duration.tokens.json" },
+        { "$ref": "timing-function.tokens.json" }
       ]
     }
   },

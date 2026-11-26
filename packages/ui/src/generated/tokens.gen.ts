@@ -4,7 +4,15 @@
 
 /** 토큰 축. 원본 파일의 맨 위 그룹 이름이다. */
 export type TokenGroup =
-  'palette' | 'color' | 'radius' | 'z-index' | 'font-size' | 'line-height' | 'text';
+  | 'palette'
+  | 'color'
+  | 'radius'
+  | 'z-index'
+  | 'font-size'
+  | 'line-height'
+  | 'text'
+  | 'duration'
+  | 'timing-function';
 
 export interface DesignToken {
   /** 원본에서의 경로(점으로 이음) */
@@ -63,6 +71,16 @@ export const TOKEN_GROUPS = [
     id: 'text',
     description:
       '글자 역할 토큰 8종. 눈금(font-size, line-height)에서 실제 화면에 쓰는 값만 골라 이름을 붙였다. 클래스 하나가 글자 크기, 줄 높이, 두께(있는 경우)를 함께 정한다. 제목류는 두께까지 묶어 따로 두께 클래스를 겹쳐 쓰지 않게 했다(screen-title은 2026-09-16에 semibold로 통일). micro는 쓰는 곳마다 두께가 달라 묶지 않는다. card-title과 detail-title은 반응형이라 데스크톱 크기를 역할에 묶지 않고 쓰는 곳에서 눈금 클래스로 올린다. group-label과 display-title은 원래 쓰던 Tailwind 기본 클래스 조합과 계산값이 같다. 처음 4개와 뒤에 더한 것들의 승인 경위는 docs/plans/2026-09-16-typography-tokens-a11y-gate.md에 있다.',
+  },
+  {
+    id: 'duration',
+    description:
+      '전환·애니메이션 시간. 부품은 숫자 대신 duration-<이름> 클래스로 쓴다(숫자나 대괄호 값을 쓰면 린트가 막는다). 눈금 이름은 당근(SEED)처럼 50ms를 한 단계로 센 번호이고(d3 = 150ms), 지금 화면에서 쓰는 단계만 둔다(2026-11-26 게이트 2). 시간 클래스 없이 transition만 붙인 곳은 Tailwind 기본 시간이 color-transition을 가리켜 같은 값을 쓴다. tw-animate-css의 animate-in·animate-out은 시간 클래스가 없으면 이 토큰이 아니라 자기 기본값(150ms)을 쓴다. CSS 전환이 끝나기를 기다리는 JS 타이머는 숫자를 따로 적지 않고 생성된 DURATION_MS를 읽는다.',
+  },
+  {
+    id: 'timing-function',
+    description:
+      '가속 곡선. 부품은 ease-<이름> 클래스로 쓴다(Tailwind 기본 이름 ease-in·ease-out·ease-in-out·ease-linear과 대괄호 값은 린트가 막는다). 이름은 당근(SEED)의 easing·enter를 따랐고 값은 지금 화면 값 그대로라 당근 값과 다르다(당근 easing은 0.35, 0, 0.35, 1). 곡선 클래스 없이 transition만 붙인 곳은 Tailwind 기본 곡선이 easing을 가리켜 같은 값을 쓴다. tw-animate-css의 animate-in·animate-out은 곡선 클래스가 없으면 이 토큰이 아니라 CSS 기본 ease를 쓴다.',
   },
 ] as const satisfies readonly {
   id: TokenGroup;
@@ -1507,6 +1525,116 @@ export const TOKENS = [
     description: null,
     darkDescription: null,
   },
+  {
+    id: 'duration.d3',
+    group: 'duration',
+    name: 'd3',
+    part: null,
+    cssVar: '--transition-duration-d3',
+    value: '150ms',
+    resolved: '150ms',
+    darkValue: null,
+    darkResolved: '150ms',
+    description: '첨부 이미지 미리보기의 삭제 버튼',
+    darkDescription: null,
+  },
+  {
+    id: 'duration.d4',
+    group: 'duration',
+    name: 'd4',
+    part: null,
+    cssVar: '--transition-duration-d4',
+    value: '200ms',
+    resolved: '200ms',
+    darkValue: null,
+    darkResolved: '200ms',
+    description:
+      '대화상자 열림·닫힘, 선택 상자 화살표, 맨 위로 버튼, 지연 표시와 뼈대가 나타날 때, 좁은 화면 메뉴, 댓글 강조가 나타날 때',
+    darkDescription: null,
+  },
+  {
+    id: 'duration.d6',
+    group: 'duration',
+    name: 'd6',
+    part: null,
+    cssVar: '--transition-duration-d6',
+    value: '300ms',
+    resolved: '300ms',
+    darkValue: null,
+    darkResolved: '300ms',
+    description:
+      '아래에서 올라오는 시트와 그 딤, 댓글 입력칸의 끌어 놓기 테두리, 카드 썸네일 확대. 알림 창을 닫은 뒤 목록에서 지우는 JS 타이머와 이미지 뷰어를 닫은 뒤 커서를 고치는 JS 타이머도 이 값을 읽는다(둘 다 닫힘 애니메이션 d4보다 길게 기다린다. 왜 이 값인지는 기록에 없다)',
+    darkDescription: null,
+  },
+  {
+    id: 'duration.d12',
+    group: 'duration',
+    name: 'd12',
+    part: null,
+    cssVar: '--transition-duration-d12',
+    value: '600ms',
+    resolved: '600ms',
+    darkValue: null,
+    darkResolved: '600ms',
+    description: '댓글로 이동했을 때 강조가 흐려지는 시간. 강조를 떼는 JS 타이머도 이 값을 읽는다',
+    darkDescription: null,
+  },
+  {
+    id: 'duration.color-transition',
+    group: 'duration',
+    name: 'color-transition',
+    part: null,
+    cssVar: '--transition-duration-color-transition',
+    value: 'var(--transition-duration-d3)',
+    resolved: '150ms',
+    darkValue: null,
+    darkResolved: '150ms',
+    description:
+      '색·배경·투명도처럼 모양이 그대로인 짧은 전환. Tailwind 기본 시간(transition만 붙인 곳)이 이 토큰을 가리킨다. 당근의 같은 이름 역할과 같은 단계다',
+    darkDescription: null,
+  },
+  {
+    id: 'timing-function.easing',
+    group: 'timing-function',
+    name: 'easing',
+    part: null,
+    cssVar: '--ease-easing',
+    value: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    resolved: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    darkValue: null,
+    darkResolved: 'cubic-bezier(0.4, 0, 0.2, 1)',
+    description:
+      '천천히 시작해 천천히 멈춘다. Tailwind 기본 곡선이 이 토큰을 가리킨다(Tailwind ease-in-out과 같은 값). 선택 상자 화살표',
+    darkDescription: null,
+  },
+  {
+    id: 'timing-function.enter',
+    group: 'timing-function',
+    name: 'enter',
+    part: null,
+    cssVar: '--ease-enter',
+    value: 'cubic-bezier(0, 0, 0.2, 1)',
+    resolved: 'cubic-bezier(0, 0, 0.2, 1)',
+    darkValue: null,
+    darkResolved: 'cubic-bezier(0, 0, 0.2, 1)',
+    description:
+      '빠르게 시작해 천천히 멈춘다(Tailwind ease-out과 같은 값). 뼈대가 나타날 때, 댓글 강조',
+    darkDescription: null,
+  },
+  {
+    id: 'timing-function.sheet',
+    group: 'timing-function',
+    name: 'sheet',
+    part: null,
+    cssVar: '--ease-sheet',
+    value: 'cubic-bezier(0.32, 0.72, 0, 1)',
+    resolved: 'cubic-bezier(0.32, 0.72, 0, 1)',
+    darkValue: null,
+    darkResolved: 'cubic-bezier(0.32, 0.72, 0, 1)',
+    description:
+      '아래에서 올라오는 시트와 그 딤. vaul이 드로어와 딤에 함께 쓰는 값이다(고른 근거: docs/DECISIONS.md 2026-11-03)',
+    darkDescription: null,
+  },
 ] as const satisfies readonly DesignToken[];
 
 /** 글자 크기를 정하는 토큰 이름. cn()이 이 이름들을 글자 색이 아니라 글자 크기로 알아야 한다(lib/tailwind/utils.ts) */
@@ -1534,3 +1662,16 @@ export const TEXT_SIZE_TOKEN_NAMES = [
   'group-label',
   'display-title',
 ] as const;
+
+/** 시간·곡선 토큰 이름. cn()이 duration-<이름>, ease-<이름>을 같은 묶음으로 알아야 뒤에 온 클래스가 앞의 것을 덮는다 */
+export const DURATION_TOKEN_NAMES = ['d3', 'd4', 'd6', 'd12', 'color-transition'] as const;
+export const EASE_TOKEN_NAMES = ['easing', 'enter', 'sheet'] as const;
+
+/** 시간 토큰의 밀리초 값. CSS 전환이 끝나기를 기다리는 JS 타이머가 읽는다(같은 시간을 숫자로 따로 적지 않으려고) */
+export const DURATION_MS = {
+  d3: 150,
+  d4: 200,
+  d6: 300,
+  d12: 600,
+  'color-transition': 150,
+} as const;

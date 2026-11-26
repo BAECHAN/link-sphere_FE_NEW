@@ -142,7 +142,7 @@ export const CommentFormView = forwardRef(function CommentFormView(
       <div
         ref={containerRef}
         className={cn(
-          'relative rounded-md transition-shadow duration-300',
+          'relative rounded-md transition-shadow duration-d6',
           isDraggingOver && 'ring-2 ring-primary ring-offset-2'
         )}
         onBlur={handleSuggestionAreaBlur}

@@ -1,0 +1,20 @@
+{
+  "timing-function": {
+    "$description": "가속 곡선. 부품은 ease-<이름> 클래스로 쓴다(Tailwind 기본 이름 ease-in·ease-out·ease-in-out·ease-linear과 대괄호 값은 린트가 막는다). 이름은 당근(SEED)의 easing·enter를 따랐고 값은 지금 화면 값 그대로라 당근 값과 다르다(당근 easing은 0.35, 0, 0.35, 1). 곡선 클래스 없이 transition만 붙인 곳은 Tailwind 기본 곡선이 easing을 가리켜 같은 값을 쓴다. tw-animate-css의 animate-in·animate-out은 곡선 클래스가 없으면 이 토큰이 아니라 CSS 기본 ease를 쓴다.",
+    "easing": {
+      "$type": "cubicBezier",
+      "$value": [0.4, 0, 0.2, 1],
+      "$description": "천천히 시작해 천천히 멈춘다. Tailwind 기본 곡선이 이 토큰을 가리킨다(Tailwind ease-in-out과 같은 값). 선택 상자 화살표"
+    },
+    "enter": {
+      "$type": "cubicBezier",
+      "$value": [0, 0, 0.2, 1],
+      "$description": "빠르게 시작해 천천히 멈춘다(Tailwind ease-out과 같은 값). 뼈대가 나타날 때, 댓글 강조"
+    },
+    "sheet": {
+      "$type": "cubicBezier",
+      "$value": [0.32, 0.72, 0, 1],
+      "$description": "아래에서 올라오는 시트와 그 딤. vaul이 드로어와 딤에 함께 쓰는 값이다(고른 근거: docs/DECISIONS.md 2026-11-03)"
+    }
+  }
+}

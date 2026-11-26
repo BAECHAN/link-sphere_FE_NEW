@@ -15,7 +15,7 @@ paths: src/**/*.tsx
 
 Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — 아래 의미론적 클래스를 사용한다.
 
-토큰은 두 파일에 나뉜다. 색·반경·z-index·글자 크기·다크 변형·기본 커서·동작 줄이기처럼 어느 앱에서나 쓰는 것은 공용
+토큰은 두 파일에 나뉜다. 색·반경·z-index·글자 크기·시간·곡선·다크 변형·기본 커서·동작 줄이기처럼 어느 앱에서나 쓰는 것은 공용
 UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카테고리·사이드바·차트 색과 `hover-or-open`·
 `--navbar-height`처럼 이 앱에 묶인 것은 `src/app/globals.css`에 있다. 새 토큰도 같은 기준으로 둔다(기준:
 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.5).
@@ -75,6 +75,13 @@ UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카�
 아래에서 위로 `z-raised` < `z-hitbox` < `z-panel` < `z-nav` < `z-scrim` < `z-drawer` < `z-modal` < `z-popover` 순이다.
 층마다의 값과 쓰임은 [토큰 표 "겹침 순서"](../../../docs/DESIGN-TOKENS.md#겹침-순서)에 있고, Storybook
 `Shared/UI/Tokens/DesignTokens` 스토리의 `ZIndex`에서 8단계를 시각적으로 확인할 수 있다.
+
+### 시간·곡선 토큰
+
+트랜지션·애니메이션의 시간과 곡선은 `duration-d4`·`ease-enter`처럼 토큰 클래스로만 쓴다(2026-11-26, ESLint
+`custom-tailwind/no-raw-motion`이 숫자·기본 이름·대괄호 값을 막는다). 값은 [토큰 표 "시간"](../../../docs/DESIGN-TOKENS.md#시간)·
+["가속 곡선"](../../../docs/DESIGN-TOKENS.md#가속-곡선)에, 고르는 법과 닫힘 애니메이션에 JS 타이머를 맞추는 법은 `motion-ux`
+skill에 있다.
 
 ### 타이포그래피 토큰
 

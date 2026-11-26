@@ -106,7 +106,7 @@ flowchart LR
         E5["no-raw-text-size<br/>px 임의값 폰트 크기"]
     end
     subgraph catalog ["4. 카탈로그 (Storybook)"]
-        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(8종)"]
+        S1["DesignTokens.stories.tsx<br/>Colors·Radius·ZIndex·Typography·RoleTokens(8종)·Motion"]
     end
     subgraph a11y ["5. 접근성 (Storybook + Vitest, 신규)"]
         AX1[".storybook/vitest.setup.ts<br/>+ addon-a11y annotations"]
@@ -192,7 +192,7 @@ CSS·토큰 목록·토큰 표는 원본에서 만드는 **생성물**이라 직
 flowchart LR
     S["원본 - 사람이 고친다<br/>packages/ui/tokens/*.tokens.json<br/>tokens.resolver.json: 라이트, 다크 파일 목록"]
     B["packages/ui/scripts/build-tokens.js<br/>파일 합치기, 별칭 풀기(Style Dictionary),<br/>값 모양 검사, CSS 글자로 바꾸기"]
-    C["tokens.gen.css<br/>테마 블록 5개, :root, .dark"]
+    C["tokens.gen.css<br/>테마 블록 7개, :root, .dark"]
     T["tokens.gen.ts<br/>토큰 목록: 이름, 값, 설명"]
     G["scripts/generate-token-docs.js"]
     D["docs/DESIGN-TOKENS.md<br/>토큰 표"]
@@ -241,6 +241,54 @@ flowchart LR
 단계마다 고정 값으로 옮겼다. 16px에서는 화면이 같고, 기본 글자 크기를 바꾼 브라우저에서만 `sm`·`md`·`xl`이 조금 달라진다
 (§9 2026-11-25의 표). 반경 전체를 한 번에 바꾸던 `--radius` 변수는 없어졌다.
 
+### 시간과 곡선 (2026-11-26)
+
+트랜지션·애니메이션의 **시간**(지속 시간)과 **가속 곡선**(시간에 따라 빨라지고 느려지는 모양, CSS의 `cubic-bezier()`)도
+원본에서 만든다. 값과 쓰는 곳은 [토큰 표](./DESIGN-TOKENS.md) "시간"·"가속 곡선"에, 고르는 법과 함정은 `motion-ux`
+skill에 있다. 값은 전과 같아 화면은 바뀌지 않는다(§9 2026-11-26).
+
+- **당근은** 시간을 50ms 간격 눈금 `d1`(50ms)~`d6`(300ms)과 역할(`color-transition`·`pressed-scale` → `d3`)로 둔다. 곡선은
+  `linear`, `easing`(0.35, 0, 0.35, 1), `enter`(0, 0, 0.15, 1), `exit`(0.35, 0, 1, 1), `enter-expressive`·`exit-expressive`,
+  `pressed-scale`로 둔다([`duration.yaml`](https://github.com/daangn/seed-design/blob/dev/packages/rootage/duration.yaml),
+  [`timing-function.yaml`](https://github.com/daangn/seed-design/blob/dev/packages/rootage/timing-function.yaml), dev
+  `cd7d84ca`에서 직접 읽음). **토스는** 공개 문서에 시간·곡선 토큰이 없다(2026-11-24 조사,
+  [2단계 계획](./plans/2026-11-24-design-tokens-stage2.md) "당근·토스·우리"). **우리는** 당근의 이름 짓는 법(50ms 눈금 번호,
+  역할, 곡선 이름)을 따르고, 값은 지금 화면에서 쓰는 것만 올렸다. **이유**: 값까지 당근에 맞추면 화면이 바뀐다.
+
+2026-11-26 게이트 2에서 사용자가 정한 것(③~⑦, 질문과 답은 계획 결과 블록):
+
+| 정한 것   | 내용                                                                                                 | 이유                                                                                                                                                              |
+| --------- | ---------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 클래스 꼴 | `duration-d4`, `ease-<이름>`. `transition-*`만 붙였을 때의 Tailwind 기본 시간·곡선도 토큰을 가리킨다 | 당근 꼴이다. 기본값이 토큰을 가리켜, 시간을 적지 않은 트랜지션은 고치지 않아도 토큰을 쓴다                                                                        |
+| 린트      | 숫자, Tailwind 기본 이름, 대괄호·괄호 값을 막는다(`custom-tailwind/no-raw-motion`)                   | 겹침 순서(`no-raw-z-index`)·색(`no-raw-color`)과 같은 방식이다                                                                                                    |
+| 눈금      | 쓰는 단계만 둔다: d3 150ms, d4 200ms, d6 300ms. 역할은 `color-transition`(→ d3)                      | 안 쓰는 단계는 정의하지 않는다(위 "색상 2층"과 같은 원칙). `color-transition`은 당근과 같은 역할이고 Tailwind 기본 시간과 같은 값이다                             |
+| 600ms     | `d12`                                                                                                | 50ms 눈금의 12번째다. 당근 눈금(d6까지) 밖이라 번호를 이어 붙였다                                                                                                 |
+| 곡선      | `easing`(0.4, 0, 0.2, 1), `enter`(0, 0, 0.2, 1), `sheet`(0.32, 0.72, 0, 1)                           | 값은 지금 쓰는 곡선 그대로(앞의 둘은 Tailwind 기본 곡선 값, `sheet`는 vaul 값 — `DECISIONS.md` 2026-11-03)이고 이름만 당근 꼴이다. `sheet`는 당근에 없는 이름이다 |
+
+**Tailwind와 잇는 법**
+
+- **테마 키**: 시간은 `--transition-duration-<이름>`, 곡선은 `--ease-<이름>`으로 낸다. Tailwind 4.3.5의 `duration-*`은
+  `--transition-duration` 테마 키를 먼저 찾는다(`node_modules/tailwindcss/dist/lib.js`). 공식 문서의 테마 이름 표에 없는
+  동작이라, 생성된 CSS로 확인하는 테스트(`src/test/tailwind-motion-theme.test.ts`)를 함께 뒀다.
+- **기본값**: `--default-transition-duration`·`--default-transition-timing-function`을 `@theme static`에서 토큰을 가리키게
+  다시 정의한다. Tailwind 기본값(150ms, (0.4, 0, 0.2, 1), `tailwindcss/theme.css`)과 값이 같다.
+- **`cn()`**: tailwind-merge 3.7.0은 시간은 숫자, 곡선은 Tailwind 기본 이름만 알아 토큰 이름을 등록했다
+  (`packages/ui/src/lib/tailwind/utils.ts`, 이름 목록은 생성된 `DURATION_TOKEN_NAMES`·`EASE_TOKEN_NAMES`). 등록이 빠지면
+  쓰는 쪽이 넘긴 시간이 부품의 시간을 지우지 못하고 둘 다 남는다.
+- **JS**: 생성된 TS가 시간을 밀리초 숫자로 내보내고(`DURATION_MS`), 닫힘을 기다리는 타이머가 그 값을 읽는다.
+- 동작 줄이기 전역 블록(토큰 CSS의 `prefers-reduced-motion`)은 바꾸지 않았다.
+
+**못 잡는 것**
+
+- 대괄호 속성으로 `transition-duration`을 직접 적은 꼴, 인라인 `style`, `delay-*`(토큰이 없어 린트 밖이다).
+- `animate-in`·`animate-out`(`tw-animate-css`)에 시간을 적지 않으면 그 라이브러리 기본값(150ms, `ease`)으로 움직인다. 이
+  라이브러리는 Tailwind 기본값을 읽지 않는다.
+- 클래스와 JS 타이머가 같은 토큰을 읽는지. 클래스 이름은 Tailwind가 찾을 수 있게 글자 그대로 적어야 해서 한 값에서 만들 수
+  없다.
+- Tailwind는 문서·주석·테스트까지 훑어, 거기 글자 그대로 적힌 클래스 이름의 규칙도 CSS에 만든다(§10 첫 항목). 고치지 않는 기록(결정
+  로그, 계획, 지난 릴리즈의 CHANGELOG)에 옛 시간·곡선 클래스가 적혀 있어 그 규칙은 운영 CSS에 남는다(쓰는 곳이 없어 화면과는
+  무관하다). 고칠 수 있는 문서와 주석에는 쓰지 않는 클래스 이름을 적지 않고, 린트 규칙 테스트는 이름을 조각으로 이어 만든다.
+
 **신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
 `Divider`(`divider.tsx`), `FeaturedIcon`(`featured-icon.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
 `AlertDialog`(`alert-dialog.tsx`) 등이 `src/shared/ui/atoms/`에 추가됐다 — 이들을 포함해
@@ -261,16 +309,17 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 이 기능은 Zustand 스토어나 React Query 키를 도입하지 않는다 — 상태는 CSS 커스텀
 프로퍼티뿐이다. 새로 추가된 네임스페이스:
 
-| 네임스페이스                                                                                | 정의 위치                                                                                                                | 정본                                                                                                            |
-| ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| `--z-index-*` (8개)                                                                         | 원본 `packages/ui/tokens/z-index.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록                             | [토큰 표](./DESIGN-TOKENS.md) "겹침 순서"                                                                       |
-| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | 원본 `packages/ui/tokens/color.tokens.json` → 생성 `tokens.gen.css`의 `:root` (테마 무관, 다크 파일에 없음)              | 토큰 표 "의미 색"                                                                                               |
-| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | 원본 `packages/ui/tokens/font-size.tokens.json`·`line-height.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록 | 토큰 표 "글자 크기 눈금"                                                                                        |
-| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | 원본 `packages/ui/tokens/text.tokens.json` → 생성 `tokens.gen.css`의 (static 아닌) `@theme` 블록                         | 토큰 표 "글자 역할"                                                                                             |
-| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정                                                        | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md), `entities/category/config/category.const.ts` |
-| `--text-card-title`/`group-label`/`display-title` (역할 층, 2026-09-16 추가)                | 위 역할 층과 같은 원본·블록                                                                                              | 토큰 표 "글자 역할"                                                                                             |
-| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | 위 역할 층과 같은 원본·블록                                                                                              | 토큰 표 "글자 역할"                                                                                             |
-| `--palette-*` (Primitive 20개. 2026-10-29 무채색 10개, 2026-11-26 유채색·투명도 추가)       | 원본 `packages/ui/tokens/palette.tokens.json` → 생성 `tokens.gen.css`의 `:root` 맨 앞 (테마 무관, 다크 파일에 없음)      | 이 문서 §5 "색상 2층", 토큰 표 "팔레트"                                                                         |
+| 네임스페이스                                                                                | 정의 위치                                                                                                                                                             | 정본                                                                                                            |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `--z-index-*` (8개)                                                                         | 원본 `packages/ui/tokens/z-index.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록                                                                          | [토큰 표](./DESIGN-TOKENS.md) "겹침 순서"                                                                       |
+| `--destructive-foreground`, `--scrim`, `--scrim-foreground`                                 | 원본 `packages/ui/tokens/color.tokens.json` → 생성 `tokens.gen.css`의 `:root` (테마 무관, 다크 파일에 없음)                                                           | 토큰 표 "의미 색"                                                                                               |
+| `--text-t1`~`--text-t14` (스케일 층, 2026-09-16 추가)                                       | 원본 `packages/ui/tokens/font-size.tokens.json`·`line-height.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록                                              | 토큰 표 "글자 크기 눈금"                                                                                        |
+| `--text-screen-title`/`section-title`/`subsection-title`/`micro` (역할 층, 2026-09-16 추가) | 원본 `packages/ui/tokens/text.tokens.json` → 생성 `tokens.gen.css`의 (static 아닌) `@theme` 블록                                                                      | 토큰 표 "글자 역할"                                                                                             |
+| `--category-1`~`--category-8` (+`-foreground`, 2026-09-21 추가)                             | `src/app/globals.css`의 `:root`/`.dark`. `category.id % 8`로 배정                                                                                                     | [`design-tokens` skill](../.claude/skills/design-tokens/SKILL.md), `entities/category/config/category.const.ts` |
+| `--text-card-title`/`group-label`/`display-title` (역할 층, 2026-09-16 추가)                | 위 역할 층과 같은 원본·블록                                                                                                                                           | 토큰 표 "글자 역할"                                                                                             |
+| `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | 위 역할 층과 같은 원본·블록                                                                                                                                           | 토큰 표 "글자 역할"                                                                                             |
+| `--palette-*` (Primitive 20개. 2026-10-29 무채색 10개, 2026-11-26 유채색·투명도 추가)       | 원본 `packages/ui/tokens/palette.tokens.json` → 생성 `tokens.gen.css`의 `:root` 맨 앞 (테마 무관, 다크 파일에 없음)                                                   | 이 문서 §5 "색상 2층", 토큰 표 "팔레트"                                                                         |
+| `--transition-duration-*`(5개)·`--ease-*`(3개) (2026-11-26 추가)                            | 원본 `packages/ui/tokens/duration.tokens.json`·`timing-function.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록 2개(Tailwind 기본값 2개를 함께 다시 정의) | 이 문서 §5 "시간과 곡선", 토큰 표 "시간"·"가속 곡선"                                                            |
 
 패키지 토큰의 "정의 위치"는 2026-11-25부터 원본 파일이다(§5 "토큰 원본과 생성물"). 전체 58개 색상 값 자체는 옮겨적지
 않는다 — 범용 27개는 토큰 원본(`packages/ui/tokens/color.tokens.json`)이, 앱 전용 31개는 `globals.css`가 SSOT다
@@ -287,9 +336,10 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 새 z-index 층 추가                                                                     | 원본 `packages/ui/tokens/z-index.tokens.json`                                                                                                                                    | 토큰을 값이 작은 것부터 순서에 맞춰 더하고 `$description`에 쓰는 곳을 적는다 → `pnpm tokens` → 원본과 생성물을 함께 커밋. 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS`)는 생성 목록을 읽어 따로 고치지 않는다 → `design-tokens` skill의 순서 문장에 이름 추가                                                                                                                                                                                                                                        |
 | 새 색 토큰 추가                                                                        | 범용이면 원본 `packages/ui/tokens/color.tokens.json`(다크에서 값이 다르면 `color.dark.tokens.json`에도), 이 앱에만 묶이면 `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑 | **범용**: 원본에 토큰을 더한다(값은 숫자 대신 `{palette.<색>.<단계>}` 별칭 — 필요한 값이 없으면 `palette.tokens.json`에 먼저 추가. 숫자로 적으면 `pnpm tokens`가 멈춘다) → `pnpm tokens`(`--color-<name>` 매핑과 토큰 표가 함께 만들어진다) → 카탈로그의 색 묶음(`DesignTokens.stories.tsx`의 `packageColors(...)`)에 이름 추가(안 넣으면 "묶음에 넣지 않은 범용 색"에 나온다). **앱 전용**: 값 정의(팔레트에 있는 값이면 `var(--palette-<색>-<단계>)`) → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신 |
-| 새 Tailwind 커스텀 ESLint 룰 추가                                                      | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화)                                                                   | 기존 5개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-09-29 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기                                                                                                                                                                                                                           |
+| 새 Tailwind 커스텀 ESLint 룰 추가                                                      | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화)                                                                   | 기존 6개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-motion`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-11-26 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기. `no-raw-motion`처럼 설정 파일 밖(`scripts/lib/`)에 두면 `src/test/scripts/`에서 단위 테스트로 고정할 수 있다                                                                                             |
 | 새 타이포 역할 토큰 추가                                                               | 원본 `packages/ui/tokens/text.tokens.json`                                                                                                                                       | 역할 아래에 `font-size`·`line-height`(필요하면 `font-weight`) 토큰을 더한다 → `pnpm tokens`(`cn()`이 읽는 글자 크기 이름 목록 `TEXT_SIZE_TOKEN_NAMES`에 함께 등록된다. 등록이 왜 필요한지는 §10) → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표에 대상 예시 추가                                                                                                                                                                                                                                       |
 | 새 토큰 축 추가(모션·그림자 등)                                                        | 원본 `packages/ui/tokens/<축>.tokens.json`, `packages/ui/tokens/tokens.resolver.json`, `packages/ui/scripts/build-tokens.js`, `scripts/generate-token-docs.js`                   | 원본 파일을 만들고 `tokens.resolver.json`의 기본 파일 목록에 더한다 → `build-tokens.js`의 `describePath`(경로를 축·이름으로 나눔)·`cssVarName`(변수 이름)·`renderCss`(어느 테마 블록에 낼지)·`toCssValue`(새 값 타입이면)에 축을 더한다 → `generate-token-docs.js`의 `SECTIONS`에 절을 더한다. 어느 하나를 빠뜨리면 `pnpm tokens`가 그 축 이름을 대며 멈춘다                                                                                                                                                             |
+| 시간·곡선 토큰 더하기                                                                  | 원본 `packages/ui/tokens/duration.tokens.json`·`timing-function.tokens.json`                                                                                                     | 토큰을 더한다(시간은 `{ "value": 250, "unit": "ms" }`, 곡선은 숫자 4개 배열이고 첫째·셋째는 0~1) → `pnpm tokens`(`cn()` 등록 목록과 JS 값 `DURATION_MS`가 함께 만들어진다) → 쓰는 곳에 클래스. 닫힘을 기다리는 JS 타이머는 `DURATION_MS.<이름>`을 읽는다(`motion-ux` skill "exit 애니메이션 동기화 함정"). 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Motion`)는 생성 목록을 읽어 따로 고치지 않는다                                                                                                               |
 | 토스트의 버튼 자리·닫기 X 바꾸기                                                       | `packages/ui/src/lib/toast/toast-layout.ts`                                                                                                                                      | 호출부는 모양 옵션을 넘길 수 없고 래퍼가 정한다(`FE-ARCHITECTURE.md` §14 "버튼 배치"). 새 모양은 `packages/ui/src/lib/toast/`에 함수로 만들고 `sonner.stories.tsx`에 견본을 더한다                                                                                                                                                                                                                                                                                                                                       |
 | 토스트 종류별 색 바꾸기                                                                | `packages/ui/src/atoms/sonner.tsx`의 `KIND_TOKENS`·`KIND_COLOR_VARS`                                                                                                             | 오류·경고·성공·안내 토스트의 배경·테두리·글자색은 `--destructive`·`--warning`·`--success`·`--info`에서 `color-mix`로 만든다(배경 8%·테두리 30%는 바탕색과, 글자 60%는 본문색과 섞는다). 토큰 값을 바꾸면 따라 바뀐다. 비율이나 토큰을 바꾸면 Storybook `Kinds`·`Notice`에서 밝은·어두운 테마의 제목 대비(4.5:1 이상)를 다시 잰다. sonner가 문서화하지 않은 변수 이름에 기대므로 sonner를 올릴 때도 같은 스토리를 확인한다(`DECISIONS.md` 2026-11-18 "토스트 색")                                                         |
 | 범용 부품이 스스로 보여 주는 글자 더하기                                               | `packages/ui/src/texts/`(타입·한국어 묶음·Provider), `src/app/providers/UiTextsProvider.tsx`(이 앱이 넘기는 값)                                                                  | 부품에 `TEXTS`를 import하지 않는다. `ui-texts.ts` 타입 → `ko-ui-texts.ts` 묶음 → `APP_UI_TEXTS` 순서로 키를 더하고 부품에서 `useUiTexts()`로 읽는다. 순서와 묶는 규칙은 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §1.2                                                                                                                                                                                                       |
@@ -567,6 +617,57 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
 - **검사 묶음**(같은 작업 트리, `caffeinate -dims`로 묶음): 생성물 최신성(`pnpm tokens` 뒤 세 파일이 같음), `pnpm check`,
   `pnpm test`(파일 222개, 테스트 3,208개), `pnpm check:docs`, `pnpm build`, `pnpm build-storybook`, 예제 앱 빌드,
   `pnpm test:storybook`(파일 60개, 테스트 218개), `pnpm test:e2e`(chromium·mobile-chrome 396개, 재시도 없음)가 모두 통과했다.
+
+2026-11-26 실측 (시간·곡선 토큰, 워크트리 `ds-tokens-stage2-motion`, `main` `4372577a` 기준) — 직접 측정. 위와 같은 임시
+스크립트로 바꾸기 전 커밋과 바꾼 작업 트리를 비교했다. 규칙 비교가 못 보는 열림·닫힘 시간과 JS 타이머는 임시 브라우저 스펙으로
+따로 봤다.
+
+- **빌드된 CSS 비교**: 앱 진입 CSS는 규칙 1,157 → 1,162개이고 공통 규칙의 순서는 같다.
+  - 옛 클래스와 새 토큰 클래스의 짝 7개(시간 4, 곡선 3)는 `var()`를 풀어 쓴 선언이 같다. 시트 곡선만 쉼표 뒤 띄어쓰기가
+    다르고, 아래 계산값은 같다.
+  - 옛 규칙 가운데 150ms·600ms 둘은 없어졌다. 200ms·300ms, Tailwind 기본 곡선 둘, 대괄호로 적은 시트 곡선은 남는다. 고치지
+    않는 기록(CHANGELOG, `docs/DECISIONS.md`, 계획 스냅샷)과 `motion-ux` skill의 인용에 그 글자가 있어서다(§10 첫 항목과
+    같은 현상). 쓰는 곳이 없어 화면 영향은 없다.
+  - 짝으로 설명되지 않는 규칙은 전·후 모두 0개다.
+  - 선언이 바뀐 규칙은 테마 층의 `:root, :host` 하나다. Tailwind 기본 시간·곡선 변수 둘이 숫자 대신 토큰을 가리키고(풀어
+    쓴 값은 150ms, `cubic-bezier(0.4, 0, 0.2, 1)`로 그대로다), 토큰 변수가 더해졌다.
+  - 그 뒤 카탈로그에 `Motion` 스토리를 더하고 다시 비교하면 1,162 → 1,165개다. 더해진 3개는 그 스토리의 재생 예시가 쓰는
+    클래스(대괄호로 적은 전환 속성 하나, 동작 줄이기 꺼짐·켜짐 변형 하나씩)다. 스토리 파일도 앱 CSS의 스캔 범위라서 생기고,
+    앱 화면에서는 쓰지 않는다. 다른 규칙의 선언과 순서는 그대로다.
+  - 예제 앱은 268 → 273개다. 짝 1개(300ms → d6)는 같다. 짝 없이 새로 생긴 것은 유틸리티 규칙 4개(d4, 곡선 셋)와
+    `@property --tw-ease`다. 패키지 토큰 CSS의 `@source '..'`가 훑는 패키지 안 테스트·주석의 글자에서 생겼다. 예제 앱은
+    빌드만 하고 배포하지 않는다.
+- **브라우저 계산값**: 앱 빌드 CSS 둘을 Chromium(`setContent`라 네트워크 요청 없음)에 올렸다. 쓰는 곳의 클래스 조합 13개를
+  전은 옛 클래스, 후는 토큰 클래스로 두고 `transition-*`·`animation-*` 계산값과 tw-animate 변수(진입 이동량, 퇴장 확대값)를
+  읽었다. 동작 줄이기 꺼짐·켜짐 모두 13/13이 같다. 시간은 조합에 따라 0.15·0.2·0.3·0.6s로 다르게 읽혀 빈 비교가 아니고,
+  동작 줄이기를 켜면 퇴장 확대값이 0.95에서 1이 된다(전·후 같다).
+- **열림·닫힘 시간과 타이머**(임시 Playwright 스펙, e2e 모킹이라 운영 요청 없음, 커밋하지 않음):
+
+  | 확인                    | 결과                                                                                              |
+  | ----------------------- | ------------------------------------------------------------------------------------------------- |
+  | 로그인 대화상자         | 내용은 열림·닫힘 200ms, 딤은 150ms. 닫기 시작 241ms 뒤 DOM에서 빠진다                             |
+  | 삭제 확인창             | 같은 시간이다. 216ms 뒤 DOM에서 빠지고, 목록에서 지우는 타이머(d6, 300ms)는 그 뒤다               |
+  | 맨 위로 버튼            | 0.2s로 사라지고 209ms 뒤 DOM에서 빠진다(타이머 d4)                                                |
+  | 해시로 이동한 댓글 강조 | 나타남은 0.2s·`(0, 0, 0.2, 1)`. 1,598ms 뒤 0.6s로 바뀌고, 그 600.6ms 뒤 클래스를 뗀다(타이머 d12) |
+  | 폰 크기(393×727) 토스트 | 위 가운데에 뜨고 가로 16~377px·세로 16~70px로 화면 안이다                                         |
+
+  딤 150ms는 이 PR 전부터 그렇다. 데스크톱 대화상자의 딤에는 시간 클래스가 없어 tw-animate 기본값으로 움직이고, 내용보다
+  50ms 먼저 끝난다(§5 "시간과 곡선"의 "못 잡는 것"). 모바일 시트의 시간(딤과 시트 모두 300ms·시트 곡선)과 실제 화면의
+  동작 줄이기는 따로 스펙을 쓰지 않고 기존 e2e(`e2e/bookmark-sheet-motion.mobile.spec.ts`, `e2e/reduced-motion.spec.ts`)로
+  갈음했다. 둘 다 아래 검사 묶음에서 통과했다.
+
+- **검사가 실제로 막는지**(고쳤다가 되돌림):
+  - 생성 스크립트의 시간 테마 이름을 `--duration-`으로 바꾸면 `src/test/tailwind-motion-theme.test.ts`의 6개(토큰 5개와
+    기본값 1개)가 실패한다.
+  - `cn()`의 시간 등록에서 첫 이름(d3)을 빼면 `utils.test.ts`가 실패한다.
+  - 린트 규칙이 막는 기본 곡선에서 `linear`를 빼면 규칙 테스트 1개가 실패한다.
+- **운영 번들**: `pnpm build`의 JS에 전체 토큰 목록은 없다. `cn()`이 읽는 이름 목록과, 타이머가 읽는 `DURATION_MS`의 쓰는 값
+  셋(d4·d6·d12)만 들어간다.
+- **검사 묶음**(같은 작업 트리, `caffeinate -dims`로 묶음): 생성물 최신성(`pnpm tokens` 뒤 세 파일이 같음), `pnpm check`,
+  `pnpm test`(파일 224개, 테스트 3,249개), `pnpm check:docs`, `pnpm build`, `pnpm build-storybook`, 예제 앱 빌드,
+  `pnpm test:storybook`(파일 60개, 테스트 218개), `pnpm test:e2e`(chromium·mobile-chrome 396개, 재시도 없음)가 모두 통과했다.
+  카탈로그를 더한 뒤에는 `pnpm test:storybook`(파일 60개, 테스트 219개)을 다시 돌려 통과했다. 재생 예시는 Storybook 화면에서
+  재생·되돌리기와 동작 줄이기(점이 움직이지 않고 흐려지기만 함, 계산값 `translate: none`·`opacity: 0.3`)를 확인했다.
 
 ## 10. 시행착오
 

@@ -565,7 +565,8 @@ flowchart LR
 - **강조 방식(2026-10-31)** — 대상 댓글에 `bg-accent` 배경을 깔고 `ring-8 ring-accent`로 배경을
   8px 넓혀 칠한다(그림자라 레이아웃은 그대로다). 200ms에 나타나고, 1.6초 뒤 링 색을 `ring-transparent`로
   바꾸고 배경을 빼서 크기 변화 없이 600ms 동안 흐려진다. 마지막 타이머가 페이드용 클래스를 떼는데,
-  그 600ms는 `duration-600`과 같은 값이어야 한다(`motion-ux` skill "exit 애니메이션 동기화 함정").
+  그 타이머는 클래스 `duration-d12`와 같은 토큰(`DURATION_MS.d12`)을 읽어 값이 함께 바뀐다(`motion-ux` skill "exit
+  애니메이션 동기화 함정").
   "동작 줄이기"를 켜도 페이드는 남는다 — 전역 규칙이 배경색·그림자 트랜지션은 남기기 때문이다
   (`packages/ui/src/styles/tokens.css`의 `prefers-reduced-motion` 블록). 전에는 `ring-2 ring-primary ring-offset-2`를
   1.6초 뒤 트랜지션 없이 뗐다. 라이트 모드에서 `--primary`가 거의 검정(neutral-900)이라, 테두리가
@@ -985,7 +986,7 @@ _"한 화면에 FAB를 여러 개 두지 않는다"_ (번역)고 한다 — 이 
 | 원본 파일 상한               | 30MB                 | `src/shared/lib/image/resizeImage.ts:13`                                                                                                     |
 | SVG·GIF(리사이즈 안 함) 상한 | 10MB(버킷과 같게)    | `src/shared/lib/image/resizeImage.ts:21`                                                                                                     |
 | 해시 이동 강조 시간          | 1600ms               | `src/widgets/comment/comment-list/ui/CommentList.tsx`의 `scrollToHashedComment` 안 `setTimeout`                                              |
-| 해시 이동 강조 페이드        | 200ms / 600ms        | 나타남·사라짐. 같은 effect의 `duration-200`·`duration-600` 클래스. 사라짐 값은 안쪽 정리 `setTimeout(600)`과 함께 바꾼다                     |
+| 해시 이동 강조 페이드        | 200ms / 600ms        | 나타남·사라짐. 같은 effect의 `duration-d4`·`duration-d12` 클래스. 안쪽 정리 타이머도 `DURATION_MS.d12`를 읽는다                              |
 | 빈 제출 강조 시간            | 1300ms               | `src/features/comment/create/ui/CommentForm.tsx`·`src/features/comment/update/ui/CommentEditForm.tsx`의 `highlightEmptyForm` 안 `setTimeout` |
 | 내 댓글 선반입 거리          | 아래 1200px          | `src/widgets/comment/my-comment-list/hooks/useMyCommentList.ts:24`                                                                           |
 | 해시 도착 여백               | navbar + 24px        | `src/widgets/comment/comment-list/ui/CommentItem.tsx:51`                                                                                     |

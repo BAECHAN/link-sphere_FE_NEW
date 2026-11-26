@@ -13,6 +13,7 @@ import { EmptyState } from '@/shared/ui/elements/EmptyState';
 import { useIsMobile } from '@/shared/hooks/useIsMobile';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
 import { TEXTS } from '@/shared/config/texts';
+import { DURATION_MS } from '@baechan/ui/tokens';
 
 interface CommentListProps {
   postId: string;
@@ -86,22 +87,23 @@ function CommentListContent({ postId, postAuthorId, commentCount }: CommentListP
 
       // 테두리 대신 연한 배경으로 강조한다 - ring-8로 배경을 8px 넓혀 칠해 레이아웃은 그대로다.
       // 200ms에 나타나고, 1.6초 뒤 색만 투명으로 바꿔 크기 변화 없이 600ms 동안 흐려진다. 마지막
-      // 정리 타이머(600)는 duration-600과 같은 값이어야 페이드가 끝난 뒤에 클래스를 뗀다. 진한
-      // 링·연한 링과 비교한 근거는 docs/COMMENT.md "해시 이동".
+      // 정리 타이머는 duration-d12와 같은 토큰을 읽어야 페이드가 끝난 뒤에 클래스를 뗀다. 진한
+      // 링·연한 링과 비교한 근거는 docs/COMMENT.md "해시 이동". 클래스 이름은 Tailwind가 이 파일에서
+      // 찾아 CSS를 만들 수 있게 글자 그대로 적는다.
       const highlightClasses = [
         'rounded-lg',
         'ring-8',
         'transition-[background-color,box-shadow]',
-        'ease-out',
+        'ease-enter',
       ];
-      target.classList.add(...highlightClasses, 'duration-200', 'bg-accent', 'ring-accent');
+      target.classList.add(...highlightClasses, 'duration-d4', 'bg-accent', 'ring-accent');
       setTimeout(() => {
-        target.classList.replace('duration-200', 'duration-600');
+        target.classList.replace('duration-d4', 'duration-d12');
         target.classList.replace('ring-accent', 'ring-transparent');
         target.classList.remove('bg-accent');
         setTimeout(() => {
-          target.classList.remove(...highlightClasses, 'duration-600', 'ring-transparent');
-        }, 600);
+          target.classList.remove(...highlightClasses, 'duration-d12', 'ring-transparent');
+        }, DURATION_MS.d12);
       }, 1600);
     },
     [location.hash, location.key, totalCount]

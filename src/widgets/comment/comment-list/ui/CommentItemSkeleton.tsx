@@ -37,7 +37,7 @@ export function CommentListSkeleton({ count }: CommentListSkeletonProps) {
       aria-busy="true"
       className={cn(
         'space-y-6',
-        isDelayedLoading ? 'animate-in fade-in duration-200 ease-out' : 'invisible'
+        isDelayedLoading ? 'animate-in fade-in duration-d4 ease-enter' : 'invisible'
       )}
     >
       {Array.from({ length: Math.min(count, MAX_SKELETON_COUNT) }, (_, index) => (

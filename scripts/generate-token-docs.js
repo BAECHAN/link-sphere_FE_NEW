@@ -37,6 +37,16 @@ const SECTIONS = [
   },
   { title: '글자 크기 눈금', groups: ['font-size', 'line-height'], render: renderScaleTable },
   { title: '글자 역할', groups: ['text'], render: renderRoleTable },
+  {
+    title: '시간',
+    groups: ['duration'],
+    render: (tokens) => renderSingleValueTable(tokens, 'duration-'),
+  },
+  {
+    title: '가속 곡선',
+    groups: ['timing-function'],
+    render: (tokens) => renderSingleValueTable(tokens, 'ease-'),
+  },
 ];
 
 function code(text) {
@@ -118,7 +128,9 @@ function renderSingleValueTable(tokens, classPrefix) {
     tokens.map((token) => [
       code(`${classPrefix}${token.name}`),
       code(token.cssVar),
-      withPx(token.value),
+      token.value.startsWith('var(')
+        ? withResolved(token.value, token.resolved)
+        : withPx(token.value),
       cell(describe(token)),
     ])
   );

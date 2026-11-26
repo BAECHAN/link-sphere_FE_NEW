@@ -70,7 +70,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
       <div
         ref={containerRef}
         className={cn(
-          'relative rounded-md transition-shadow duration-300',
+          'relative rounded-md transition-shadow duration-d6',
           isDraggingOver && 'ring-2 ring-primary ring-offset-2'
         )}
       >
