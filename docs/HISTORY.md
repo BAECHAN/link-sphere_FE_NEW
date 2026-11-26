@@ -1,4 +1,7 @@
 ### 2026-11-26 (FE)
+- 대화상자 및 확인 창의 딤(dim) 애니메이션과 컴포넌트 등장 시점을 동기화하여 UI 상호작용의 일관성 개선 ([#694](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/694))
+
+### 2026-11-26 (FE)
 - UI 컴포넌트 내 시간 및 곡선 데이터 생성 로직을 토큰 원본 기반으로 리팩터링하고, 숫자 클래스 직접 접근을 차단하여 타입 안정성 및 코드 유지보수성 향상 ([#693](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/693))
 
 ### 2026-11-26 (FE)
