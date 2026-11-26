@@ -1,3 +1,6 @@
+### 2026-11-26 (FE)
+- 포스트 목록 카드 썸네일 최적화: 서버에서 제공하는 리사이징된 이미지 사본을 사용하도록 개선하여 로딩 성능 향상 ([#690](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/690))
+
 ### 2026-11-25 (BE)
 - 피드 카드 공유를 위한 OG 이미지 생성 로직 구현 ([#230](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/230))
   - 게시글 작성 시 OG 이미지 사본을 선제적으로 생성하여 응답 데이터에 포함하도록 최적화
