@@ -1,4 +1,7 @@
 ### 2026-11-26 (FE)
+- UI 컴포넌트 내 시간 및 곡선 데이터 생성 로직을 토큰 원본 기반으로 리팩터링하고, 숫자 클래스 직접 접근을 차단하여 타입 안정성 및 코드 유지보수성 향상 ([#693](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/693))
+
+### 2026-11-26 (FE)
 - 범용 의미 색상 체계의 디자인 팔레트 의존성 강화 및 리팩토링 ([#692](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/692))
 
 ### 2026-11-26 (BE)
