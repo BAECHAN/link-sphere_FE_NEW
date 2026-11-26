@@ -18,6 +18,7 @@
 //   - 오류 문구: 끊긴 별칭이나 변환 실패를 개수로만 알린다("참조 1개를 찾지 못함"). 어느 토큰인지는 이 스크립트가
 //     댄다(assertReferencesExist, resolveTree의 valueErrors).
 //   - 블록 배치: Tailwind 4의 @theme 블록과 하위 키(--text-<이름>--line-height)는 내장 출력에 없다.
+//   - 층 규칙: 의미 색은 값을 숫자로 적지 않고 팔레트를 가리킨다(2026-11-26 게이트 2, assertColorsUsePalette).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -228,6 +229,20 @@ function assertReferencesExist(tree) {
   }
 }
 
+/** 의미 색(color)이 모두 팔레트(palette)를 가리키는지 본다. 숫자 값이나 다른 축을 가리키는 값이면 멈춘다. */
+function assertColorsUsePalette(tree) {
+  for (const [id, token] of listTokens(tree)) {
+    const reference = typeof token.$value === 'string' ? token.$value.match(REFERENCE) : null;
+
+    if (id.startsWith('color.') && !reference?.[1].startsWith('palette.')) {
+      fail(
+        id,
+        `의미 색은 값을 직접 적지 않고 팔레트를 가리킨다(예: {palette.gray.900}, 받은 값: ${JSON.stringify(token.$value)}). 필요한 값이 없으면 palette.tokens.json에 먼저 더한다`
+      );
+    }
+  }
+}
+
 /** 토큰 나무를 Style Dictionary에 넘겨 별칭을 풀고 토큰마다 CSS 값을 낸다. */
 async function resolveTree(tree) {
   assertReferencesExist(tree);
@@ -306,6 +321,9 @@ async function buildModel() {
     addToTree(darkTree, source, { override: true, file });
     listTokens(source).forEach(([id]) => declaredInDark.add(id));
   }
+
+  assertColorsUsePalette(lightTree);
+  assertColorsUsePalette(darkTree);
 
   const light = await resolveTree(lightTree);
   const darkById = new Map((await resolveTree(darkTree)).map((token) => [token.id, token]));

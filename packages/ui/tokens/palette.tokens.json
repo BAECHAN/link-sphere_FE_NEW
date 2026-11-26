@@ -1,11 +1,11 @@
 {
   "palette": {
-    "$description": "무채색 팔레트(원시 층). 의미 색(color)이 무채색 값을 숫자 대신 이 토큰으로 가리킨다. 값은 Tailwind 기본 neutral 팔레트와 같지만, Tailwind 버전이 팔레트를 바꿔도 테마가 따라 바뀌지 않도록 직접 정의한다. 실제로 가리키는 단계만 둔다. 모드와 무관해 다크에서 다시 정하지 않는다. Tailwind 테마 키로 내보내지 않아 팔레트 이름의 유틸리티 클래스는 생기지 않는다(부품은 의미 색만 쓴다). 유채색은 2026-10-29에 숫자로 두기로 했다(docs/DESIGN-SYSTEM.md §5).",
+    "$description": "팔레트(원시 층). 의미 색(color)은 값을 숫자로 적지 않고 모두 이 토큰을 가리킨다(생성 스크립트가 숫자 값을 막는다). 색 이름은 당근 SEED·토스 TDS와 같은 단어(gray, red, blue, yellow, green)이고, 번호는 같은 색상의 Tailwind 기본 팔레트에서 명도(L)가 가장 가까운 단계다. 값이 Tailwind와 같은 것은 따로 적었다. Tailwind 값을 참조하지 않고 직접 정의해 Tailwind 버전이 바뀌어도 테마가 따라 바뀌지 않는다. 실제로 가리키는 단계만 둔다. 모드와 무관해 다크에서 다시 정하지 않는다(모드마다 다른 팔레트를 가리키는 것은 의미 색이다). Tailwind 테마 키로 내보내지 않아 팔레트 이름의 유틸리티 클래스는 생기지 않는다(부품은 의미 색만 쓴다). 2026-11-26 게이트 2에서 정했다(docs/DESIGN-SYSTEM.md §5).",
     "white": {
       "$type": "color",
       "$value": { "colorSpace": "oklch", "components": [1, 0, 0] }
     },
-    "neutral": {
+    "gray": {
       "50": {
         "$type": "color",
         "$value": { "colorSpace": "oklch", "components": [0.985, 0, 0] }
@@ -26,6 +26,11 @@
         "$type": "color",
         "$value": { "colorSpace": "oklch", "components": [0.556, 0, 0] }
       },
+      "550": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.542, 0, 0] },
+        "$description": "Tailwind에 없는 단계(500과 600 사이). 500(0.556)에서 명도(L)만 0.542로 낮췄다. 500은 muted 배경(#f5f5f5) 위에서 4.34:1로 WCAG AA(4.5:1)에 못 미쳤다(2026-09-16 Storybook a11y 게이트가 kbd, FilterChip, BackToTopButton 등에서 실측). OKLCH를 sRGB로 바꾼 뒤 WCAG 상대 휘도 공식으로 계산해 4.60:1이 되는 최소 조정값을 찾았다(#737373에서 #6f6f6f, Artifact 미리보기로 사용자 승인)."
+      },
       "800": {
         "$type": "color",
         "$value": { "colorSpace": "oklch", "components": [0.269, 0, 0] }
@@ -42,6 +47,61 @@
     "black": {
       "$type": "color",
       "$value": { "colorSpace": "oklch", "components": [0, 0, 0] }
+    },
+    "white-alpha": {
+      "10": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [1, 0, 0], "alpha": 0.1 },
+        "$description": "흰색에 투명도 10%를 얹은 색. 번호는 투명도 %다(당근 SEED의 static-white-alpha-*, 토스 TDS의 greyOpacity*는 번호가 투명도가 아니라 단계다. 우리는 투명도 값이 둘뿐이라 단계표를 따로 만들지 않았다). 별칭 뒤에는 투명도를 붙일 수 없어 투명도마다 토큰을 둔다."
+      },
+      "15": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [1, 0, 0], "alpha": 0.15 },
+        "$description": "흰색에 투명도 15%를 얹은 색. 번호를 정한 방법은 white-alpha.10과 같다."
+      }
+    },
+    "red": {
+      "400": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.704, 0.191, 22.216] },
+        "$description": "Tailwind red-400과 같은 값."
+      },
+      "600": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.577, 0.245, 27.325] },
+        "$description": "Tailwind red-600과 같은 값."
+      }
+    },
+    "blue": {
+      "400": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.707, 0.165, 254] },
+        "$description": "Tailwind blue-400(0.707 0.165 254.624)에서 색상각(H)만 254로 적은 값."
+      },
+      "600": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.575, 0.233, 262] },
+        "$description": "Tailwind blue-600(0.546)과 다른 값. 2026-09-16 a11y 게이트 실측에서 원래 값(L 0.585)이 WCAG AA(4.5:1)에 못 미쳐, 명도(L)만 0.575로 낮춰 4.60:1로 넘겼다(다크에서 가리키는 blue.400은 7:1 이상이라 그대로 뒀다). 1%p만 낮춰 눈으로는 거의 같다. Artifact 미리보기로 사용자 승인."
+      }
+    },
+    "yellow": {
+      "500": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.769, 0.188, 85] },
+        "$description": "Tailwind yellow-500(0.795 0.184 86.047)과 다른 값."
+      }
+    },
+    "green": {
+      "500": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.749, 0.155, 152] },
+        "$description": "Tailwind green-500(0.723 0.219 149.579)과 다른 값."
+      },
+      "700": {
+        "$type": "color",
+        "$value": { "colorSpace": "oklch", "components": [0.543, 0.194, 142] },
+        "$description": "Tailwind green-700(0.527 0.154 150.069)과 다른 값. blue.600과 같은 이유로 원래 값(L 0.627)의 명도(L)를 0.543으로 낮췄다. 원래 3.29:1로 가장 크게 못 미쳐 눈에 띄게 진해졌다(#2ba321에서 #008900). Artifact 미리보기로 사용자 승인(2026-09-16)."
+      }
     }
   }
 }

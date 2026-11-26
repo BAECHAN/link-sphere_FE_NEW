@@ -93,14 +93,14 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: var(--palette-neutral-50);
-  --sidebar-foreground: var(--palette-neutral-950);
-  --sidebar-primary: var(--palette-neutral-900);
-  --sidebar-primary-foreground: var(--palette-neutral-50);
-  --sidebar-accent: var(--palette-neutral-100);
-  --sidebar-accent-foreground: var(--palette-neutral-900);
-  --sidebar-border: var(--palette-neutral-200);
-  --sidebar-ring: var(--palette-neutral-400);
+  --sidebar: var(--palette-gray-50);
+  --sidebar-foreground: var(--palette-gray-950);
+  --sidebar-primary: var(--palette-gray-900);
+  --sidebar-primary-foreground: var(--palette-gray-50);
+  --sidebar-accent: var(--palette-gray-100);
+  --sidebar-accent-foreground: var(--palette-gray-900);
+  --sidebar-border: var(--palette-gray-200);
+  --sidebar-ring: var(--palette-gray-400);
 }
 
 .dark {
@@ -113,35 +113,36 @@
      다크 배경에 얹으면 대비가 부족해진다 - 직접 계산 결과 L 0.75 + 어두운 글자
      조합이 7.3~8.7:1로 라이트보다 오히려 여유 있게 통과한다. */
   --category-1: oklch(0.75 0.18 255);
-  --category-1-foreground: var(--palette-neutral-900);
+  --category-1-foreground: var(--palette-gray-900);
   --category-2: oklch(0.75 0.14 30);
-  --category-2-foreground: var(--palette-neutral-900);
+  --category-2-foreground: var(--palette-gray-900);
   --category-3: oklch(0.75 0.22 292);
-  --category-3-foreground: var(--palette-neutral-900);
+  --category-3-foreground: var(--palette-gray-900);
   --category-4: oklch(0.75 0.16 340);
-  --category-4-foreground: var(--palette-neutral-900);
+  --category-4-foreground: var(--palette-gray-900);
   --category-5: oklch(0.75 0.045 150);
-  --category-5-foreground: var(--palette-neutral-900);
+  --category-5-foreground: var(--palette-gray-900);
   --category-6: oklch(0.75 0.05 200);
-  --category-6-foreground: var(--palette-neutral-900);
+  --category-6-foreground: var(--palette-gray-900);
   --category-7: oklch(0.75 0.11 85);
-  --category-7-foreground: var(--palette-neutral-900);
+  --category-7-foreground: var(--palette-gray-900);
   --category-8: oklch(0.75 0.15 15);
-  --category-8-foreground: var(--palette-neutral-900);
+  --category-8-foreground: var(--palette-gray-900);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: var(--palette-neutral-900);
-  --sidebar-foreground: var(--palette-neutral-50);
+  --sidebar: var(--palette-gray-900);
+  --sidebar-foreground: var(--palette-gray-50);
   --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: var(--palette-neutral-50);
-  --sidebar-accent: var(--palette-neutral-800);
-  --sidebar-accent-foreground: var(--palette-neutral-50);
-  /* 흰색에 투명도를 얹은 값이라 팔레트 대신 숫자로 둔다(패키지 토큰 CSS의 --border 주석과 같은 이유) */
+  --sidebar-primary-foreground: var(--palette-gray-50);
+  --sidebar-accent: var(--palette-gray-800);
+  --sidebar-accent-foreground: var(--palette-gray-50);
+  /* 흰색에 투명도를 얹은 값. 앱 전용 토큰은 디자인 토큰 2단계 범위 밖이라 숫자로 남겨 둔다. 같은 값의 팔레트
+     --palette-white-alpha-10이 있다(패키지 다크 --border가 가리킨다, docs/DESIGN-SYSTEM.md §5 "유채색도 팔레트로") */
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: var(--palette-neutral-500);
+  --sidebar-ring: var(--palette-gray-500);
 }
 
 /*

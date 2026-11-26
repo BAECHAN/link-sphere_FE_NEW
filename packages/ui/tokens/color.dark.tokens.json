@@ -1,48 +1,28 @@
 {
   "color": {
-    "background": { "$type": "color", "$value": "{palette.neutral.950}" },
-    "foreground": { "$type": "color", "$value": "{palette.neutral.50}" },
-    "card": { "$type": "color", "$value": "{palette.neutral.900}" },
-    "card-foreground": { "$type": "color", "$value": "{palette.neutral.50}" },
-    "popover": { "$type": "color", "$value": "{palette.neutral.900}" },
-    "popover-foreground": { "$type": "color", "$value": "{palette.neutral.50}" },
-    "primary": { "$type": "color", "$value": "{palette.neutral.200}" },
-    "primary-foreground": { "$type": "color", "$value": "{palette.neutral.900}" },
-    "secondary": { "$type": "color", "$value": "{palette.neutral.800}" },
-    "secondary-foreground": { "$type": "color", "$value": "{palette.neutral.50}" },
-    "muted": { "$type": "color", "$value": "{palette.neutral.800}" },
-    "muted-foreground": { "$type": "color", "$value": "{palette.neutral.400}" },
-    "accent": { "$type": "color", "$value": "{palette.neutral.800}" },
-    "accent-foreground": { "$type": "color", "$value": "{palette.neutral.50}" },
-    "destructive": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.704, 0.191, 22.216] }
-    },
-    "info": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.707, 0.165, 254] }
-    },
+    "background": { "$type": "color", "$value": "{palette.gray.950}" },
+    "foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "card": { "$type": "color", "$value": "{palette.gray.900}" },
+    "card-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "popover": { "$type": "color", "$value": "{palette.gray.900}" },
+    "popover-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "primary": { "$type": "color", "$value": "{palette.gray.200}" },
+    "primary-foreground": { "$type": "color", "$value": "{palette.gray.900}" },
+    "secondary": { "$type": "color", "$value": "{palette.gray.800}" },
+    "secondary-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "muted": { "$type": "color", "$value": "{palette.gray.800}" },
+    "muted-foreground": { "$type": "color", "$value": "{palette.gray.400}" },
+    "accent": { "$type": "color", "$value": "{palette.gray.800}" },
+    "accent-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "destructive": { "$type": "color", "$value": "{palette.red.400}" },
+    "info": { "$type": "color", "$value": "{palette.blue.400}" },
     "info-foreground": { "$type": "color", "$value": "{palette.white}" },
-    "warning": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.769, 0.188, 85] }
-    },
-    "warning-foreground": { "$type": "color", "$value": "{palette.neutral.950}" },
-    "success": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.749, 0.155, 152] }
-    },
+    "warning": { "$type": "color", "$value": "{palette.yellow.500}" },
+    "warning-foreground": { "$type": "color", "$value": "{palette.gray.950}" },
+    "success": { "$type": "color", "$value": "{palette.green.500}" },
     "success-foreground": { "$type": "color", "$value": "{palette.white}" },
-    "border": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [1, 0, 0], "alpha": 0.1 },
-      "$description": "흰색에 투명도를 얹은 값이다. 별칭 뒤에는 알파를 붙일 수 없어 팔레트를 가리키지 않고 숫자로 둔다."
-    },
-    "input": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [1, 0, 0], "alpha": 0.15 },
-      "$description": "border(다크)와 같은 이유로 숫자로 둔다."
-    },
-    "ring": { "$type": "color", "$value": "{palette.neutral.500}" }
+    "border": { "$type": "color", "$value": "{palette.white-alpha.10}" },
+    "input": { "$type": "color", "$value": "{palette.white-alpha.15}" },
+    "ring": { "$type": "color", "$value": "{palette.gray.500}" }
   }
 }

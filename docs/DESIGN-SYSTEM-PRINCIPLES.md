@@ -536,7 +536,7 @@ SEED의 알림 상자와 다르다 — `FeaturedIcon`은 `tone`이 아니라 `va
 패키지 27개, 앱 31개다(`grep -c "^\s*--color-"`, 2026-11-25. 2026-11-20에는 같은 명령이 토큰 CSS의 주석 한 줄까지 세어
 28이라고 적었다).
 
-- **패키지(`packages/ui/src/styles/tokens.css`)**: 의미 색과 무채색 팔레트, 반경, z-index 8단계, 글자 크기(t1~t14 스케일과 역할
+- **패키지(`packages/ui/src/styles/tokens.css`)**: 의미 색과 팔레트, 반경, z-index 8단계, 글자 크기(t1~t14 스케일과 역할
   토큰), 다크 변형, `@layer base`의 기본 테두리·커서·텍스트 선택, 동작 줄이기, `--toast-offset-bottom`의 기본값 24px. 이 파일의
   `@source '..'`가 패키지 소스를 쓰는 앱의 Tailwind에 등록한다. 맨 위에서 열림·닫힘 애니메이션 CSS(`tw-animate-css`)도
   가져온다(2026-11-23). 2026-11-25부터 토큰 선언(색·팔레트·반경·z-index·글자 크기·다크 변형)은 이 파일에 손으로 적지 않고
