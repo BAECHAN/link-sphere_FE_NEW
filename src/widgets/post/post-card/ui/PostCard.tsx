@@ -285,7 +285,7 @@ export const PostCard = memo(function PostCard({
           <LinkThumbnail
             src={isDetail ? post.ogImage : (post.ogImageThumbnail ?? post.ogImage)}
             alt={post.title}
-            imageClassName="group-hover:scale-105 transition-transform duration-300"
+            imageClassName="group-hover:scale-105 transition-transform duration-d6"
             priority={priorityThumbnail}
           />
           <div className="p-2 md:p-3 flex items-center justify-between">

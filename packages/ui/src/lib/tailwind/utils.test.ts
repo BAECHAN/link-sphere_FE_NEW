@@ -39,3 +39,42 @@ describe('cn()의 글자 크기 토큰 병합', () => {
     );
   });
 });
+
+// 위와 같은 이유로 cn()이 읽는 목록(DURATION_TOKEN_NAMES 등)이 아니라 전체 목록에서 고른다
+const durationTokens = TOKENS.filter((token) => token.group === 'duration').map(
+  (token) => token.name
+);
+const easeTokens = TOKENS.filter((token) => token.group === 'timing-function').map(
+  (token) => token.name
+);
+
+describe('cn()의 시간·곡선 토큰 병합', () => {
+  it('토큰 목록에서 시간·곡선 토큰을 읽어 온다', () => {
+    expect(durationTokens).toContain('d4');
+    expect(easeTokens).toContain('easing');
+  });
+
+  // 토큰을 추가하고 utils.ts 등록을 빠뜨리면 여기서 실패한다. 앞에 두는 것은 다른 토큰이다 - Tailwind 기본 이름을 적으면
+  // Tailwind가 이 파일에서 그 이름을 찾아 쓰지 않는 규칙을 CSS에 만든다
+  const another = (names: string[], token: string) => names.find((name) => name !== token);
+
+  it.each(durationTokens)('duration-%s가 앞의 시간 클래스를 지운다', (token) => {
+    expect(cn(`duration-${another(durationTokens, token)}`, `duration-${token}`)).toBe(
+      `duration-${token}`
+    );
+  });
+
+  it.each(easeTokens)('ease-%s가 앞의 곡선 클래스를 지운다', (token) => {
+    expect(cn(`ease-${another(easeTokens, token)}`, `ease-${token}`)).toBe(`ease-${token}`);
+  });
+
+  it('쓰는 쪽이 넘긴 시간·곡선이 부품의 것을 덮는다', () => {
+    expect(cn('transition-all duration-d4 ease-easing', 'duration-d6 ease-sheet')).toBe(
+      'transition-all duration-d6 ease-sheet'
+    );
+  });
+
+  it('시간과 곡선은 서로 지우지 않는다', () => {
+    expect(cn('duration-d4', 'ease-enter')).toBe('duration-d4 ease-enter');
+  });
+});

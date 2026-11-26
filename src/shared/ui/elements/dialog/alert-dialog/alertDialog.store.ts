@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { ReactNode } from 'react';
 import { devtools } from 'zustand/middleware';
+import { DURATION_MS } from '@baechan/ui/tokens';
 
 export interface AlertDialogData {
   id: string;
@@ -66,7 +67,8 @@ export const useAlertDialogStore = create<AlertDialogStore>()(
           dialog.onCancel?.();
         }
         get().close(id);
-        setTimeout(() => get().remove(id), 300);
+        // 닫힘 애니메이션(alert-dialog.tsx의 duration-d4)보다 길게 기다린 뒤 목록에서 뺀다(GlobalAlertDialogs.tsx와 같은 값)
+        setTimeout(() => get().remove(id), DURATION_MS.d6);
       },
     }),
     { name: 'alert-dialog-store' }

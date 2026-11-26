@@ -1146,10 +1146,10 @@ export const isLastPendingBookmarkMutation = (queryClient: QueryClient, postId: 
 
 ### 조회 로딩 vs mutation 진행 표시 — 비대칭 규약
 
-| 구분                                                                | 지연 게이트 | 최소 노출      | 하드 엣지 처리                                  |
-| ------------------------------------------------------------------- | ----------- | -------------- | ----------------------------------------------- |
-| **조회 로딩** (Suspense fallback, `isLoading` 분기)                 | ✅          | ❌ 불가·불필요 | CSS 페이드인(`animate-in fade-in duration-200`) |
-| **mutation 진행 표시** (`usePostCard`, `AccountUpdateLoadingToast`) | ✅          | ✅             | — (표시 주체가 계속 마운트돼 있어 불필요)       |
+| 구분                                                                | 지연 게이트 | 최소 노출      | 하드 엣지 처리                                 |
+| ------------------------------------------------------------------- | ----------- | -------------- | ---------------------------------------------- |
+| **조회 로딩** (Suspense fallback, `isLoading` 분기)                 | ✅          | ❌ 불가·불필요 | CSS 페이드인(`animate-in fade-in duration-d4`) |
+| **mutation 진행 표시** (`usePostCard`, `AccountUpdateLoadingToast`) | ✅          | ✅             | — (표시 주체가 계속 마운트돼 있어 불필요)      |
 
 **"Suspense fallback은 자기 노출을 연장할 수 없다"는 기술적 사실**: fallback의 수명은
 Suspense 경계가 소유하고, React에는 exit lifecycle이 없어 fallback이 스스로 노출을

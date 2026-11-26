@@ -28,7 +28,7 @@ export function CenteredSpinner({
   return (
     <div
       className={cn(
-        'flex h-full w-full items-center justify-center p-10 animate-in fade-in duration-200',
+        'flex h-full w-full items-center justify-center p-10 animate-in fade-in duration-d4',
         className
       )}
     >

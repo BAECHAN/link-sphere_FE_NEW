@@ -66,7 +66,7 @@ export const ImageClassName: Story = {
   args: {
     src: 'https://picsum.photos/seed/link-sphere-hover/800/450',
     alt: '마우스를 올리면 커지는 이미지',
-    imageClassName: 'group-hover:scale-105 transition-transform duration-300',
+    imageClassName: 'group-hover:scale-105 transition-transform duration-d6',
   },
   decorators: [
     (Story) => (

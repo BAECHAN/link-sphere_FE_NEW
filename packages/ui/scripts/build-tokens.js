@@ -17,7 +17,8 @@
 //   - 값 모양 확인: 타입과 안 맞는 값(숫자 자리에 "50px")을 그대로 통과시킨다. 아래 toCssValue가 직접 본다.
 //   - 오류 문구: 끊긴 별칭이나 변환 실패를 개수로만 알린다("참조 1개를 찾지 못함"). 어느 토큰인지는 이 스크립트가
 //     댄다(assertReferencesExist, resolveTree의 valueErrors).
-//   - 블록 배치: Tailwind 4의 @theme 블록과 하위 키(--text-<이름>--line-height)는 내장 출력에 없다.
+//   - 블록 배치: Tailwind 4의 @theme 블록과 하위 키(--text-<이름>--line-height)는 내장 출력에 없다. Tailwind 기본 시간·곡선이
+//     토큰을 가리키게 하는 줄(TAILWIND_DEFAULTS)도 여기서 더한다.
 //   - 층 규칙: 의미 색은 값을 숫자로 적지 않고 팔레트를 가리킨다(2026-11-26 게이트 2, assertColorsUsePalette).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
@@ -32,6 +33,13 @@ const TS_OUT = join(PACKAGE_ROOT, 'src/generated/tokens.gen.ts');
 
 const REFERENCE = /^\{([^}]+)\}$/;
 const DIMENSION_UNITS = ['rem', 'px'];
+const DURATION_UNITS = { ms: 1, s: 1000 };
+// Tailwind가 시간·곡선 클래스 없이 transition만 붙은 곳에 쓰는 기본값의 변수다. 토큰을 가리키게 해서 그런 곳도 토큰 값을
+// 따르게 한다(2026-11-26 게이트 2). 덮어쓰기 전 값은 Tailwind 4.3.5 theme.css의 150ms, cubic-bezier(0.4, 0, 0.2, 1)이다.
+const TAILWIND_DEFAULTS = [
+  { cssVar: '--default-transition-duration', token: 'duration.color-transition' },
+  { cssVar: '--default-transition-timing-function', token: 'timing-function.easing' },
+];
 const GENERATED_NOTICE = [
   '생성 파일 - 직접 고치지 않는다.',
   '원본: packages/ui/tokens/*.tokens.json, 다시 만들기: 저장소 루트에서 pnpm tokens',
@@ -90,6 +98,32 @@ function toCssValue(token) {
       }
 
       return `${value.value}${value.unit}`;
+    case 'duration':
+      if (!isNumber(value?.value) || value.value < 0 || !(value.unit in DURATION_UNITS)) {
+        fail(
+          id,
+          `시간은 { value: 0 이상 숫자, unit: ${Object.keys(DURATION_UNITS).join(' | ')} }여야 한다(받은 값: ${JSON.stringify(value)})`
+        );
+      }
+
+      return `${value.value}${value.unit}`;
+    case 'cubicBezier': {
+      // DTCG 형식: [P1x, P1y, P2x, P2y]. x는 0과 1 사이다(CSS cubic-bezier()도 같은 범위만 받는다)
+      const isCurve =
+        Array.isArray(value) &&
+        value.length === 4 &&
+        value.every(isNumber) &&
+        [value[0], value[2]].every((x) => x >= 0 && x <= 1);
+
+      if (!isCurve) {
+        fail(
+          id,
+          `곡선은 숫자 4개 [x1, y1, x2, y2]이고 x는 0과 1 사이여야 한다(받은 값: ${JSON.stringify(value)})`
+        );
+      }
+
+      return `cubic-bezier(${value.join(', ')})`;
+    }
     case 'number':
     case 'fontWeight':
       if (!isNumber(value)) {
@@ -114,6 +148,8 @@ function describePath(path) {
     case 'z-index':
     case 'font-size':
     case 'line-height':
+    case 'duration':
+    case 'timing-function':
       return { group, name: rest[0], part: null };
     case 'text':
       return { group, name: rest[0], part: rest[1] };
@@ -139,6 +175,11 @@ function cssVarName(path) {
       return `--text-${name}`;
     case 'line-height':
       return `--text-${name}--line-height`;
+    // Tailwind 4.3.5의 duration-<이름>, ease-<이름>이 읽는 테마 키다(dist/lib.js. src/test/tailwind-motion-theme.test.ts가 확인)
+    case 'duration':
+      return `--transition-duration-${name}`;
+    case 'timing-function':
+      return `--ease-${name}`;
     default:
       return part === 'font-size' ? `--text-${name}` : `--text-${name}--${part}`;
   }
@@ -360,6 +401,21 @@ function renderCss({ tokens }) {
   const line = (token) => `  ${token.cssVar}: ${token.value};`;
   const colors = inGroup('color');
   const lineHeights = new Map(inGroup('line-height').map((token) => [token.name, token]));
+  // 시간·곡선 축의 토큰 뒤에, 그 축을 가리키는 Tailwind 기본값 줄을 붙인다
+  const withTailwindDefaults = (group) => [
+    ...inGroup(group).map(line),
+    ...TAILWIND_DEFAULTS.filter(({ token }) => token.startsWith(`${group}.`)).map(
+      ({ cssVar, token: id }) => {
+        const token = tokens.find((candidate) => candidate.id === id);
+
+        if (!token) {
+          fail(id, `${cssVar}가 가리킬 토큰이 없다`);
+        }
+
+        return `  ${cssVar}: var(${token.cssVar});`;
+      }
+    ),
+  ];
 
   // 블록마다 Tailwind 테마 옵션이 다르다.
   //   inline: 유틸리티가 --color-<이름>을 거치지 않고 var(--<이름>)을 바로 쓴다(:root, .dark의 값이 모드마다 바뀐다).
@@ -382,6 +438,9 @@ function renderCss({ tokens }) {
       }),
     ],
     ['@theme', inGroup('text').map(line)],
+    // 시간·곡선도 static이다. 기본값 줄이 가리키는 변수(color-transition 등)는 그 이름의 클래스를 쓰는 곳이 없어도 있어야 한다
+    ['@theme static', withTailwindDefaults('duration')],
+    ['@theme static', withTailwindDefaults('timing-function')],
     [':root', [...inGroup('palette'), ...colors].map(line)],
     [
       '.dark',
@@ -403,6 +462,21 @@ function renderTs({ tokens, groups }) {
         token.group === 'font-size' || (token.group === 'text' && token.part === 'font-size')
     )
     .map((token) => token.name);
+  const durationNames = tokens
+    .filter((token) => token.group === 'duration')
+    .map((token) => token.name);
+  const easeNames = tokens
+    .filter((token) => token.group === 'timing-function')
+    .map((token) => token.name);
+  const durationMs = Object.fromEntries(
+    tokens
+      .filter((token) => token.group === 'duration')
+      .map((token) => {
+        const [, amount, unit] = /^(\d+(?:\.\d+)?)(ms|s)$/.exec(token.resolved);
+
+        return [token.name, Number(amount) * DURATION_UNITS[unit]];
+      })
+  );
   const groupUnion = groups.map((group) => `'${group.id}'`).join(' | ');
   const json = (value) => JSON.stringify(value, null, 2);
 
@@ -442,6 +516,13 @@ export const TOKENS = ${json(tokens)} as const satisfies readonly DesignToken[];
 
 /** 글자 크기를 정하는 토큰 이름. cn()이 이 이름들을 글자 색이 아니라 글자 크기로 알아야 한다(lib/tailwind/utils.ts) */
 export const TEXT_SIZE_TOKEN_NAMES = ${json(textSizeNames)} as const;
+
+/** 시간·곡선 토큰 이름. cn()이 duration-<이름>, ease-<이름>을 같은 묶음으로 알아야 뒤에 온 클래스가 앞의 것을 덮는다 */
+export const DURATION_TOKEN_NAMES = ${json(durationNames)} as const;
+export const EASE_TOKEN_NAMES = ${json(easeNames)} as const;
+
+/** 시간 토큰의 밀리초 값. CSS 전환이 끝나기를 기다리는 JS 타이머가 읽는다(같은 시간을 숫자로 따로 적지 않으려고) */
+export const DURATION_MS = ${json(durationMs)} as const;
 `;
 }
 

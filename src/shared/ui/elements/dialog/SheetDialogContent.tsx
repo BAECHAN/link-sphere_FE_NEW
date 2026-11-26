@@ -13,7 +13,7 @@ import { cn } from '@baechan/ui/lib/tailwind/utils';
  * 않아 양쪽에 붙인다 — 한쪽에만 두면 딤(기본 150ms)이 먼저 사라져 시트만 남는다. 곡선은 vaul이 드로어와
  * 딤에 함께 쓰는 값이다(근거와 기각한 값: docs/DECISIONS.md 2026-11-03).
  */
-const SHEET_TIMING = 'duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]';
+const SHEET_TIMING = 'duration-d6 ease-sheet';
 
 /**
  * 창 전체의 높이 상한 — 안쪽 목록에만 상한을 두면 위아래 고정 행(제목·확인 등)이 그 위에 더해져 화면을 넘는다.

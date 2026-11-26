@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from '@/shared/ui/atoms/dialog';
 import { useUiTexts } from '@baechan/ui/texts/UiTextsProvider';
+import { DURATION_MS } from '@baechan/ui/tokens';
 
 // 인스타그램이 실제 공개한 기준값 - 이 범위 밖의 비율만 캔버스를 클램프한다(자르지 않고 object-contain).
 const MIN_ASPECT_RATIO = 4 / 5; // 세로로 긴 한계
@@ -97,13 +98,13 @@ export function ImageViewer({
       // 못하고, body의 cursor 값을 실제로 바꿨다가 되돌리는 것만 효과가 있다.
       // (Playwright로 실제 컴포넌트에 대해 확인: Chromium만 재현되고, Firefox·
       // WebKit은 애초에 이 문제가 없으며 이 처리를 해도 부작용 없음)
-      // Radix가 닫힘 애니메이션(duration-200) 종료 시점에야 body pointer-events를
+      // Radix가 닫힘 애니메이션(duration-d4) 종료 시점에야 body pointer-events를
       // 복원하므로, 그보다 뒤에 실행해야 한다.
       const timeoutId = window.setTimeout(() => {
         document.body.style.cursor = 'none';
         void document.body.offsetHeight;
         document.body.style.cursor = '';
-      }, 300);
+      }, DURATION_MS.d6);
       return () => window.clearTimeout(timeoutId);
     },
     [open]

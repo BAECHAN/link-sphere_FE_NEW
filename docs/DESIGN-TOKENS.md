@@ -2,7 +2,7 @@
 
 > `pnpm tokens`가 [`packages/ui/tokens/`](../packages/ui/tokens/)의 원본에서 만든 파일이다. 직접 고치지 않는다.
 
-공용 UI 패키지(`@baechan/ui`)의 범용 토큰 110개와 값을 정한 이유다.
+공용 UI 패키지(`@baechan/ui`)의 범용 토큰 118개와 값을 정한 이유다.
 앱 전용 토큰(카테고리·차트·사이드바 등)은 [`src/app/globals.css`](../src/app/globals.css)에 있고 이 표에 없다.
 원본과 생성물이 어떻게 이어지는지, 값을 고치는 순서는
 [`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §5 "토큰 원본과 생성물"에 있다.
@@ -144,3 +144,29 @@ rem 옆의 px는 브라우저 기본 글자 크기(16px)일 때의 값이다.
 | `text-detail-title`     | `1.5rem` (24px)    | `2rem` (32px)      | `700`     | 상세 페이지 게시글 제목 (md:text-t11과 조합해 반응형)  |
 | `text-group-label`      | `0.75rem` (12px)   | `1rem` (16px)      | `600`     | 목록 섹션 라벨 (폴더 그룹, 최근 검색 등)               |
 | `text-display-title`    | `3.75rem` (60px)   | `3.75rem` (60px)   | `700`     | 대형 에러 페이지 타이틀 (404/403/500)                  |
+
+## 시간
+
+전환·애니메이션 시간. 부품은 숫자 대신 duration-<이름> 클래스로 쓴다(숫자나 대괄호 값을 쓰면 린트가 막는다). 눈금 이름은 당근(SEED)처럼 50ms를 한 단계로 센 번호이고(d3 = 150ms), 지금 화면에서 쓰는 단계만 둔다(2026-11-26 게이트 2). 시간 클래스 없이 transition만 붙인 곳은 Tailwind 기본 시간이 color-transition을 가리켜 같은 값을 쓴다. tw-animate-css의 animate-in·animate-out은 시간 클래스가 없으면 이 토큰이 아니라 자기 기본값(150ms)을 쓴다. CSS 전환이 끝나기를 기다리는 JS 타이머는 숫자를 따로 적지 않고 생성된 DURATION_MS를 읽는다.
+
+원본: [`duration.tokens.json`](../packages/ui/tokens/duration.tokens.json)
+
+| 클래스                      | CSS 변수                                 | 값                                   | 설명                                                                                                                                                                                                                                                                   |
+| --------------------------- | ---------------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `duration-d3`               | `--transition-duration-d3`               | `150ms`                              | 첨부 이미지 미리보기의 삭제 버튼                                                                                                                                                                                                                                       |
+| `duration-d4`               | `--transition-duration-d4`               | `200ms`                              | 대화상자 열림·닫힘, 선택 상자 화살표, 맨 위로 버튼, 지연 표시와 뼈대가 나타날 때, 좁은 화면 메뉴, 댓글 강조가 나타날 때                                                                                                                                                |
+| `duration-d6`               | `--transition-duration-d6`               | `300ms`                              | 아래에서 올라오는 시트와 그 딤, 댓글 입력칸의 끌어 놓기 테두리, 카드 썸네일 확대. 알림 창을 닫은 뒤 목록에서 지우는 JS 타이머와 이미지 뷰어를 닫은 뒤 커서를 고치는 JS 타이머도 이 값을 읽는다(둘 다 닫힘 애니메이션 d4보다 길게 기다린다. 왜 이 값인지는 기록에 없다) |
+| `duration-d12`              | `--transition-duration-d12`              | `600ms`                              | 댓글로 이동했을 때 강조가 흐려지는 시간. 강조를 떼는 JS 타이머도 이 값을 읽는다                                                                                                                                                                                        |
+| `duration-color-transition` | `--transition-duration-color-transition` | `--transition-duration-d3` → `150ms` | 색·배경·투명도처럼 모양이 그대로인 짧은 전환. Tailwind 기본 시간(transition만 붙인 곳)이 이 토큰을 가리킨다. 당근의 같은 이름 역할과 같은 단계다                                                                                                                       |
+
+## 가속 곡선
+
+가속 곡선. 부품은 ease-<이름> 클래스로 쓴다(Tailwind 기본 이름 ease-in·ease-out·ease-in-out·ease-linear과 대괄호 값은 린트가 막는다). 이름은 당근(SEED)의 easing·enter를 따랐고 값은 지금 화면 값 그대로라 당근 값과 다르다(당근 easing은 0.35, 0, 0.35, 1). 곡선 클래스 없이 transition만 붙인 곳은 Tailwind 기본 곡선이 easing을 가리켜 같은 값을 쓴다. tw-animate-css의 animate-in·animate-out은 곡선 클래스가 없으면 이 토큰이 아니라 CSS 기본 ease를 쓴다.
+
+원본: [`timing-function.tokens.json`](../packages/ui/tokens/timing-function.tokens.json)
+
+| 클래스        | CSS 변수        | 값                               | 설명                                                                                                                   |
+| ------------- | --------------- | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `ease-easing` | `--ease-easing` | `cubic-bezier(0.4, 0, 0.2, 1)`   | 천천히 시작해 천천히 멈춘다. Tailwind 기본 곡선이 이 토큰을 가리킨다(Tailwind ease-in-out과 같은 값). 선택 상자 화살표 |
+| `ease-enter`  | `--ease-enter`  | `cubic-bezier(0, 0, 0.2, 1)`     | 빠르게 시작해 천천히 멈춘다(Tailwind ease-out과 같은 값). 뼈대가 나타날 때, 댓글 강조                                  |
+| `ease-sheet`  | `--ease-sheet`  | `cubic-bezier(0.32, 0.72, 0, 1)` | 아래에서 올라오는 시트와 그 딤. vaul이 드로어와 딤에 함께 쓰는 값이다(고른 근거: docs/DECISIONS.md 2026-11-03)         |

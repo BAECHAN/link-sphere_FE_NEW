@@ -8,12 +8,22 @@ paths: src/**/*.tsx
 2026-09-22, 외부 프론트엔드 스킬 도입을 조사하던 중 이 레포의 모션 영역이
 `design-tokens`(색상·반경·z-index·타이포그래피)와 달리 **토큰이 전혀 없는
 공백**임을 실측으로 확인해 신설했다 — 아래 "실측 현황" 참고. 다른 skill처럼
-CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다.
+CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다. 2026-11-26 디자인 시스템 2단계 PR 3에서 시간·곡선 토큰이
+생겼다. 값과 쓰는 곳은 [토큰 표](../../../docs/DESIGN-TOKENS.md) "시간"·"가속 곡선"이, 정한 이유는
+`docs/DESIGN-SYSTEM.md` §5 "시간과 곡선"이 정본이고, 여기에는 고르는 법과 함정만 둔다.
 
-## Duration 규약
+## 시간 토큰
 
-지금 레포엔 duration 토큰이 없고, 혼용 중인 값(150/200/300/600ms)엔 모바일 시트를
-빼면 선택 근거가 없다(아래 실측 참고). 새 코드부터 아래 기준을 적용한다:
+시간은 토큰 클래스로만 쓴다 — `duration-d3`(150ms), `duration-d4`(200ms), `duration-d6`(300ms), `duration-d12`(600ms).
+숫자, Tailwind 기본 이름, 대괄호 값은 ESLint `custom-tailwind/no-raw-motion`이 막는다. 필요한 값이 없으면
+`packages/ui/tokens/duration.tokens.json`에 토큰을 더하고 `pnpm tokens`를 돌린다.
+
+- `transition-*`만 붙이고 시간을 적지 않으면 Tailwind 기본 시간이 역할 토큰 `color-transition`(→ d3, 150ms)을 가리킨다.
+  hover·색 전환은 시간을 따로 적지 않는다.
+- `animate-in`·`animate-out`(`tw-animate-css`)은 Tailwind 기본값을 읽지 않고 자기 기본값(150ms, `ease`)을 쓴다. 시간을
+  안 적으면 토큰 밖 값으로 움직이고, 린트도 이것은 못 잡는다(아래 "딤과 패널" 함정).
+
+고를 때는 아래 기준을 본다:
 
 > "Rule: UI animations should stay under 300ms." 같은 문서의 지속시간 표는
 > 용도별로 버튼 프레스 피드백 100-160ms, 툴팁·작은 팝오버 125-200ms,
@@ -22,15 +32,13 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 >
 > — emil-design-eng skill(Emil Kowalski), https://github.com/emilkowalski/skills/blob/main/skills/emil-design-eng/SKILL.md
 
-이 기준에 비춰보면 기존 `duration-200`(플로팅 버튼 등, 팝오버급)·`duration-300`
-(댓글 폼 강조 그림자·카드 썸네일 hover 확대 — 모달에는 쓰지 않는다)은 범위 안이지만
-`duration-150`은 어느 용도 범주에도 명확히 안 든다 —
-새로 쓸 때 참고만 하고, 기존 3곳을 이번에 일괄 교정하지는 않는다.
+이 기준에 비춰보면 d4(대화상자·선택 상자·맨 위로 버튼 등, 팝오버급)·d6(모바일 시트, 댓글 폼 강조 그림자, 카드
+썸네일 hover 확대 — 중앙 모달에는 쓰지 않는다)는 범위 안이다. d12는 이 기준을 넘는데, 해시로 이동한 댓글의 강조가
+흐려지는 시간이라 반응 속도와는 다른 쓰임이다(고른 경위는 `docs/COMMENT.md` "해시 이동").
 
-## Easing 규약
+## 곡선 토큰
 
-레포 전체에 `ease-*` 클래스 사용이 3건뿐이다(`select.tsx` 화살표의 `ease-in-out`, `CommentList.tsx`의 `ease-out`,
-모바일 시트의 곡선 — 나머지는 전부 브라우저 기본 easing에 의존). 앞으로는:
+곡선도 토큰 클래스로만 쓴다. 곡선을 직접 붙인 곳은 4곳이고(아래 실측), 나머지는 기본 곡선을 쓴다. 고를 때는:
 
 > "Never use ease-in for UI animations. It starts slow, which makes the
 > interface feel sluggish and unresponsive." 진입/퇴장 요소는 `ease-out`
@@ -39,12 +47,14 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 >
 > — 위와 같은 출처
 
-- 진입/퇴장(fade·slide in/out): `ease-out`
-- 화면 안 이동/변형: `ease-in-out`
-- hover/색상 전환: `ease`(Tailwind 기본값)
-- `ease-in`은 쓰지 않는다
-- 모바일 하단 시트와 그 딤: `SHEET_TIMING`(`SheetDialogContent.tsx`)의 `duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]`.
-  처음에 빠르고 끝에서 감속하는 곡선이라 `ease-out` 계열이다. [vaul](https://github.com/emilkowalski/vaul/tree/main/src)(`style.css`)이
+위 인용의 이름은 Tailwind 기본 곡선이고, 우리 토큰으로는 이렇게 고른다:
+
+- 진입/퇴장(fade·slide in/out): `ease-enter`(처음에 빠르고 끝에서 감속)
+- 화면 안 이동/변형: `ease-easing`
+- hover/색상 전환: 곡선을 적지 않는다. `transition-*`의 기본 곡선이 `ease-easing`을 가리킨다
+- 처음에 느린(가속하는) 곡선은 토큰이 없다 — 위 인용대로 UI에 쓰지 않는다
+- 모바일 하단 시트와 그 딤: `SHEET_TIMING`(`SheetDialogContent.tsx`)의 `duration-d6 ease-sheet`.
+  처음에 빠르고 끝에서 감속하는 곡선이다. [vaul](https://github.com/emilkowalski/vaul/tree/main/src)(`style.css`)이
   드로어와 딤에 함께 쓰는 값이고, 값을 고른 근거와 기각한 값은 `docs/DECISIONS.md` 2026-11-03에 있다
 
 ## hover 트랜지션 컨테이너 안에 드롭다운·팝오버가 있을 때
@@ -96,18 +106,22 @@ CLAUDE.md 본문에서 옮겨온 게 아니라 이번에 처음 만든 문서다
 CSS만으로 exit(사라짐) 애니메이션을 만들 때 "화면에서 사라지는 순간까지 DOM에
 남겨두는" 시간(JS `setTimeout`)과 실제 CSS transition 시간이 어긋나면,
 애니메이션이 끝나기 전에 언마운트되거나 반대로 다 끝난 뒤에도 빈 시간이 남는다.
-이 값이 지금 JS 상수와 CSS `duration-*`에 따로 적혀 있고, 300ms는 두 파일에 **매직넘버로
-중복**돼 있다 — 하나를 고치면 다른 쪽은 그대로 남는 함정이다.
+2026-11-26부터 JS는 숫자를 적지 않고 생성된 토큰 값 `DURATION_MS`(`@baechan/ui/tokens`)를 읽는다. 토큰 값을 바꾸면
+클래스와 타이머가 함께 바뀐다.
 
-| 값                     | 위치                                                                                                                                         |
-| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TRANSITION_MS = 200`  | `src/shared/ui/elements/BackToTopButton.tsx:11` — CSS `duration-200`과 수동 동기화                                                           |
-| `setTimeout(..., 300)` | `src/shared/ui/elements/dialog/alert-dialog/alertDialog.store.ts:69`, `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx:58` |
+| JS 타이머                                | 위치                                                                                                                                         | 맞춰 둔 클래스                                       |
+| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `TRANSITION_MS = DURATION_MS.d4`         | `src/shared/ui/elements/BackToTopButton.tsx:14`                                                                                              | 같은 파일의 `duration-d4`                            |
+| `setTimeout(..., DURATION_MS.d6)`        | `src/shared/ui/elements/dialog/alert-dialog/alertDialog.store.ts:71`, `src/shared/ui/elements/dialog/alert-dialog/GlobalAlertDialogs.tsx:60` | `alert-dialog.tsx`의 `duration-d4`보다 길게 기다린다 |
+| `window.setTimeout(..., DURATION_MS.d6)` | `src/shared/ui/elements/dialog/image-viewer/ImageViewer.tsx:107`                                                                             | `dialog.tsx`의 `duration-d4`보다 길게 기다린다       |
+| `setTimeout(..., DURATION_MS.d12)`       | `src/widgets/comment/comment-list/ui/CommentList.tsx:106`                                                                                    | 같은 effect의 `duration-d12`                         |
 
-같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들
-때는 이 값이 실제 CSS `duration-*` 클래스와 정확히 일치해야 한다는 걸 놓치지
-않는다. 값을 CSS 토큰으로 중앙화해 중복 자체를 없애는 리팩터링은
-이번 범위 밖 — 후속 과제로 남긴다.
+d6으로 기다리는 세 곳이 왜 닫힘 시간(d4)보다 100ms 더 기다리는지는 기록에 없다. 클래스와 같은 토큰을 읽는 곳은
+값이 같아야 하고, 더 길게 기다리는 곳은 클래스 토큰보다 큰 토큰이어야 한다.
+
+같은 패턴(exit 애니메이션 + `shouldRender` 상태 + `setTimeout`)을 새로 만들 때는 타이머가 클래스와 같은 토큰을 읽게
+한다. 클래스 이름은 Tailwind가 파일에서 찾아 CSS를 만들 수 있게 글자 그대로 적어야 해서 클래스와 타이머를 한 값에서
+만들 수는 없다. 둘이 같은 토큰 이름인지는 사람이 본다(린트가 못 잡는다).
 
 **등장(enter)도 따로 챙긴다.** 이 패턴은 보이는 상태 그대로 마운트되므로, 마운트한 뒤 상태가
 바뀌지 않으면 트랜지션이 일어나지 않는다. framer-motion을 CSS로 옮긴 2026-09-21(`2c126c68`)에
@@ -134,22 +148,25 @@ Content를 각자 Presence로 감싸 각자의 애니메이션이 끝날 때 내
 이 때문에 포커스를 못 받았다(2026-11-06, `getAnimations()`로 직접 측정). 그 자식의 트랜지션을 실제로 바뀌는 속성으로
 좁힌다(`Sidebar.tsx`). 회귀는 `e2e/sidebar-drawer-focus.mobile.spec.ts`가 잡는다.
 
-## 실측 현황 (직접 측정, 2026-11-03)
+## 실측 현황 (직접 측정, 2026-11-26)
 
-`src`의 `.ts`·`.tsx` 362개(테스트·스토리 제외)에서 앞뒤가 클래스 경계인 토큰만 셌다. 2026-10-15 표
-(332개)에서 모바일 시트 타이밍을 정하며 다시 쟀다.
+`src`의 `.ts`·`.tsx` 371개(테스트·스토리 제외)에서 앞뒤가 클래스 경계인 토큰만 셌다(변형이 붙은 것 포함). 2026-11-03 표
+(362개)를 시간·곡선 토큰을 넣으며 다시 쟀다. 공용 UI 패키지(`packages/ui/src`)의 부품에는 시간·곡선 클래스가 없다.
 
-| 항목                     | 값                                                                                                                                              |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `duration-*`             | 150×1, 200×10, 300×4, 600×2                                                                                                                     |
-| `ease-*`                 | 3건(`select.tsx`의 `ease-in-out`, `CommentList.tsx`의 `ease-out`, `SheetDialogContent.tsx`의 `ease-[cubic-bezier(0.32,0.72,0,1)]`)              |
-| `prefers-reduced-motion` | 토큰 CSS 전역 블록 1곳, 코드 1곳(`scroll.util.ts`), 컴포넌트 `motion-reduce:` 0곳                                                               |
-| `transition-all`         | 10건(속성별 선례: `transition-colors` 10, `transition-shadow` 6, `transition-opacity` 5, `transition-transform` 4, 임의값 `transition-[...]` 6) |
-| CSS 모션 토큰            | 0개(색상·반경·z-index·타이포그래피는 있음, 모바일 시트 타이밍은 컴포넌트 상수)                                                                  |
+| 항목                     | 값                                                                                                                                                                                 |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 시간 클래스              | d4×11, d6×4, d12×2, d3×1(주석 속 글자 d4 4곳·d12 1곳은 뺐다). 숫자·대괄호 값 0                                                                                                     |
+| 곡선 클래스              | 4건(`select.tsx`의 `ease-easing`, `CommentItemSkeleton.tsx`·`CommentList.tsx`의 `ease-enter`, `SheetDialogContent.tsx`의 `ease-sheet`). Tailwind 기본 이름·대괄호 값 0             |
+| `prefers-reduced-motion` | 토큰 CSS 전역 블록 1곳, 코드 1곳(`scroll.util.ts`), 컴포넌트 `motion-reduce:` 0곳                                                                                                  |
+| `transition-all`         | 10건, 공용 UI 패키지 1건(`button.tsx`). 속성별 선례: `transition-colors` 10, `transition-shadow` 6, `transition-opacity` 5, `transition-transform` 3, 임의값 `transition-[...]` 10 |
+| CSS 모션 토큰            | 시간 5개(눈금 4, 역할 1), 곡선 3개(토큰 표 "시간"·"가속 곡선")                                                                                                                     |
+
+측정 스크립트는 커밋하지 않았다. 같은 수를 다시 내려면 위 범위의 파일에서 클래스 이름 앞뒤에 글자·하이픈이 붙지 않은 것만
+센다(앞의 변형 `md:` 등은 허용). 정규식을 이 문서에 적지 않는 것은 Tailwind가 이 파일도 훑어 클래스로 읽을 수 있어서다.
 
 ## 점검 항목
 
-- 새 트랜지션에 위 duration 표를 근거로 댈 수 있는가
-- `ease-in`을 쓰지 않았는가
+- 새 트랜지션에 위 시간 기준을 근거로 댈 수 있는가
+- `animate-in`·`animate-out`에 시간을 적었는가(안 적으면 토큰 밖 150ms)
 - `transition-all` 대신 실제로 바뀌는 속성만 지정했는가
-- exit 애니메이션이 있다면 `setTimeout` 값과 CSS `duration-*`가 정확히 일치하는가
+- exit 애니메이션이 있다면 JS 타이머가 `DURATION_MS`에서 클래스와 같은 토큰(더 길게 기다리면 더 큰 토큰)을 읽는가

@@ -68,7 +68,7 @@ export function PostList({ renderPost, grid }: PostListProps) {
           형태. 문구는 카드 글자 위에 겹치지 않게 알약에 담고, 긴 목록을 내려 보고 있어도 보이도록
           navbar 바로 아래에 붙여 따라오게 한다(BookmarkPage 폴더 패널과 같은 top, docs/SEARCH.md §5) */}
       {isApplying && (
-        <div className="z-raised bg-background/60 animate-in fade-in duration-200 [grid-area:1/1]">
+        <div className="z-raised bg-background/60 animate-in fade-in duration-d4 [grid-area:1/1]">
           <div
             role="status"
             className="sticky top-[calc(var(--navbar-height)+1rem)] flex justify-center pt-6"

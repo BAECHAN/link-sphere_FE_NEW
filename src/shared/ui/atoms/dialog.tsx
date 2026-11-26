@@ -51,7 +51,7 @@ type DialogContentProps = React.ComponentPropsWithoutRef<typeof DialogPrimitive.
  * (2026-11-03, docs/DECISIONS.md).
  */
 const DIALOG_CONTENT_MOTION =
-  'duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95';
+  'duration-d4 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95';
 
 // DialogPortal의 자식은 Radix Presence로 감싸져 열릴 때만 마운트된다. 가드 훅을 이 컴포넌트
 // 안에 두는 이유가 그것이다 — DialogContent 함수 본문은 닫혀 있어도 항상 실행되므로, 거기서

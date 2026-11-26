@@ -1,4 +1,7 @@
+import { useState, type CSSProperties } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Button } from '@baechan/ui/atoms/button';
+import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { TOKENS } from '@baechan/ui/tokens';
 
 // 이 파일은 단일 컴포넌트가 아니라 디자인 토큰(범용 토큰은 공용 UI 패키지의 packages/ui/tokens/ 원본,
@@ -231,6 +234,89 @@ function RoleTokensCatalog() {
   );
 }
 
+// 시간·곡선 토큰. 시간은 원본 순서, 곡선은 같은 시간(d12)에 곡선만 바꿔 비교한다. 값과 쓰임 설명은 원본에서 읽는다.
+// 당근 SEED의 Motion 문서(https://seed-design.io/foundations/motion)는 값 표만 둔다. 곡선은 숫자만으로 차이가 안 보여
+// 여기서는 표 옆에 재생 예시를 함께 둔다(2026-11-26 사용자 결정).
+type DesignToken = (typeof TOKENS)[number];
+
+const MOTION_SECTIONS: {
+  title: string;
+  prefix: string;
+  tokens: DesignToken[];
+  timing: (cssVar: string) => CSSProperties;
+}[] = [
+  {
+    title: '시간',
+    prefix: 'duration',
+    tokens: TOKENS.filter((token) => token.group === 'duration'),
+    timing: (cssVar) => ({ transitionDuration: `var(${cssVar})` }),
+  },
+  {
+    title: '가속 곡선(모두 d12, 600ms로 움직인다)',
+    prefix: 'ease',
+    tokens: TOKENS.filter((token) => token.group === 'timing-function'),
+    timing: (cssVar) => ({
+      transitionDuration: 'var(--transition-duration-d12)',
+      transitionTimingFunction: `var(${cssVar})`,
+    }),
+  },
+];
+
+/** 별칭이면 가리키는 변수도 보인다(color-transition = var(--transition-duration-d3) = 150ms) */
+function motionValue({ value, resolved }: DesignToken) {
+  return value === resolved ? resolved : `${resolved} (${value})`;
+}
+
+// 동작 줄이기에서는 점이 움직이지 않고 흐려지기만 한다(토큰 CSS의 동작 줄이기 규칙과 같은 원칙)
+function MotionTrack({ played, timing }: { played: boolean; timing: CSSProperties }) {
+  return (
+    <div className="relative h-4 w-48 shrink-0 rounded-full bg-muted">
+      <div
+        className={cn(
+          'absolute left-0 top-0 size-4 rounded-full bg-primary transition-[translate,opacity]',
+          played && 'motion-safe:translate-x-44 motion-reduce:opacity-30'
+        )}
+        style={timing}
+      />
+    </div>
+  );
+}
+
+function MotionCatalog() {
+  const [played, setPlayed] = useState(false);
+
+  return (
+    <div className="flex flex-col gap-6 p-4">
+      <Button
+        variant="outline"
+        size="sm"
+        className="self-start"
+        onClick={() => setPlayed((value) => !value)}
+      >
+        {played ? '되돌리기' : '재생'}
+      </Button>
+      {MOTION_SECTIONS.map(({ title, prefix, tokens, timing }) => (
+        <div key={title} className="flex flex-col gap-2">
+          <h3 className="text-sm font-semibold">{title}</h3>
+          {tokens.map((token) => (
+            <div
+              key={token.name}
+              className="flex items-center gap-4 rounded-md border bg-card px-4 py-2"
+            >
+              <code className="w-44 shrink-0 text-xs text-muted-foreground">
+                {prefix}-{token.name}
+              </code>
+              <MotionTrack played={played} timing={timing(token.cssVar)} />
+              <code className="w-56 shrink-0 text-xs">{motionValue(token)}</code>
+              <span className="text-sm">{token.description}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const meta = {
   title: 'Shared/UI/Tokens/DesignTokens',
   tags: ['autodocs'],
@@ -258,4 +344,8 @@ export const Typography: Story = {
 
 export const RoleTokens: Story = {
   render: () => <RoleTokensCatalog />,
+};
+
+export const Motion: Story = {
+  render: () => <MotionCatalog />,
 };

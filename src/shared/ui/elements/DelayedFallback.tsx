@@ -35,5 +35,5 @@ export function DelayedFallback({
     return null;
   }
 
-  return <div className={cn('animate-in fade-in duration-200', className)}>{children}</div>;
+  return <div className={cn('animate-in fade-in duration-d4', className)}>{children}</div>;
 }

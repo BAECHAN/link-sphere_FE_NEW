@@ -6,10 +6,12 @@ import { Button } from '@baechan/ui/atoms/button';
 import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
 import { useUiTexts } from '@baechan/ui/texts/UiTextsProvider';
+import { DURATION_MS } from '@baechan/ui/tokens';
 
 // framer-motion의 AnimatePresence와 같은 fade+scale+slide 지속시간(ms) - exit
 // 애니메이션이 끝날 때까지 마운트를 유지하려면 CSS transition 시간과 정확히 맞아야 한다.
-const TRANSITION_MS = 200;
+// 그래서 아래 duration-d4 클래스와 같은 토큰을 읽는다.
+const TRANSITION_MS = DURATION_MS.d4;
 
 export function BackToTopButton() {
   const uiTexts = useUiTexts();
@@ -56,7 +58,7 @@ export function BackToTopButton() {
   return (
     <div
       className={cn(
-        'fixed bottom-20 right-6 z-nav md:bottom-6 transition-all duration-200',
+        'fixed bottom-20 right-6 z-nav md:bottom-6 transition-all duration-d4',
         // 보이는 상태로 바로 마운트되므로 처음 그려질 때만 숨김 상태에서 출발시켜 등장도
         // 움직이게 한다(@starting-style - framer-motion의 initial에 해당)
         'starting:opacity-0 starting:scale-[0.8] starting:translate-y-5',

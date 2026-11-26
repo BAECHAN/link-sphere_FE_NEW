@@ -15,6 +15,7 @@ import {
 import { Button } from '@baechan/ui/atoms/button';
 import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { useUiTexts } from '@baechan/ui/texts/UiTextsProvider';
+import { DURATION_MS } from '@baechan/ui/tokens';
 
 interface AlertDialogItemProps {
   dialog: AlertDialogData;
@@ -55,7 +56,8 @@ function AlertDialogItem({ dialog, dismissKey }: AlertDialogItemProps) {
     // (실측: 폴더 삭제 시 확인 버튼을 눌러도 즉시 반영되지 않고 이 확인창이 한 번 더 떴다).
     close(id);
     dialog.onConfirm?.();
-    setTimeout(() => remove(id), 300);
+    // 닫힘 애니메이션(alert-dialog.tsx의 duration-d4)보다 길게 기다린 뒤 목록에서 뺀다(alertDialog.store.ts와 같은 값)
+    setTimeout(() => remove(id), DURATION_MS.d6);
   };
 
   // 취소 버튼 클릭과 오버레이 바깥에서의 취소(뒤로가기 등)가 같은 동작이라 스토어 액션 하나로 합친다.

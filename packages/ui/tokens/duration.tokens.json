@@ -1,0 +1,30 @@
+{
+  "duration": {
+    "$description": "전환·애니메이션 시간. 부품은 숫자 대신 duration-<이름> 클래스로 쓴다(숫자나 대괄호 값을 쓰면 린트가 막는다). 눈금 이름은 당근(SEED)처럼 50ms를 한 단계로 센 번호이고(d3 = 150ms), 지금 화면에서 쓰는 단계만 둔다(2026-11-26 게이트 2). 시간 클래스 없이 transition만 붙인 곳은 Tailwind 기본 시간이 color-transition을 가리켜 같은 값을 쓴다. tw-animate-css의 animate-in·animate-out은 시간 클래스가 없으면 이 토큰이 아니라 자기 기본값(150ms)을 쓴다. CSS 전환이 끝나기를 기다리는 JS 타이머는 숫자를 따로 적지 않고 생성된 DURATION_MS를 읽는다.",
+    "d3": {
+      "$type": "duration",
+      "$value": { "value": 150, "unit": "ms" },
+      "$description": "첨부 이미지 미리보기의 삭제 버튼"
+    },
+    "d4": {
+      "$type": "duration",
+      "$value": { "value": 200, "unit": "ms" },
+      "$description": "대화상자 열림·닫힘, 선택 상자 화살표, 맨 위로 버튼, 지연 표시와 뼈대가 나타날 때, 좁은 화면 메뉴, 댓글 강조가 나타날 때"
+    },
+    "d6": {
+      "$type": "duration",
+      "$value": { "value": 300, "unit": "ms" },
+      "$description": "아래에서 올라오는 시트와 그 딤, 댓글 입력칸의 끌어 놓기 테두리, 카드 썸네일 확대. 알림 창을 닫은 뒤 목록에서 지우는 JS 타이머와 이미지 뷰어를 닫은 뒤 커서를 고치는 JS 타이머도 이 값을 읽는다(둘 다 닫힘 애니메이션 d4보다 길게 기다린다. 왜 이 값인지는 기록에 없다)"
+    },
+    "d12": {
+      "$type": "duration",
+      "$value": { "value": 600, "unit": "ms" },
+      "$description": "댓글로 이동했을 때 강조가 흐려지는 시간. 강조를 떼는 JS 타이머도 이 값을 읽는다"
+    },
+    "color-transition": {
+      "$type": "duration",
+      "$value": "{duration.d3}",
+      "$description": "색·배경·투명도처럼 모양이 그대로인 짧은 전환. Tailwind 기본 시간(transition만 붙인 곳)이 이 토큰을 가리킨다. 당근의 같은 이름 역할과 같은 단계다"
+    }
+  }
+}
