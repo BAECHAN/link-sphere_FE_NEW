@@ -89,8 +89,13 @@ function describe(token) {
 
 function renderPaletteTable(tokens) {
   return table(
-    ['이름', 'CSS 변수', '값'],
-    tokens.map((token) => [code(token.name), code(token.cssVar), code(token.value)])
+    ['이름', 'CSS 변수', '값', '설명'],
+    tokens.map((token) => [
+      code(token.name),
+      code(token.cssVar),
+      code(token.value),
+      cell(describe(token)),
+    ])
   );
 }
 

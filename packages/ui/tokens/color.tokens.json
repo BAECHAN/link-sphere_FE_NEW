@@ -1,28 +1,25 @@
 {
   "color": {
-    "$description": "의미 색(라이트). shadcn/ui 이름을 쓴다. Tailwind 색 이름으로 내보내 bg-primary, text-muted-foreground 같은 클래스가 된다. 다크에서 달라지는 값은 color.dark.tokens.json에 있다.",
+    "$description": "의미 색(라이트). shadcn/ui 이름을 쓴다. Tailwind 색 이름으로 내보내 bg-primary, text-muted-foreground 같은 클래스가 된다. 값은 모두 팔레트(palette)를 가리키는 별칭이다. 다크에서 달라지는 값은 color.dark.tokens.json에 있다.",
     "background": { "$type": "color", "$value": "{palette.white}" },
-    "foreground": { "$type": "color", "$value": "{palette.neutral.950}" },
+    "foreground": { "$type": "color", "$value": "{palette.gray.950}" },
     "card": { "$type": "color", "$value": "{palette.white}" },
-    "card-foreground": { "$type": "color", "$value": "{palette.neutral.950}" },
+    "card-foreground": { "$type": "color", "$value": "{palette.gray.950}" },
     "popover": { "$type": "color", "$value": "{palette.white}" },
-    "popover-foreground": { "$type": "color", "$value": "{palette.neutral.950}" },
-    "primary": { "$type": "color", "$value": "{palette.neutral.900}" },
-    "primary-foreground": { "$type": "color", "$value": "{palette.neutral.50}" },
-    "secondary": { "$type": "color", "$value": "{palette.neutral.100}" },
-    "secondary-foreground": { "$type": "color", "$value": "{palette.neutral.900}" },
-    "muted": { "$type": "color", "$value": "{palette.neutral.100}" },
+    "popover-foreground": { "$type": "color", "$value": "{palette.gray.950}" },
+    "primary": { "$type": "color", "$value": "{palette.gray.900}" },
+    "primary-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "secondary": { "$type": "color", "$value": "{palette.gray.100}" },
+    "secondary-foreground": { "$type": "color", "$value": "{palette.gray.900}" },
+    "muted": { "$type": "color", "$value": "{palette.gray.100}" },
     "muted-foreground": {
       "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.542, 0, 0] },
-      "$description": "명도(L)만 0.556에서 0.542로 낮췄다(색상·채도는 그대로). 원래 값은 muted 배경(#f5f5f5) 위에서 4.34:1로 WCAG AA(4.5:1)에 못 미쳤다(2026-09-16 Storybook a11y 게이트가 kbd, FilterChip, BackToTopButton 등에서 실측). OKLCH를 sRGB로 바꾼 뒤 WCAG 상대 휘도 공식으로 계산해 4.60:1이 되는 최소 조정값을 찾았다(#737373에서 #6f6f6f, Artifact 미리보기로 사용자 승인). 팔레트(neutral.500 = 0.556) 밖의 값이라 별칭이 아니라 숫자로 둔다."
+      "$value": "{palette.gray.550}",
+      "$description": "muted 배경 위에서 WCAG AA(4.5:1)를 넘기려고 gray.500 대신 gray.550을 가리킨다. 값을 정한 근거는 palette.gray.550의 설명에 있다."
     },
-    "accent": { "$type": "color", "$value": "{palette.neutral.100}" },
-    "accent-foreground": { "$type": "color", "$value": "{palette.neutral.900}" },
-    "destructive": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.577, 0.245, 27.325] }
-    },
+    "accent": { "$type": "color", "$value": "{palette.gray.100}" },
+    "accent-foreground": { "$type": "color", "$value": "{palette.gray.900}" },
+    "destructive": { "$type": "color", "$value": "{palette.red.600}" },
     "destructive-foreground": { "$type": "color", "$value": "{palette.white}" },
     "scrim": {
       "$type": "color",
@@ -34,25 +31,14 @@
       "$value": "{palette.white}",
       "$description": "딤 위의 글자색. destructive-foreground와 값은 같은 흰색이지만 역할이 다른(딤 위 글자, 버튼 위 글자) 별도 토큰이다."
     },
-    "info": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.575, 0.233, 262] },
-      "$description": "명도(L)를 낮춰 WCAG AA(4.5:1)를 4.60:1로 넘긴다(2026-09-16 a11y 게이트 실측. 다크는 7:1 이상이라 그대로 뒀다). 원래 값에서 1~2%p만 낮춰 눈으로는 거의 같다. Artifact 미리보기로 사용자 승인."
-    },
+    "info": { "$type": "color", "$value": "{palette.blue.600}" },
     "info-foreground": { "$type": "color", "$value": "{palette.white}" },
-    "warning": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.769, 0.188, 85] }
-    },
-    "warning-foreground": { "$type": "color", "$value": "{palette.neutral.950}" },
-    "success": {
-      "$type": "color",
-      "$value": { "colorSpace": "oklch", "components": [0.543, 0.194, 142] },
-      "$description": "info와 같은 이유로 명도(L)를 낮췄다. 원래 3.29:1로 가장 크게 못 미쳐 눈에 띄게 진해졌다(#2ba321에서 #008900). Artifact 미리보기로 사용자 승인(2026-09-16)."
-    },
+    "warning": { "$type": "color", "$value": "{palette.yellow.500}" },
+    "warning-foreground": { "$type": "color", "$value": "{palette.gray.950}" },
+    "success": { "$type": "color", "$value": "{palette.green.700}" },
     "success-foreground": { "$type": "color", "$value": "{palette.white}" },
-    "border": { "$type": "color", "$value": "{palette.neutral.200}" },
-    "input": { "$type": "color", "$value": "{palette.neutral.200}" },
-    "ring": { "$type": "color", "$value": "{palette.neutral.400}" }
+    "border": { "$type": "color", "$value": "{palette.gray.200}" },
+    "input": { "$type": "color", "$value": "{palette.gray.200}" },
+    "ring": { "$type": "color", "$value": "{palette.gray.400}" }
   }
 }
