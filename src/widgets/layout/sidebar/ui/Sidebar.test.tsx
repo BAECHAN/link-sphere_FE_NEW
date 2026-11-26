@@ -221,6 +221,10 @@ describe('Sidebar — 데스크톱 햄버거 더블클릭', () => {
     useSidebarStore.setState({ isOpen: false });
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   // 접힌 상태에서 시작하는 데스크톱 햄버거. 누르면 이름이 바뀌니 다시 찾지 말고 변수에 잡아 쓴다
   function getDesktopToggle() {
     return screen.getByRole('button', { name: TEXTS.nav.expandMenu, hidden: true });
@@ -241,6 +245,8 @@ describe('Sidebar — 데스크톱 햄버거 더블클릭', () => {
   });
 
   it('즉시 다시 누르면 무의식적 더블클릭으로 보고 무시한다', async () => {
+    // 가드가 재는 실제 시계를 멈춰 두 클릭 사이를 0ms로 고정한다(Navbar.test.tsx의 같은 테스트와 같은 이유)
+    vi.useFakeTimers({ toFake: ['Date'] });
     const user = userEvent.setup();
     renderWithProviders(<Sidebar />, { wrapperOptions: { initialEntries: ['/post'] } });
     const toggle = getDesktopToggle();

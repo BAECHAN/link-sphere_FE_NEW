@@ -37,6 +37,7 @@ function renderNavbar() {
 afterEach(() => {
   window.localStorage.clear();
   document.documentElement.classList.remove('light', 'dark');
+  vi.useRealTimers();
 });
 
 describe('Navbar — 테마 토글', () => {
@@ -72,6 +73,10 @@ describe('Navbar — 테마 토글', () => {
   });
 
   it('즉시 다시 누르면 무의식적 더블클릭으로 보고 무시한다', async () => {
+    // 가드는 실제 시계(Date.now)로 잰다. 시계를 멈춰 두 클릭 사이를 0ms로 고정한다 — 그러지 않으면 무거운
+    // 실행에서 두 클릭 사이가 400ms를 넘어 두 번째 클릭도 받아들여진다(2026-11-26 push 전 훅에서 1번 실패,
+    // alert-dialog.test.tsx와 같은 방식)
+    vi.useFakeTimers({ toFake: ['Date'] });
     const user = userEvent.setup();
     renderNavbar();
     const toggle = screen.getByRole('button', { name: TEXTS.nav.switchToDark });
