@@ -1,3 +1,8 @@
+### 2026-11-26 (BE)
+- OG 이미지 최적화 로직 적용을 통한 스토리지 효율성 개선
+로그:
+- perf(post): og 이미지 사본은 줄인 결과가 원본보다 작을 때만 저장함 ([#231](https://github.com/BAECHAN/link-sphere_BE_NEW/pull/231))
+
 ### 2026-11-26 (FE)
 - 포스트 목록 카드 썸네일 최적화: 서버에서 제공하는 리사이징된 이미지 사본을 사용하도록 개선하여 로딩 성능 향상 ([#690](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/690))
 
