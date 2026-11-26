@@ -182,7 +182,7 @@ flowchart TD
 
 - **무엇인가**: [AWS 문서](https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html)는 _"확장성, 데이터 가용성, 보안, 성능이 뛰어난 객체 스토리지 서비스"_ (번역)라고 쓴다. 버킷은 객체를 담는 컨테이너이고, 객체는 파일과 그 메타데이터다.
 - **우리는**: 운영에 쓰는 버킷은 3개다. 콘솔에는 CDK용, 시험 단계, 정리 후보 버킷이 더 보인다.
-  - FE 정적 파일 버킷(서울): CloudFront가 읽는다.
+  - FE 정적 파일 버킷(서울): CloudFront가 읽는다. `og-thumbnails/`에는 BE가 줄여 둔 og 썸네일 사본이 있다(배포가 지우지 않는다).
   - `link-sphere-lambda-deploy`: BE 배포 파일을 둔다.
   - `link-sphere-db-backup`: DB·이미지 백업을 둔다.
 - **없으면**: 화면 파일, BE 배포 경로, 백업이 사라진다.
@@ -295,7 +295,7 @@ flowchart TD
 **Lambda가 자기 자신을 한 번 더 불러 뒷일을 맡기는 방식이다.** 사용자에게는 먼저 응답하고, 오래 걸리는 일은 새 호출에서 한다.
 
 - **무엇인가**: 비동기 호출을 자기에게 쓰는 것이다. 비동기 호출에서 [호출자는 응답을 기다리지 않고](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html), Lambda가 이벤트를 큐에 넣은 뒤 처리한다.
-- **우리는**: `LambdaSelfInvoker`가 `InvocationType.EVENT`로 `prod` 별칭을 부른다. AI 분석, 댓글 후처리, 피드 글 처리에 쓴다.
+- **우리는**: `LambdaSelfInvoker`가 `InvocationType.EVENT`로 `prod` 별칭을 부른다. AI 분석, 댓글 후처리, 피드 글 처리, og 썸네일 사본 만들기에 쓴다.
 - **없으면**: 응답을 돌려주는 순간 실행 환경이 얼어 AI 분석 같은 뒷일이 멈추거나, 사용자가 그 일이 끝날 때까지 기다려야 한다.
 - **알아 둘 것**: 실패하면 [기본으로 2번 더 재시도하고, 그래도 안 되면 이벤트를 버린다](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async-error-handling.html). 우리는 DLQ(실패한 메시지를 모으는 큐)가 없어 AI 분석 상태가 `PENDING`(대기 중)에 남을 수 있고, 빠진 데이터를 나중에 채우는 백필 도구로 복구한다.
 - **다른 선택지**: SQS. [BE TRAFFIC-MANAGEMENT](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/TRAFFIC-MANAGEMENT.md) 11장에 후보로만 있다.
@@ -305,14 +305,16 @@ flowchart TD
 
 **HTTP 요청이 아닌 내부 작업 한 건이다.** 이벤트의 `linksphereJob` 필드로 일반 요청과 구분한다.
 
-| 잡                    | 누가 시작하나                 | 하는 일                                 |
-| --------------------- | ----------------------------- | --------------------------------------- |
-| `ai-analysis`         | 글 등록·수정 뒤 self-invoke   | Gemini 요약·태그·임베딩                 |
-| `comment-postprocess` | 댓글 등록·수정 뒤 self-invoke | FCM 알림, 링크 미리보기                 |
-| `feed-item`           | `feed-crawl`이 self-invoke    | 피드 항목을 글로 등록                   |
-| `feed-crawl`          | EventBridge                   | RSS 피드를 읽어 `feed-item`으로 나눈다  |
-| `account-purge`       | EventBridge                   | 탈퇴 유예가 끝난 계정 정리              |
-| `orphan-image-gc`     | EventBridge                   | 어디에도 쓰이지 않는 업로드 이미지 정리 |
+| 잡                      | 누가 시작하나                         | 하는 일                                                  |
+| ----------------------- | ------------------------------------- | -------------------------------------------------------- |
+| `ai-analysis`           | 글 등록·수정 뒤 self-invoke           | Gemini 요약·태그·임베딩                                  |
+| `comment-postprocess`   | 댓글 등록·수정 뒤 self-invoke         | FCM 알림, 링크 미리보기                                  |
+| `feed-item`             | `feed-crawl`이 self-invoke            | 피드 항목을 글로 등록                                    |
+| `feed-crawl`            | EventBridge                           | RSS 피드를 읽어 `feed-item`으로 나눈다                   |
+| `account-purge`         | EventBridge                           | 탈퇴 유예가 끝난 계정 정리                               |
+| `orphan-image-gc`       | EventBridge                           | 어디에도 쓰이지 않는 업로드 이미지 정리                  |
+| `og-thumbnail`          | 글 등록·og 이미지 변경 뒤 self-invoke | og 이미지를 가로 960px로 줄여 S3 `og-thumbnails/`에 저장 |
+| `og-thumbnail-backfill` | 사람이 CloudShell에서 직접 호출       | 사본이 없는 기존 글을 차례로 처리                        |
 
 정본은 [BE-ARCHITECTURE](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/BE-ARCHITECTURE.md)의 잡 표다.
 

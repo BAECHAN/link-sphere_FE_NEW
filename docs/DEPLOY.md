@@ -89,10 +89,12 @@
       전에는 같은 버킷의 `storybook/` 접두사도 제외했지만, Storybook을 GitHub Pages로 옮기면서(아래
       "Storybook 공개 배포") 제외를 지워 남은 객체가 다음 배포 때 지워지게 했습니다.
     - `og-thumbnails/`도 ③에서 제외합니다. 앱 빌드가 아니라 BE가 쓰는 곳이라서입니다. BE가 글을 쓸 때 og:image를
-      줄인 사본을 여기에 두고, 피드 카드가 그 사본을 사이트와 같은 주소로 받게 됩니다(계획
-      [`plans/2026-11-25-og-thumbnail.md`](./plans/2026-11-25-og-thumbnail.md), 2026-11-25에는 제외만 먼저
-      넣었고 BE·FE 반영은 그 뒤 PR입니다). 제외 줄이 빠지면 배포할 때마다 사본이 전부 지워집니다. 그래서
-      `src/test/scripts/deploy-workflow.test.ts`가 `--delete`가 붙은 모든 동기화에 이 제외가 있는지 확인합니다.
+      가로 960px로 줄인 사본을 여기에 두고, 피드·북마크의 목록 카드가 그 사본을 사이트와 같은 주소로 받습니다
+      (`PostCard.tsx`, 2026-11-25. 사본을 만드는 쪽은 BE
+      [`docs/OG-THUMBNAIL.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/OG-THUMBNAIL.md), 계획은
+      [`plans/2026-11-25-og-thumbnail.md`](./plans/2026-11-25-og-thumbnail.md)). 제외 줄이 빠지면 배포할 때마다 사본이 전부
+      지워집니다. 그래서 `src/test/scripts/deploy-workflow.test.ts`가 `--delete`가 붙은 모든 동기화에 이 제외가 있는지
+      확인합니다.
 7.  **CloudFront Invalidation**:
     - 배포 후 즉시 변경 사항이 반영되도록 CloudFront 캐시를 무효화합니다.
     - 대상 경로: `/*`

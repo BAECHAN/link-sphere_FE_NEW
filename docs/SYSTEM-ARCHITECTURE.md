@@ -47,6 +47,7 @@ flowchart LR
   Lambda --> SES
   Lambda --> FCM
   Lambda --> YouTube
+  Lambda -->|"og-thumbnails/ 사본 쓰기"| S3
 ```
 
 FE·BE가 **같은 오리진(CloudFront)** 을 쓴다. 브라우저는 BE를 직접 호출하지 않고
@@ -67,6 +68,11 @@ ACL)는 CloudFront 배포 전체(양쪽 비헤이비어 공통)에 붙어 요청
 
 Lambda 설정, EventBridge 룰, 알람, IAM 역할, 배포·백업 버킷은 비공개 저장소 `link-sphere-infra`의 CDK 스택으로 관리한다. PR을 병합하면 서울 시험 단계를
 거쳐 운영에 적용되고, 매일 실제와 비교한다(`docs/DEPLOY.md` "AWS 설정 코드화(CDK)"). CloudFront·WAF는 그 대상이 아니다.
+
+Lambda가 FE 버킷에 쓰는 곳은 `og-thumbnails/` 하나다(API 역할의 권한도 이 접두사의 쓰기·지우기뿐이다). 글을 쓸 때 og 이미지를
+가로 960px로 줄인 사본을 여기에 두고, 목록 카드가 사이트와 같은 주소(`/og-thumbnails/…`)로 받는다(2026-11-25, BE
+[`docs/OG-THUMBNAIL.md`](https://github.com/BAECHAN/link-sphere_BE_NEW/blob/main/docs/OG-THUMBNAIL.md)). 앱 배포의 `--delete`
+동기화는 이 접두사를 건드리지 않는다(`docs/DEPLOY.md` 6번).
 
 ### `infra/` — AWS 인프라 직접 배포 코드
 
