@@ -160,3 +160,31 @@ describe('AlertDialogContent', () => {
     expect(onConfirm).not.toHaveBeenCalled();
   });
 });
+
+// 2026-11-26 딤에 시간 클래스가 없으면 tw-animate 기본값(150ms)으로 움직여 창(d4, 200ms)보다 먼저 끝난다
+// (dialog.test.tsx "딤 시간"과 같다)
+describe('AlertDialogContent — 딤 시간', () => {
+  it('딤은 창과 같은 시간(d4)으로 나타나고 사라진다', () => {
+    renderWithProviders(
+      <AlertDialog open>
+        <AlertDialogContent>
+          <AlertDialogTitle>확인</AlertDialogTitle>
+          <AlertDialogDescription>정말 삭제할까요?</AlertDialogDescription>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+
+    const panel = screen.getByRole('alertdialog');
+    const overlay = panel.previousElementSibling;
+
+    if (!(overlay instanceof HTMLElement)) {
+      throw new Error('overlay not found');
+    }
+
+    const durations = (element: HTMLElement) =>
+      [...element.classList].filter((name) => name.startsWith('duration-'));
+
+    expect(durations(panel)).toEqual(['duration-d4']);
+    expect(durations(overlay)).toEqual(durations(panel));
+  });
+});

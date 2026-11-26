@@ -133,6 +133,8 @@ d6으로 기다리는 세 곳이 왜 닫힘 시간(d4)보다 100ms 더 기다리
 Content를 각자 Presence로 감싸 각자의 애니메이션이 끝날 때 내린다. 형제라서 한쪽에 붙인 `duration-*`는 다른
 쪽에 가지 않고, 안 붙인 쪽은 `tw-animate-css` 기본값(150ms `ease`)으로 먼저 사라진다. 모바일 북마크 시트가
 이 때문에 딤만 먼저 밝아졌다(2026-11-03, `SheetDialogContent.tsx`의 `SHEET_TIMING`이 둘에 같이 붙는다).
+데스크톱 대화상자·확인 창의 딤도 같은 이유로 창보다 50ms 먼저 사라졌다. 지금은 `dialog.tsx`·`alert-dialog.tsx`의
+딤이 창과 같은 `duration-d4`를 붙인다(2026-11-26).
 그리고 `cn`(tailwind-merge)은 `tw-animate-css` 클래스를 몰라 `fade-out-0` 위에 `slide-out-to-bottom`을 더해도
 앞의 것을 지우지 않는다. 다른 움직임이 필요하면 기존 모션 클래스를 덮어쓰지 말고 처음부터 따로 조립한다
 (`dialog.tsx`의 `DIALOG_CONTENT_MOTION`).

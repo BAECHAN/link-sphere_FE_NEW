@@ -345,6 +345,14 @@
 
 ### Fixed
 
+- `shared` 대화상자·확인 창을 닫을 때 뒤의 딤이 창보다 먼저 사라지던 문제
+  <details><summary>배경·구현</summary>
+
+  대화상자(로그인, 넓은 화면의 북마크 폴더 선택, 이미지 보기)와 확인 창은 200ms(`duration-d4`)로 나타나고 사라지는데, 뒤에 깔리는 딤(어두운 막)은 시간 클래스가 없어 tw-animate-css 기본값 150ms로 움직였다. 둘은 형제 요소라 창에 붙인 시간이 딤에 가지 않는다. 그래서 닫을 때 딤이 50ms 먼저 끝나 배경이 창보다 먼저 밝아졌다. 두 딤(`DialogOverlay`·`AlertDialogOverlay`)의 기본 클래스에 `duration-d4`를 붙여 창과 함께 움직이게 했다(브라우저 계산값 0.15s → 0.2s). 모바일 하단 시트의 딤은 시트가 넘기는 시간(`duration-d6`)이 `cn()`으로 이 값을 덮어 300ms 그대로다(테스트로 고정). 디자인 시스템 2단계의 모션 토큰 PR(#693)에서 찾았고, 그 PR 병합 뒤 작은 PR로 고치기로 사용자가 정했다(2026-11-26). 1/10 속도로 늦춘 전후 녹화를 보고 사용자가 반영을 승인했다.
+  (`dialog.tsx`·`.test.tsx`, `alert-dialog.tsx`·`.test.tsx`, `SheetDialogContent.test.tsx`, `packages/ui/tokens/duration.tokens.json`·생성물 `tokens.gen.ts`, `docs/DESIGN-TOKENS.md`, `docs/DESIGN-SYSTEM.md`, `docs/plans/2026-11-24-design-tokens-stage2.md`, `.claude/skills/motion-ux/SKILL.md`, [PR #694](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/694))
+
+  </details>
+
 - `shared` 열어 둔 탭에서 글·댓글의 작성 시각이 "방금 전"에 멈춰 있던 문제
   <details><summary>배경·구현</summary>
 

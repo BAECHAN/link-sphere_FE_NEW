@@ -61,4 +61,20 @@ describe('SheetDialogContent', () => {
     );
     expect(panel.filter((name) => /fade-|zoom-|duration-d4/.test(name))).toEqual([]);
   });
+
+  // 2026-11-26 딤 시간 맞추기 — 딤 기본 시간(d4)을 더한 뒤에도 데스크톱 딤은 창과 같은 시간이고, 모바일 딤은
+  // 넘긴 시트 시간(d6)이 cn()으로 기본 시간을 덮는다
+  it('데스크톱 분기의 딤은 창과 같은 시간(d4)이다', () => {
+    const { panel, overlay } = renderSheet(false);
+    const durations = (names: string[]) => names.filter((name) => name.startsWith('duration-'));
+
+    expect(durations(panel)).toEqual(['duration-d4']);
+    expect(durations(overlay)).toEqual(durations(panel));
+  });
+
+  it('모바일 분기의 딤에는 시트 시간(d6)만 남는다', () => {
+    const { overlay } = renderSheet(true);
+
+    expect(overlay.filter((name) => name.startsWith('duration-'))).toEqual(['duration-d6']);
+  });
 });

@@ -255,3 +255,30 @@ describe('DialogContent — 패널 클래스 집합', () => {
     );
   });
 });
+
+// 2026-11-26 딤에 시간 클래스가 없으면 tw-animate 기본값(150ms)으로 움직여 창(d4, 200ms)보다 먼저 끝난다.
+// 딤과 창은 형제 요소라 시간이 상속되지 않아 양쪽에 붙인다(SheetDialogContent의 SHEET_TIMING과 같은 이유)
+describe('DialogContent — 딤 시간', () => {
+  it('딤은 창과 같은 시간(d4)으로 나타나고 사라진다', () => {
+    renderWithProviders(
+      <Dialog open>
+        <DialogContent>
+          <DialogTitle>확인</DialogTitle>
+        </DialogContent>
+      </Dialog>
+    );
+
+    const panel = screen.getByRole('dialog');
+    const overlay = panel.previousElementSibling;
+
+    if (!(overlay instanceof HTMLElement)) {
+      throw new Error('overlay not found');
+    }
+
+    const durations = (element: HTMLElement) =>
+      [...element.classList].filter((name) => name.startsWith('duration-'));
+
+    expect(durations(panel)).toEqual(['duration-d4']);
+    expect(durations(overlay)).toEqual(durations(panel));
+  });
+});
