@@ -1549,7 +1549,7 @@ export const TOKENS = [
     darkValue: null,
     darkResolved: '200ms',
     description:
-      '대화상자 열림·닫힘, 선택 상자 화살표, 맨 위로 버튼, 지연 표시와 뼈대가 나타날 때, 좁은 화면 메뉴, 댓글 강조가 나타날 때',
+      '대화상자·확인 창과 그 딤의 열림·닫힘, 선택 상자 화살표, 맨 위로 버튼, 지연 표시와 뼈대가 나타날 때, 좁은 화면 메뉴, 댓글 강조가 나타날 때',
     darkDescription: null,
   },
   {

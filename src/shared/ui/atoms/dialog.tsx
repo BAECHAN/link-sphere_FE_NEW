@@ -18,6 +18,11 @@ function isBackForwardMouseButton(button: number): boolean {
   return button === 3 || button === 4;
 }
 
+/**
+ * 딤은 창(DIALOG_CONTENT_MOTION)과 같은 시간(d4)으로 나타나고 사라진다. 둘은 형제 요소라 시간이 상속되지 않아
+ * 따로 붙인다 — 없으면 tw-animate 기본값 150ms로 움직여 창보다 먼저 끝난다(2026-11-26). 시트는 자기 시간을
+ * className으로 넘겨 cn()이 이 값을 덮는다(SheetDialogContent의 SHEET_TIMING).
+ */
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -25,7 +30,7 @@ const DialogOverlay = React.forwardRef<
   <DialogPrimitive.Overlay
     ref={ref}
     className={cn(
-      'fixed inset-0 z-modal bg-scrim/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+      'fixed inset-0 z-modal bg-scrim/80 duration-d4 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
       className
     )}
     {...props}
