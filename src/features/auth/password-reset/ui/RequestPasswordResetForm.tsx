@@ -22,7 +22,7 @@ export const RequestPasswordResetForm = () => {
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-lg border-muted-foreground/10 gap-4">
+      <Card className="w-full max-w-md shadow-s4 border-muted-foreground/10 gap-4">
         <CardHeader className="text-center space-y-3">
           <FeaturedIcon
             icon={isSubmitted ? CheckCircle2 : Mail}

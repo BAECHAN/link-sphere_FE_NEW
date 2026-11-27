@@ -36,7 +36,7 @@ export function ImageAttachmentPreviews({ previewUrls, onRemove }: ImageAttachme
             title={uiTexts.imageAttachmentField.removeAt(index + 1)}
             className={cn(
               'absolute -top-2 -right-2 h-5 w-5 rounded-full',
-              'bg-scrim border border-scrim shadow-sm',
+              'bg-scrim border border-scrim shadow-s2',
               'text-scrim-foreground hover:bg-scrim/70 hover:scale-110',
               'flex items-center justify-center transition-all duration-d3'
             )}

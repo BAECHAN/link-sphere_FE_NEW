@@ -78,3 +78,19 @@ describe('cn()의 시간·곡선 토큰 병합', () => {
     expect(cn('duration-d4', 'ease-enter')).toBe('duration-d4 ease-enter');
   });
 });
+
+// 위와 같은 이유로 cn()이 읽는 목록(SHADOW_TOKEN_NAMES)이 아니라 전체 목록에서 고른다
+const shadowTokens = TOKENS.filter((token) => token.group === 'shadow').map((token) => token.name);
+
+describe('cn()의 그림자 토큰 병합', () => {
+  it('토큰 목록에서 그림자 토큰을 읽어 온다', () => {
+    expect(shadowTokens).toEqual(['s1', 's2', 's3', 's4']);
+  });
+
+  // 등록을 빠뜨리면 tailwind-merge 3.7.0은 shadow-s1 등을 그림자 색으로 분류해, 그림자를 없애는 shadow-none과 둘 다 남긴다
+  // (이미지 보기가 대화상자의 그림자를 shadow-none으로 없앤다. ImageViewer.tsx)
+  it.each(shadowTokens)('shadow-%s와 shadow-none은 뒤에 온 쪽만 남는다', (token) => {
+    expect(cn(`shadow-${token}`, 'shadow-none')).toBe('shadow-none');
+    expect(cn('shadow-none', `shadow-${token}`)).toBe(`shadow-${token}`);
+  });
+});

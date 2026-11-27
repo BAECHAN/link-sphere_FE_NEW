@@ -48,7 +48,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
         toastOptions={{
           classNames: {
             toast:
-              'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-lg flex items-center gap-2',
+              'group toast group-[.toaster]:bg-background group-[.toaster]:text-foreground group-[.toaster]:border-border group-[.toaster]:shadow-s4 flex items-center gap-2',
             // 래퍼(lib/toast/toast.ts)가 문장 끝에 넣은 줄바꿈을 그대로 보여준다
             title: 'whitespace-pre-line',
             description: 'group-[.toast]:text-muted-foreground',

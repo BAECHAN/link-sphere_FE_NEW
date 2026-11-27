@@ -58,7 +58,7 @@ export function RecentSearchDropdown({
       // 마우스로 셀을 클릭할 때 입력창의 focus가 빠지지 않게 한다. 빠지면 클릭이
       // 완료되기 전에 input onBlur가 먼저 발생해 드롭다운이 닫히며 클릭이 유실된다.
       onMouseDown={(e) => e.preventDefault()}
-      className="absolute left-0 right-0 top-full z-popover mt-1 flex flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
+      className="absolute left-0 right-0 top-full z-popover mt-1 flex flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-s3"
     >
       {/* 헤더(모두 지우기)는 별도 스크롤 영역 밖에 있어 아래 목록을 스크롤해도 그대로 있다. */}
       <div role="rowgroup" className="shrink-0 border-b">

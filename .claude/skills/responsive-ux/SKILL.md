@@ -151,7 +151,7 @@ flex h-16
 ### 플로팅 버튼
 
 우측 하단 플로팅 아이콘 버튼 자리(`fixed right-6 z-nav`, `rounded-full h-12 w-12
-shadow-lg`, CSS transition + `setTimeout`으로 exit 애니메이션 동안 마운트 유지 —
+shadow-s4`, CSS transition + `setTimeout`으로 exit 애니메이션 동안 마운트 유지 —
 framer-motion 아님, `package.json`에 없음)를 페이지별로 상호 배타적으로 나눠 쓴다.
 세로 위치와 노출 조건은 컴포넌트별로 다르다:
 

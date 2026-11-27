@@ -72,7 +72,7 @@ ruleTester.run('classname-last', classNameLastRule, {
     "const d = cn('base', 'more');",
     'const e = cn(className);',
     // 부분을 꾸미는 속성은 이 규칙이 보지 않는다
-    "const f = cn(activeClassName, 'shadow-sm');",
+    "const f = cn(activeClassName, 'shadow-s2');",
     "const g = cn('size-4', iconClassName);",
     // cva로 만든 함수에 변형만 넘긴다
     "const buttonVariants = cva('base', { variants: { variant: { a: 'a' } } }); const h = cn(buttonVariants({ variant, size }), className);",

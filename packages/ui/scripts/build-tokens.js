@@ -34,6 +34,8 @@ const TS_OUT = join(PACKAGE_ROOT, 'src/generated/tokens.gen.ts');
 const REFERENCE = /^\{([^}]+)\}$/;
 const DIMENSION_UNITS = ['rem', 'px'];
 const DURATION_UNITS = { ms: 1, s: 1000 };
+// 그림자 층의 크기 네 개. CSS box-shadow에 적는 순서다
+const SHADOW_LENGTHS = ['offsetX', 'offsetY', 'blur', 'spread'];
 // Tailwind가 시간·곡선 클래스 없이 transition만 붙은 곳에 쓰는 기본값의 변수다. 토큰을 가리키게 해서 그런 곳도 토큰 값을
 // 따르게 한다(2026-11-26 게이트 2). 덮어쓰기 전 값은 Tailwind 4.3.5 theme.css의 150ms, cubic-bezier(0.4, 0, 0.2, 1)이다.
 const TAILWIND_DEFAULTS = [
@@ -81,6 +83,33 @@ function formatColor(id, value) {
   return `oklch(${body} / ${Number((value.alpha * 100).toFixed(4))}%)`;
 }
 
+/** DTCG 크기 객체를 `<숫자><단위>`로 적는다. */
+function formatDimension(id, value) {
+  if (!isNumber(value?.value) || !DIMENSION_UNITS.includes(value.unit)) {
+    fail(
+      id,
+      `크기는 { value: 숫자, unit: ${DIMENSION_UNITS.join(' | ')} }여야 한다(받은 값: ${JSON.stringify(value)})`
+    );
+  }
+
+  return `${value.value}${value.unit}`;
+}
+
+/** DTCG 그림자 층 하나를 `<가로> <세로> <흐림> <퍼짐> <색>`으로 적는다. 안쪽 그림자(inset)는 쓰는 곳이 없어 받지 않는다. */
+function formatShadowLayer(id, layer) {
+  if (layer?.inset !== undefined) {
+    fail(id, '안쪽 그림자(inset)는 받지 않는다');
+  }
+
+  if (layer?.blur?.value < 0) {
+    fail(id, `흐림(blur)은 0 이상이어야 한다(받은 값: ${JSON.stringify(layer.blur)})`);
+  }
+
+  const lengths = SHADOW_LENGTHS.map((key) => formatDimension(`${id}.${key}`, layer?.[key]));
+
+  return `${lengths.join(' ')} ${formatColor(`${id}.color`, layer.color)}`;
+}
+
 /** Style Dictionary 값 변환기. 별칭은 풀린 값으로 들어온다. 모르는 타입이나 모양이 틀린 값은 멈춘다. */
 function toCssValue(token) {
   const id = token.path.join('.');
@@ -90,14 +119,14 @@ function toCssValue(token) {
     case 'color':
       return formatColor(id, value);
     case 'dimension':
-      if (!isNumber(value?.value) || !DIMENSION_UNITS.includes(value.unit)) {
-        fail(
-          id,
-          `크기는 { value: 숫자, unit: ${DIMENSION_UNITS.join(' | ')} }여야 한다(받은 값: ${JSON.stringify(value)})`
-        );
+      return formatDimension(id, value);
+    case 'shadow':
+      // DTCG 형식: 층 객체의 배열(앞의 층이 위에 그려진다). 층 하나짜리 객체 꼴은 받지 않고 배열로 적게 한다
+      if (!Array.isArray(value) || value.length === 0) {
+        fail(id, `그림자는 층 객체의 배열이어야 한다(받은 값: ${JSON.stringify(value)})`);
       }
 
-      return `${value.value}${value.unit}`;
+      return value.map((layer, index) => formatShadowLayer(`${id}[${index}]`, layer)).join(', ');
     case 'duration':
       if (!isNumber(value?.value) || value.value < 0 || !(value.unit in DURATION_UNITS)) {
         fail(
@@ -150,6 +179,7 @@ function describePath(path) {
     case 'line-height':
     case 'duration':
     case 'timing-function':
+    case 'shadow':
       return { group, name: rest[0], part: null };
     case 'text':
       return { group, name: rest[0], part: rest[1] };
@@ -180,6 +210,9 @@ function cssVarName(path) {
       return `--transition-duration-${name}`;
     case 'timing-function':
       return `--ease-${name}`;
+    // Tailwind의 shadow-<이름>이 읽는 테마 키다(src/test/tailwind-shadow-theme.test.ts가 확인)
+    case 'shadow':
+      return `--shadow-${name}`;
     default:
       return part === 'font-size' ? `--text-${name}` : `--text-${name}--${part}`;
   }
@@ -441,6 +474,8 @@ function renderCss({ tokens }) {
     // 시간·곡선도 static이다. 기본값 줄이 가리키는 변수(color-transition 등)는 그 이름의 클래스를 쓰는 곳이 없어도 있어야 한다
     ['@theme static', withTailwindDefaults('duration')],
     ['@theme static', withTailwindDefaults('timing-function')],
+    // 그림자도 static이다. shadow-<이름>은 변수를 가리키지 않고 값을 규칙에 그대로 넣어, 옵션이 없으면 변수가 출력에서 빠진다
+    ['@theme static', inGroup('shadow').map(line)],
     [':root', [...inGroup('palette'), ...colors].map(line)],
     [
       '.dark',
@@ -468,6 +503,7 @@ function renderTs({ tokens, groups }) {
   const easeNames = tokens
     .filter((token) => token.group === 'timing-function')
     .map((token) => token.name);
+  const shadowNames = tokens.filter((token) => token.group === 'shadow').map((token) => token.name);
   const durationMs = Object.fromEntries(
     tokens
       .filter((token) => token.group === 'duration')
@@ -520,6 +556,9 @@ export const TEXT_SIZE_TOKEN_NAMES = ${json(textSizeNames)} as const;
 /** 시간·곡선 토큰 이름. cn()이 duration-<이름>, ease-<이름>을 같은 묶음으로 알아야 뒤에 온 클래스가 앞의 것을 덮는다 */
 export const DURATION_TOKEN_NAMES = ${json(durationNames)} as const;
 export const EASE_TOKEN_NAMES = ${json(easeNames)} as const;
+
+/** 그림자 토큰 이름. cn()이 shadow-<이름>을 그림자 색이 아니라 그림자로 알아야 한다(lib/tailwind/utils.ts) */
+export const SHADOW_TOKEN_NAMES = ${json(shadowNames)} as const;
 
 /** 시간 토큰의 밀리초 값. CSS 전환이 끝나기를 기다리는 JS 타이머가 읽는다(같은 시간을 숫자로 따로 적지 않으려고) */
 export const DURATION_MS = ${json(durationMs)} as const;

@@ -37,7 +37,7 @@ export const FilterChip = forwardRef<HTMLButtonElement, FilterChipProps>(
         // eslint-disable-next-line custom-tailwind/no-raw-title -- 칩 라벨, 제목 아님
         'rounded-full px-3 py-1.5 h-auto text-xs font-bold transition-all transform active:scale-95',
         isActive
-          ? cn(activeClassName, 'shadow-sm')
+          ? cn(activeClassName, 'shadow-s2')
           : 'bg-muted text-muted-foreground border border-transparent',
         className
       )}

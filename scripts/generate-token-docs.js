@@ -47,6 +47,11 @@ const SECTIONS = [
     groups: ['timing-function'],
     render: (tokens) => renderSingleValueTable(tokens, 'ease-'),
   },
+  {
+    title: '그림자',
+    groups: ['shadow'],
+    render: (tokens) => renderSingleValueTable(tokens, 'shadow-'),
+  },
 ];
 
 function code(text) {

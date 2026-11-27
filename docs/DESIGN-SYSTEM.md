@@ -192,7 +192,7 @@ CSS·토큰 목록·토큰 표는 원본에서 만드는 **생성물**이라 직
 flowchart LR
     S["원본 - 사람이 고친다<br/>packages/ui/tokens/*.tokens.json<br/>tokens.resolver.json: 라이트, 다크 파일 목록"]
     B["packages/ui/scripts/build-tokens.js<br/>파일 합치기, 별칭 풀기(Style Dictionary),<br/>값 모양 검사, CSS 글자로 바꾸기"]
-    C["tokens.gen.css<br/>테마 블록 7개, :root, .dark"]
+    C["tokens.gen.css<br/>테마 블록 8개, :root, .dark"]
     T["tokens.gen.ts<br/>토큰 목록: 이름, 값, 설명"]
     G["scripts/generate-token-docs.js"]
     D["docs/DESIGN-TOKENS.md<br/>토큰 표"]
@@ -200,7 +200,7 @@ flowchart LR
     B --> C
     B --> T
     C --> E["tokens.css가 import<br/>화면"]
-    T --> K["카탈로그 스토리,<br/>cn()의 글자 크기 이름"]
+    T --> K["카탈로그 스토리,<br/>cn()에 등록하는 토큰 이름"]
     T --> G --> D
     CI["CI: 토큰 생성물 최신성 확인<br/>pnpm tokens 뒤 git status"] -. "커밋된 것과 다르면 실패" .-> C
 ```
@@ -289,6 +289,52 @@ skill에 있다. 값은 전과 같아 화면은 바뀌지 않는다(§9 2026-11-
   로그, 계획, 지난 릴리즈의 CHANGELOG)에 옛 시간·곡선 클래스가 적혀 있어 그 규칙은 운영 CSS에 남는다(쓰는 곳이 없어 화면과는
   무관하다). 고칠 수 있는 문서와 주석에는 쓰지 않는 클래스 이름을 적지 않고, 린트 규칙 테스트는 이름을 조각으로 이어 만든다.
 
+### 그림자 (2026-11-27)
+
+부품의 그림자도 원본에서 만든다. 깊이 순서대로 네 단계 `shadow-s1`~`shadow-s4`이고, 값과 쓰는 곳은
+[토큰 표](./DESIGN-TOKENS.md) "그림자"에, 고르는 법은 `design-tokens` skill에 있다. 값은 전과 같아 화면은 바뀌지 않는다
+(§9 2026-11-27).
+
+- **당근은** 그림자를 깊이 순서 번호 `s1`~`s3`으로 두고, 단계마다 층 하나와 투명도를 붙인 hex 색을 적는다. 라이트와 다크의
+  값이 다르다. 색의 투명도가 라이트는 약 8·10·12%, 다크는 약 50·68·80%다
+  ([`shadow.yaml`](https://github.com/daangn/seed-design/blob/dev/packages/rootage/shadow.yaml), dev `cd7d84ca`에서 직접 읽음).
+  **토스는** 공개 문서에 그림자 토큰이 없다(2026-11-24 조사, [2단계 계획](./plans/2026-11-24-design-tokens-stage2.md)
+  "당근·토스·우리"). **우리는** 이름 짓는 법(깊이 순서 번호)만 따르고, 값은 지금 쓰던 Tailwind 기본값 네 개를 작은 것부터
+  옮겼다. 층이 둘인 단계도 그대로 두고, 다크 값은 따로 두지 않는다. **이유**: 값이나 다크 값을 당근에 맞추면 화면이 바뀐다.
+
+2026-11-26 게이트 2에서 사용자가 정한 것(③·④·⑧, 질문과 답은 계획 결과 블록):
+
+| 정한 것   | 내용                                                                                                                                          | 이유                                                 |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| 클래스 꼴 | `shadow-s1`~`shadow-s4`. 그림자를 없애는 `shadow-none`은 그대로 쓴다                                                                          | 당근 꼴이다                                          |
+| 린트      | Tailwind 기본 이름(`2xs`~`2xl`, `inner`, 이름 없는 `shadow`)과 대괄호·괄호 값을 막는다(`custom-tailwind/no-raw-shadow`). `shadow-none`은 둔다 | 시간·곡선(`no-raw-motion`)과 같은 방식이다           |
+| 옮기는 법 | 지금 쓰는 기본 이름 네 개(`xs`·`sm`·`md`·`lg`)를 순서대로 `s1`~`s4`로 옮기고 값은 그대로 둔다                                                 | 쓰는 곳 29곳(앱 27, 패키지 2)의 화면이 바뀌지 않는다 |
+
+**Tailwind와 잇는 법**
+
+- **테마 키**: `--shadow-<이름>`을 `@theme static`으로 낸다. Tailwind 4.3.5의 `shadow-<이름>`은 변수를 가리키지 않고 값을
+  규칙에 그대로 넣어서, 일반 `@theme`이면 변수가 출력에서 빠진다. 카탈로그는 이 변수로 견본을 그린다.
+- **색**: 원본에는 검정에 투명도를 붙인 숫자(`oklch(0 0 0 / 10%)`)로 적는다. 우리 팔레트에는 검정 투명도 단계가 없고, 당근도
+  그림자 색을 팔레트에서 가져오지 않고 숫자로 적는다. Tailwind는 그 색을 `var(--tw-shadow-color, …)`로 감싸 그림자 색
+  클래스가 덮어쓸 수 있게 한다. 생성된 CSS를 설치된 Tailwind로 컴파일해 이 꼴을 보는 테스트가
+  `src/test/tailwind-shadow-theme.test.ts`다.
+- **`cn()`**: tailwind-merge 3.7.0은 그림자를 크기 이름(`xs`·`sm` 꼴)으로만 알아서, 등록하지 않으면 토큰 클래스를 그림자 색으로
+  분류한다. 그러면 쓰는 쪽이 넘긴 `shadow-none`이 부품의 그림자를 지우지 못하고 둘 다 남는다(이미지 보기가 대화상자의 그림자를,
+  모바일 북마크 정렬 아이콘이 선택 상자 버튼의 그림자를 이렇게 지운다). 생성된 `SHADOW_TOKEN_NAMES`를 등록했다
+  (`packages/ui/src/lib/tailwind/utils.ts`).
+- **생성 스크립트**: 층 배열을 `0px 1px 2px 0px <색>` 꼴로 쉼표로 이어 적는다. 안쪽 그림자(`inset`)와 음수 흐림은 멈춘다.
+
+**못 잡는 것**
+
+- 문자열 전체가 `shadow` 한 낱말인 것. 이름 없는 그림자(Tailwind 호환 테마의 기본값으로, 옮기기 전 `sm`과 같은 값이다)는
+  다른 클래스와 함께 쓰거나 변형·투명도가 붙으면 린트가 막지만, 한 낱말뿐인 문자열은 토큰 묶음 이름(`group === 'shadow'`)과
+  구분하지 못해 보지 않는다. 지금 클래스로 쓰는 곳은 없다(2026-11-27 검색).
+- 진행 막대(NProgress)의 대괄호 그림자. `globals.css`의 `@apply`에 있고 CSS 파일은 린트 밖이다. 인라인 `style`,
+  `drop-shadow-*`·`inset-shadow-*`·`text-shadow-*`(토큰이 없어 린트 밖이다)도 같다.
+- 고치지 않는 기록(지난 릴리즈의 CHANGELOG, 계획 스냅샷)에 옛 그림자 클래스가 적혀 있어 그 규칙은 운영 CSS에 남는다(§9).
+  예제 앱 CSS에는 패키지 소스의 글자(`cn()` 설정 키 `shadow`, 병합 테스트 값 `shadow-none`)에서 규칙 2개가 새로 생긴다. 둘 다
+  쓰는 곳이 없어 화면과는 무관하다.
+
 **신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
 `Divider`(`divider.tsx`), `FeaturedIcon`(`featured-icon.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
 `AlertDialog`(`alert-dialog.tsx`) 등이 `src/shared/ui/atoms/`에 추가됐다 — 이들을 포함해
@@ -320,6 +366,7 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | `--text-detail-title` (역할 층, 2026-09-21 추가)                                            | 위 역할 층과 같은 원본·블록                                                                                                                                           | 토큰 표 "글자 역할"                                                                                             |
 | `--palette-*` (Primitive 20개. 2026-10-29 무채색 10개, 2026-11-26 유채색·투명도 추가)       | 원본 `packages/ui/tokens/palette.tokens.json` → 생성 `tokens.gen.css`의 `:root` 맨 앞 (테마 무관, 다크 파일에 없음)                                                   | 이 문서 §5 "색상 2층", 토큰 표 "팔레트"                                                                         |
 | `--transition-duration-*`(5개)·`--ease-*`(3개) (2026-11-26 추가)                            | 원본 `packages/ui/tokens/duration.tokens.json`·`timing-function.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록 2개(Tailwind 기본값 2개를 함께 다시 정의) | 이 문서 §5 "시간과 곡선", 토큰 표 "시간"·"가속 곡선"                                                            |
+| `--shadow-*`(4개) (2026-11-27 추가)                                                         | 원본 `packages/ui/tokens/shadow.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록                                                                           | 이 문서 §5 "그림자", 토큰 표 "그림자"                                                                           |
 
 패키지 토큰의 "정의 위치"는 2026-11-25부터 원본 파일이다(§5 "토큰 원본과 생성물"). 전체 58개 색상 값 자체는 옮겨적지
 않는다 — 범용 27개는 토큰 원본(`packages/ui/tokens/color.tokens.json`)이, 앱 전용 31개는 `globals.css`가 SSOT다
@@ -336,10 +383,11 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | 새 z-index 층 추가                                                                     | 원본 `packages/ui/tokens/z-index.tokens.json`                                                                                                                                    | 토큰을 값이 작은 것부터 순서에 맞춰 더하고 `$description`에 쓰는 곳을 적는다 → `pnpm tokens` → 원본과 생성물을 함께 커밋. 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Z_INDEX_LAYERS`)는 생성 목록을 읽어 따로 고치지 않는다 → `design-tokens` skill의 순서 문장에 이름 추가                                                                                                                                                                                                                                        |
 | 새 색 토큰 추가                                                                        | 범용이면 원본 `packages/ui/tokens/color.tokens.json`(다크에서 값이 다르면 `color.dark.tokens.json`에도), 이 앱에만 묶이면 `globals.css`의 `:root`/`.dark` + `@theme inline` 매핑 | **범용**: 원본에 토큰을 더한다(값은 숫자 대신 `{palette.<색>.<단계>}` 별칭 — 필요한 값이 없으면 `palette.tokens.json`에 먼저 추가. 숫자로 적으면 `pnpm tokens`가 멈춘다) → `pnpm tokens`(`--color-<name>` 매핑과 토큰 표가 함께 만들어진다) → 카탈로그의 색 묶음(`DesignTokens.stories.tsx`의 `packageColors(...)`)에 이름 추가(안 넣으면 "묶음에 넣지 않은 범용 색"에 나온다). **앱 전용**: 값 정의(팔레트에 있는 값이면 `var(--palette-<색>-<단계>)`) → `--color-<name>: var(--<name>)` 매핑 추가 → skill 문서 표 갱신 |
-| 새 Tailwind 커스텀 ESLint 룰 추가                                                      | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화)                                                                   | 기존 6개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-motion`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-11-26 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기. `no-raw-motion`처럼 설정 파일 밖(`scripts/lib/`)에 두면 `src/test/scripts/`에서 단위 테스트로 고정할 수 있다                                                                                             |
+| 새 Tailwind 커스텀 ESLint 룰 추가                                                      | `eslint.config.js`의 `customTailwindRulesPlugin.rules`(정의) + 파일 하단 `custom-tailwind/*` 등록 블록(활성화)                                                                   | 기존 7개 룰(`no-raw-z-index`/`no-raw-color`/`no-raw-motion`/`no-raw-shadow`/`no-raw-text-size`/`no-raw-title`/`no-classname-template-literal`, 2026-11-27 재확인)과 같은 패턴(허용목록 없이 `Literal`/`TemplateLiteral` 방문, 정규식 매칭 — `no-classname-template-literal`만 `JSXAttribute`/`VariableDeclarator` 방문) 따르기. `no-raw-motion`·`no-raw-shadow`처럼 설정 파일 밖(`scripts/lib/`)에 두면 `src/test/scripts/`에서 단위 테스트로 고정할 수 있다                                                             |
 | 새 타이포 역할 토큰 추가                                                               | 원본 `packages/ui/tokens/text.tokens.json`                                                                                                                                       | 역할 아래에 `font-size`·`line-height`(필요하면 `font-weight`) 토큰을 더한다 → `pnpm tokens`(`cn()`이 읽는 글자 크기 이름 목록 `TEXT_SIZE_TOKEN_NAMES`에 함께 등록된다. 등록이 왜 필요한지는 §10) → 실제 사용처에 클래스 적용 → `design-tokens` skill 역할 토큰 표에 대상 예시 추가                                                                                                                                                                                                                                       |
 | 새 토큰 축 추가(모션·그림자 등)                                                        | 원본 `packages/ui/tokens/<축>.tokens.json`, `packages/ui/tokens/tokens.resolver.json`, `packages/ui/scripts/build-tokens.js`, `scripts/generate-token-docs.js`                   | 원본 파일을 만들고 `tokens.resolver.json`의 기본 파일 목록에 더한다 → `build-tokens.js`의 `describePath`(경로를 축·이름으로 나눔)·`cssVarName`(변수 이름)·`renderCss`(어느 테마 블록에 낼지)·`toCssValue`(새 값 타입이면)에 축을 더한다 → `generate-token-docs.js`의 `SECTIONS`에 절을 더한다. 어느 하나를 빠뜨리면 `pnpm tokens`가 그 축 이름을 대며 멈춘다                                                                                                                                                             |
 | 시간·곡선 토큰 더하기                                                                  | 원본 `packages/ui/tokens/duration.tokens.json`·`timing-function.tokens.json`                                                                                                     | 토큰을 더한다(시간은 `{ "value": 250, "unit": "ms" }`, 곡선은 숫자 4개 배열이고 첫째·셋째는 0~1) → `pnpm tokens`(`cn()` 등록 목록과 JS 값 `DURATION_MS`가 함께 만들어진다) → 쓰는 곳에 클래스. 닫힘을 기다리는 JS 타이머는 `DURATION_MS.<이름>`을 읽는다(`motion-ux` skill "exit 애니메이션 동기화 함정"). 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Motion`)는 생성 목록을 읽어 따로 고치지 않는다                                                                                                               |
+| 그림자 단계 더하기                                                                     | 원본 `packages/ui/tokens/shadow.tokens.json`                                                                                                                                     | 깊이 순서에 맞는 자리에 토큰을 더한다(값은 층 배열, 층마다 `color`는 `{ "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 }` 꼴, `offsetX`·`offsetY`·`blur`·`spread`는 `{ "value": 4, "unit": "px" }` 꼴) → `pnpm tokens`(`cn()` 등록 목록 `SHADOW_TOKEN_NAMES`가 함께 만들어진다) → 쓰는 곳에 클래스. 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Shadow`)는 생성 목록을 읽어 따로 고치지 않는다                                                                                                        |
 | 토스트의 버튼 자리·닫기 X 바꾸기                                                       | `packages/ui/src/lib/toast/toast-layout.ts`                                                                                                                                      | 호출부는 모양 옵션을 넘길 수 없고 래퍼가 정한다(`FE-ARCHITECTURE.md` §14 "버튼 배치"). 새 모양은 `packages/ui/src/lib/toast/`에 함수로 만들고 `sonner.stories.tsx`에 견본을 더한다                                                                                                                                                                                                                                                                                                                                       |
 | 토스트 종류별 색 바꾸기                                                                | `packages/ui/src/atoms/sonner.tsx`의 `KIND_TOKENS`·`KIND_COLOR_VARS`                                                                                                             | 오류·경고·성공·안내 토스트의 배경·테두리·글자색은 `--destructive`·`--warning`·`--success`·`--info`에서 `color-mix`로 만든다(배경 8%·테두리 30%는 바탕색과, 글자 60%는 본문색과 섞는다). 토큰 값을 바꾸면 따라 바뀐다. 비율이나 토큰을 바꾸면 Storybook `Kinds`·`Notice`에서 밝은·어두운 테마의 제목 대비(4.5:1 이상)를 다시 잰다. sonner가 문서화하지 않은 변수 이름에 기대므로 sonner를 올릴 때도 같은 스토리를 확인한다(`DECISIONS.md` 2026-11-18 "토스트 색")                                                         |
 | 범용 부품이 스스로 보여 주는 글자 더하기                                               | `packages/ui/src/texts/`(타입·한국어 묶음·Provider), `src/app/providers/UiTextsProvider.tsx`(이 앱이 넘기는 값)                                                                  | 부품에 `TEXTS`를 import하지 않는다. `ui-texts.ts` 타입 → `ko-ui-texts.ts` 묶음 → `APP_UI_TEXTS` 순서로 키를 더하고 부품에서 `useUiTexts()`로 읽는다. 순서와 묶는 규칙은 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §1.2                                                                                                                                                                                                       |
@@ -669,6 +717,43 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
   `pnpm test:storybook`(파일 60개, 테스트 218개), `pnpm test:e2e`(chromium·mobile-chrome 396개, 재시도 없음)가 모두 통과했다.
   카탈로그를 더한 뒤에는 `pnpm test:storybook`(파일 60개, 테스트 219개)을 다시 돌려 통과했다. 재생 예시는 Storybook 화면에서
   재생·되돌리기와 동작 줄이기(점이 움직이지 않고 흐려지기만 함, 계산값 `translate: none`·`opacity: 0.3`)를 확인했다.
+
+2026-11-27 실측 (그림자 토큰, 워크트리 `ds-tokens-stage2-shadow`, `main` `fe73e373` 기준) — 직접 측정. 위와 같은 임시
+스크립트로 바꾸기 전 커밋과 바꾼 작업 트리(카탈로그 스토리 포함)를 비교했다.
+
+- **빌드된 CSS 비교**: 앱 진입 CSS는 규칙 1,165 → 1,169개이고 공통 규칙의 순서는 같다.
+  - 옛 클래스와 토큰 클래스의 짝 7개(변형이 붙은 것 3개 포함)는 선언이 표기만 다르다. 색은 `rgb(0 0 0 / 0.1)`과
+    `oklch(0 0 0 / 10%)`, 0은 `0`과 `0px`이다. 이 둘을 맞추면 7개 모두 같고, 아래 픽셀 비교에서 같은 그림으로 그려진다.
+  - 옛 규칙 가운데 셋(`xs`·`md`의 기본 규칙, 토스트 그룹 변형)은 없어졌다. 넷(`sm`·`lg`의 기본 규칙, `md`의 hover 변형,
+    `lg`의 `hover-or-open` 변형)은 남는다. 고치지 않는 기록(지난 릴리즈의 CHANGELOG, 계획 스냅샷 `2026-09-21`·`2026-09-24`)에
+    그 글자가 있어서다(§10 첫 항목과 같은 현상). 쓰는 곳이 없어 화면 영향은 없다.
+  - 짝으로 설명되지 않는 규칙은 전·후 모두 0개다. 카탈로그 `Shadow` 스토리는 인라인 `style`로 그려 규칙을 더하지 않는다.
+  - 선언이 바뀐 규칙은 테마 층의 `:root, :host` 하나이고, 토큰 변수 4개가 더해졌다.
+  - 예제 앱은 273 → 275개다. 짝 2개는 표기를 맞추면 같다. 짝 없이 새로 생긴 것은 이름 없는 그림자와 그림자를 없애는 규칙
+    2개다(§5 "그림자"의 "못 잡는 것").
+- **픽셀 비교**(임시 Playwright 스크립트, `setContent`라 네트워크 요청 없음): 짝 4개의 전 값(Tailwind 4.3.5 `theme.css`)과
+  후 값(생성 CSS)을 같은 상자에 입혀 밝은 바탕(`oklch(1 0 0)`)과 어두운 바탕(`oklch(0.145 0 0)`)에서 찍었다. 8쌍 모두
+  스크린샷 바이트가 같다. 바탕만 찍은 화면과 넷째 단계 그림자를 그린 화면은 달라서 빈 비교가 아니다. 계산값
+  (`getComputedStyle`)은 색 표기만 `rgba(0, 0, 0, 0.1)`과 `oklch(0 0 0 / 0.1)`로 다르다.
+- **Storybook 계산값**(빌드한 Storybook): 외곽선 버튼·입력칸·체크박스·스위치는 `oklch(0 0 0 / 0.05) 0px 1px 2px 0px`, 카드는
+  층 두 개인 `s2` 값, 스위치 손잡이는 `s4` 값이다. 이미지 보기 대화상자에는 `shadow-none`만 남고(`cn()`이 부품의 `shadow-s4`를
+  지운다) 그림자는 투명이다. 카탈로그 `Shadow` 스토리는 네 단계를 깊이 순서로 보인다.
+- **검사가 실제로 막는지**(고쳤다가 되돌림):
+  - 생성 스크립트의 그림자 변수 이름을 `--box-shadow-`로 바꾸거나 블록을 일반 `@theme`으로 바꾸면
+    `src/test/tailwind-shadow-theme.test.ts`의 4개가 실패한다.
+  - `cn()`에 등록하기 전에는 `utils.test.ts`의 새 병합 테스트 4개가 실패했다(`shadow-s4 shadow-none`이 둘 다 남는다).
+  - 린트 규칙에서 앞 글자 조건(다른 유틸리티의 일부가 아닌지)을 빼면 규칙 테스트 1개가, 막는 이름에서 `lg`를 빼면 3개가
+    실패한다.
+  - 원본 값을 층 배열이 아닌 값, 음수 흐림, `em` 단위로 바꾸면 `pnpm tokens`가 토큰 경로를 대며 멈춘다. 되돌린 뒤 생성물은
+    같다.
+  - 이름 없는 그림자를 막는 조건을 넣기 전에는 새 규칙 테스트 4개(다른 클래스와 함께, 변형, 투명도, 템플릿 문자열)가 실패했다.
+    한 낱말 예외를 빼면 `'shadow'` 한 낱말의 허용 테스트 1개가 실패한다.
+- **운영 번들**: `pnpm build`의 JS에는 `cn()` 설정의 그림자 이름 목록만 들어가고, 토큰 목록·설명은 들어가지 않는다.
+- **검사 묶음**(같은 작업 트리, `caffeinate -dims`로 묶음): 생성물 최신성(`pnpm tokens` 뒤 세 파일이 같음), `pnpm check`,
+  `pnpm test`(파일 226개, 테스트 3,285개), `pnpm check:docs`, `pnpm build`, `pnpm build-storybook`, 예제 앱 빌드,
+  `pnpm test:storybook`(파일 60개, 테스트 220개), `pnpm test:e2e`(chromium·mobile-chrome 396개, 재시도 없음)가 모두 통과했다.
+  그 뒤 린트 규칙에 이름 없는 그림자를 더하고 `pnpm check`, `pnpm test`(테스트 3,289개), `pnpm check:docs`를 다시 돌려
+  통과했다. 앱 CSS는 그 전과 바이트까지 같다.
 
 ## 10. 시행착오
 
