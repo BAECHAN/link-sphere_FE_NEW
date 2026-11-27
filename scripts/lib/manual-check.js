@@ -220,16 +220,21 @@ function isAnswerCandidate(comment) {
   );
 }
 
-/** 댓글 하나에서 빌드 줄과 번호 붙은 줄을 뽑는다 */
+/**
+ * 댓글 하나에서 빌드 줄과 번호 붙은 줄을 뽑는다. 번호 줄 다음 줄은 빈 줄·번호 줄·빌드 줄이 나올 때까지 그 단계의 본 것에
+ * 공백 한 칸으로 이어 붙인다 - 폰에서 여러 줄 값을 붙여 넣으면 본 것이 첫 줄에서 끊겼다(#698). 판정은 번호 줄에서만 읽는다.
+ */
 function readAnswerComment(text) {
   let build = null;
   const lines = [];
+  let continued = null;
 
   for (const line of text.split(/\r?\n/)) {
     const buildLine = BUILD_LINE.exec(line);
 
     if (buildLine) {
       build = build ?? buildLine[1].toLowerCase();
+      continued = null;
       continue;
     }
 
@@ -238,11 +243,23 @@ function readAnswerComment(text) {
     if (numbered) {
       const verdict = VERDICT_AND_OBSERVATION.exec(numbered[2].trim());
 
-      lines.push({
+      continued = {
         number: Number(numbered[1]),
         verdict: verdict ? verdict[1] : null,
         observation: verdict ? verdict[2].trim() : '',
-      });
+      };
+      lines.push(continued);
+      continue;
+    }
+
+    // 빈 줄 뒤의 글은 답이 아니라 메모로 본다
+    if (!line.trim()) {
+      continued = null;
+      continue;
+    }
+
+    if (continued) {
+      continued.observation = [continued.observation, line.trim()].filter(Boolean).join(' ');
     }
   }
 

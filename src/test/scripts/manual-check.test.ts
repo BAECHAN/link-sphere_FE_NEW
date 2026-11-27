@@ -169,6 +169,57 @@ describe('evaluateIssue', () => {
     });
   });
 
+  it('번호 줄 다음 줄은 빈 줄이 나올 때까지 그 단계의 본 것에 이어 붙인다', () => {
+    // 폰에서 여러 줄 값을 붙여 넣은 답(#698). 이어지는 줄을 버리면 본 것이 첫 줄에서 끊긴다
+    const result = evaluateIssue({
+      body: BODY,
+      comments: [
+        comment(
+          '빌드: cbc937c\n1. 통과 — 제목 칸: 알배기\n서울 마포구 독막로3길 35 2층\n / 안내: 옮겼어요\n2. 통과 — 입력 줄과 버튼이 다 보임\n\n내일 iOS도 볼게요'
+        ),
+      ],
+      checkBuild: acceptAnyBuild,
+    });
+
+    expect(result.status).toBe('passed');
+    expect(result.answers[0]).toMatchObject({
+      verdict: '통과',
+      observation: '제목 칸: 알배기 서울 마포구 독막로3길 35 2층 / 안내: 옮겼어요',
+    });
+    expect(result.answers[1]).toMatchObject({ observation: '입력 줄과 버튼이 다 보임' });
+  });
+
+  it('이어 붙인 줄에 판정 낱말이 있어도 판정은 번호 줄에서만 읽는다', () => {
+    const result = evaluateIssue({
+      body: BODY,
+      comments: [
+        comment(
+          '빌드: cbc937c\n1. 통과 — 시트만 닫히고 피드 그대로\n실패 — 처음엔 안 닫혔지만 새로고침 뒤 닫힘\n2. 통과 — 입력 줄과 버튼이 다 보임'
+        ),
+      ],
+      checkBuild: acceptAnyBuild,
+    });
+
+    expect(result.status).toBe('passed');
+    expect(result.answers[0]).toMatchObject({
+      verdict: '통과',
+      observation: '시트만 닫히고 피드 그대로 실패 — 처음엔 안 닫혔지만 새로고침 뒤 닫힘',
+    });
+  });
+
+  it('첫 줄에 본 것이 없어도 다음 줄에 적었으면 답으로 센다', () => {
+    const result = evaluateIssue({
+      body: BODY,
+      comments: [comment('빌드: cbc937c\n1. 통과 —\n시트만 닫히고 피드 그대로')],
+      checkBuild: acceptAnyBuild,
+    });
+
+    expect(result.answers[0]).toMatchObject({
+      verdict: '통과',
+      observation: '시트만 닫히고 피드 그대로',
+    });
+  });
+
   it('모든 단계가 통과로 답해지면 passed다', () => {
     const result = evaluateIssue({
       body: BODY,
