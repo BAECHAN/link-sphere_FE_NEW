@@ -1,3 +1,6 @@
+### 2026-11-27 (FE)
+- 클릭 가드 테스트 환경 개선을 통해 테스트의 독립성 및 신뢰성 확보 ([#695](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/695))
+
 ### 2026-11-26 (FE)
 - 대화상자 및 확인 창의 딤(dim) 애니메이션과 컴포넌트 등장 시점을 동기화하여 UI 상호작용의 일관성 개선 ([#694](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/694))
 
