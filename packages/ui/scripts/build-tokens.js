@@ -180,6 +180,7 @@ function describePath(path) {
     case 'duration':
     case 'timing-function':
     case 'shadow':
+    case 'spacing':
       return { group, name: rest[0], part: null };
     case 'text':
       return { group, name: rest[0], part: rest[1] };
@@ -213,6 +214,10 @@ function cssVarName(path) {
     // Tailwind의 shadow-<이름>이 읽는 테마 키다(src/test/tailwind-shadow-theme.test.ts가 확인)
     case 'shadow':
       return `--shadow-${name}`;
+    // Tailwind 문서의 간격 이름공간이다. gap-<이름>을 비롯한 간격·크기 유틸리티가 읽는다
+    // (src/test/tailwind-spacing-theme.test.ts가 확인)
+    case 'spacing':
+      return `--spacing-${name}`;
     default:
       return part === 'font-size' ? `--text-${name}` : `--text-${name}--${part}`;
   }
@@ -476,6 +481,8 @@ function renderCss({ tokens }) {
     ['@theme static', withTailwindDefaults('timing-function')],
     // 그림자도 static이다. shadow-<이름>은 변수를 가리키지 않고 값을 규칙에 그대로 넣어, 옵션이 없으면 변수가 출력에서 빠진다
     ['@theme static', inGroup('shadow').map(line)],
+    // 간격도 static이다. 카탈로그가 클래스 없이 변수로 견본을 그린다
+    ['@theme static', inGroup('spacing').map(line)],
     [':root', [...inGroup('palette'), ...colors].map(line)],
     [
       '.dark',
@@ -504,6 +511,9 @@ function renderTs({ tokens, groups }) {
     .filter((token) => token.group === 'timing-function')
     .map((token) => token.name);
   const shadowNames = tokens.filter((token) => token.group === 'shadow').map((token) => token.name);
+  const spacingNames = tokens
+    .filter((token) => token.group === 'spacing')
+    .map((token) => token.name);
   const durationMs = Object.fromEntries(
     tokens
       .filter((token) => token.group === 'duration')
@@ -559,6 +569,9 @@ export const EASE_TOKEN_NAMES = ${json(easeNames)} as const;
 
 /** 그림자 토큰 이름. cn()이 shadow-<이름>을 그림자 색이 아니라 그림자로 알아야 한다(lib/tailwind/utils.ts) */
 export const SHADOW_TOKEN_NAMES = ${json(shadowNames)} as const;
+
+/** 역할 간격 토큰 이름. cn()이 gap-<이름>을 간격으로 알아야 앞의 숫자 간격을 덮는다(lib/tailwind/utils.ts) */
+export const SPACING_TOKEN_NAMES = ${json(spacingNames)} as const;
 
 /** 시간 토큰의 밀리초 값. CSS 전환이 끝나기를 기다리는 JS 타이머가 읽는다(같은 시간을 숫자로 따로 적지 않으려고) */
 export const DURATION_MS = ${json(durationMs)} as const;

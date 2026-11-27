@@ -8,9 +8,9 @@
 > **읽고 나면**: 색상·반경·z-index·타이포그래피(스케일+역할) 토큰이 어디 정의돼 있고
 > 어떻게 확장하는지, ESLint가 어떤 Tailwind className 규칙을 강제하는지, Storybook
 > 토큰 카탈로그를 어떻게 보는지, Storybook a11y 게이트가 CI에서 어떻게 도는지 안다.
-> spacing 토큰은 왜 없는지, 지금까지 찾은 a11y 위반을 어떻게 해소했는지도 안다.
+> 간격 토큰을 왜 칩 사이 간격 하나만 두는지, 지금까지 찾은 a11y 위반을 어떻게 해소했는지도 안다.
 >
-> **마지막 검토**: 2026-11-26
+> **마지막 검토**: 2026-11-27
 
 ## 1. 쉬운 설명
 
@@ -29,8 +29,9 @@ ESLint로 "고를 수 없게" 강제하고, Storybook에 견본책을 두고, �
 (t1~t14)과 역할 층(페이지 제목 등 12곳)을 화면 미리보기 승인을 거쳐 뒤이어
 채웠다(2026-09-16, §4·§11 참고). 같은 날 Storybook의 a11y addon을 CI에 실제로
 배선해 axe-core 검사를 자동화했고, 그 과정에서 2026-09-13부터 있던 진짜 버그
-(색상 카탈로그의 잘못된 CSS 변수 참조, §10 참고)도 찾아냈다. spacing만 Tailwind
-v4의 구조적 제약 때문에 아직 비어 있다 — 이유는 §11 참고.
+(색상 카탈로그의 잘못된 CSS 변수 참조, §10 참고)도 찾아냈다. spacing은 Tailwind
+v4의 구조적 제약 때문에 숫자 눈금을 그대로 쓰고(§11), 2026-11-27에 칩 사이 간격 하나에만
+이름을 붙였다(§5 "역할 간격").
 
 ```mermaid
 flowchart TD
@@ -192,7 +193,7 @@ CSS·토큰 목록·토큰 표는 원본에서 만드는 **생성물**이라 직
 flowchart LR
     S["원본 - 사람이 고친다<br/>packages/ui/tokens/*.tokens.json<br/>tokens.resolver.json: 라이트, 다크 파일 목록"]
     B["packages/ui/scripts/build-tokens.js<br/>파일 합치기, 별칭 풀기(Style Dictionary),<br/>값 모양 검사, CSS 글자로 바꾸기"]
-    C["tokens.gen.css<br/>테마 블록 8개, :root, .dark"]
+    C["tokens.gen.css<br/>테마 블록 9개, :root, .dark"]
     T["tokens.gen.ts<br/>토큰 목록: 이름, 값, 설명"]
     G["scripts/generate-token-docs.js"]
     D["docs/DESIGN-TOKENS.md<br/>토큰 표"]
@@ -335,6 +336,57 @@ skill에 있다. 값은 전과 같아 화면은 바뀌지 않는다(§9 2026-11-
   예제 앱 CSS에는 패키지 소스의 글자(`cn()` 설정 키 `shadow`, 병합 테스트 값 `shadow-none`)에서 규칙 2개가 새로 생긴다. 둘 다
   쓰는 곳이 없어 화면과는 무관하다.
 
+### 역할 간격 (2026-11-27)
+
+간격은 Tailwind 숫자 눈금(`--spacing`의 배수)을 그대로 쓰고, 같은 뜻으로 여러 곳에 되풀이되는 간격에만 이름을 붙인다. 지금은
+칩 사이 간격 `gap-between-chips`(0.5rem, 브라우저 기본 글자 크기에서 8px) 하나다. 쓰는 곳은 칩 줄 4곳(피드 카드의 카테고리
+칩 줄·태그 줄, 피드 위 필터의 카테고리 칩 줄·범위 칩 줄)과 피드 카드를 불러오는 동안 보이는 골격의 칩 자리 1곳이고, 값은
+전과 같아 화면은 바뀌지 않는다(§9 2026-11-27 "역할 간격"). 골격은 게이트 2 뒤 구현 중에 찾아 2026-11-27 사용자 결정으로 함께 옮겼다.
+
+- **당근은** 숫자 눈금 `x0_5`(2px)~`x16`(64px)(`xN` = N×4px) 위에 역할 간격 6개를 둔다. 가로는 `spacing-x.between-chips`(칩 사이,
+  `x2`)·`global-gutter`(화면 좌우 여백, `x4`), 세로는 `spacing-y.component-default`(`x3`)·`nav-to-title`(`x5`)·
+  `screen-bottom`(`x14`)·`between-text`(`x1_5`)다([`dimension.yaml`](https://github.com/daangn/seed-design/blob/dev/packages/rootage/dimension.yaml)
+  65~88줄, dev `2e738637`에서 직접 읽음). `between-chips`의 설명은 _"Chip 사이의 수평 간격에 사용합니다."_ 다. **토스는**
+  공개 문서에 간격 토큰이 없다(2026-11-24 조사, [2단계 계획](./plans/2026-11-24-design-tokens-stage2.md) "당근·토스·우리").
+  **우리는** 숫자 눈금은 Tailwind 것을 그대로 쓰고(당근의 `xN`도 N×4px라 같은 눈금이다), 역할 가운데 우리 코드에서 같은 뜻으로
+  되풀이되는 칩 사이 간격만 옮겼다. **이유**: 화면 좌우·아래 여백은 앱 레이아웃 한 곳(`AppLayout.tsx`)에만 있고 화면 폭마다 값이
+  달라 이름을 붙여도 다시 쓰는 곳이 없다. 나머지 셋은 같은 뜻으로 되풀이되는 곳이 없다(2026-11-26 조사).
+
+**전에는 간격 토큰을 두지 않기로 했었다(§11, 2026-09-16)**. 그때 판단은 "숫자 눈금(`--spacing`)을 잠그면 클래스 591곳이
+무너지고, 고정 숫자 이스케이프도 0건이라 막을 문제가 없다"였다. 이 판단은 지금도 그대로다 — 숫자 눈금은 잠그지 않고 린트로
+막지도 않는다. 바뀐 것은 "이름 붙은 간격을 하나도 두지 않는다"는 부분뿐이다. 2단계에서 당근 규격(숫자 눈금 위에 역할 간격을
+두는 구조)을 따르기로 하면서([2단계 계획](./plans/2026-11-24-design-tokens-stage2.md) "뒤집힌 전제") 당근 역할 간격과 우리 코드를
+대조했고, 같은 뜻으로 되풀이되는 간격이 하나 나왔다. 린트를 두지 않는 것도 그 계획에서 정했다(Phase 3 "간격은 대상이 아니다").
+
+2026-11-26 게이트 2에서 사용자가 정한 것(⑧, 질문과 답은 계획 결과 블록):
+
+| 정한 것 | 내용                                               | 이유                                                                                                        |
+| ------- | -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 토큰    | `between-chips` 하나. 클래스는 `gap-between-chips` | 당근 역할 6개 가운데 우리 코드에서 같은 뜻으로 되풀이되는 것이 칩 사이 4곳뿐이다                            |
+| 이름    | 당근의 `spacing-x.between-chips`에서 `x`를 뺐다    | 우리 칩 줄은 줄을 바꿔 쌓여 위아래 간격도 같은 값이다. 가로 간격만 가리키는 이름이면 위아래 쓰임과 어긋난다 |
+
+**Tailwind와 잇는 법**
+
+- **테마 키**: `--spacing-<이름>`을 `@theme static`으로 낸다. Tailwind 문서의 간격 이름공간이고, `gap-*`은 `--gap`·`--spacing`
+  테마 키를 읽는다(Tailwind 4.3.5 `node_modules/tailwindcss/dist/lib.js`). 이 키는 `p-*`·`m-*`·`w-*`·`max-w-*` 같은 다른 간격·크기
+  유틸리티도 읽어서, 이름이 `xs`~`7xl` 꼴이면 지금 쓰는 크기 클래스의 값이 바뀐다. `between-chips`는 그 꼴이 아니다. 카탈로그가
+  변수로 견본을 그려 `static`이다. 생성된 CSS를 설치된 Tailwind로 컴파일해 보는 테스트가 `src/test/tailwind-spacing-theme.test.ts`다.
+- **값의 단위**: `rem`으로 적는다. 숫자 간격은 `calc(var(--spacing) * 2)`이고 `--spacing`이 0.25rem이라, 브라우저 기본 글자
+  크기를 바꾸면 함께 커진다. 토큰도 rem이어야 어느 글자 크기에서든 옮기기 전과 같다(반경을 px로 옮겨 글자 크기를 바꾼 브라우저에서
+  달라진 것과 반대 경우다, 위 "반경은 고정 값이 됐다").
+- **눈금을 가리키지 않는다**: 당근의 `between-chips`는 눈금 `x2`를 가리키지만, 우리 원본에는 숫자 눈금 토큰이 없다(눈금은 Tailwind의
+  `--spacing`이다). 그래서 역할 토큰은 값을 직접 적는다. Tailwind의 `--spacing`을 다시 정의하지 않는 동안은 눈금 2칸과 같은 값이고,
+  다시 정의하면 이 토큰도 함께 고친다. 같은 값인지는 컴파일 테스트(`src/test/tailwind-spacing-theme.test.ts`)가 본다.
+- **`cn()`**: tailwind-merge 3.7.0은 간격을 `px`와 숫자로만 알아서, 등록하지 않으면 토큰 클래스를 간격으로 보지 않는다. 그러면
+  쓰는 쪽이 넘긴 숫자 간격이 부품의 토큰 간격을 지우지 못하고 둘 다 남는다. 생성된 `SPACING_TOKEN_NAMES`를 테마의 `spacing`에
+  등록했다(`packages/ui/src/lib/tailwind/utils.ts`). 이 등록은 `gap` 밖의 간격 유틸리티(`p-*` 등)에도 같은 이름을 알린다.
+
+**못 잡는 것**
+
+- 칩 줄에 숫자 간격을 쓰는 것. 숫자 간격은 칩 줄 밖에서 계속 쓰는 클래스라 칩 줄만 가려 막을 수도 없다. 새 칩 줄은 고를 때 직접
+  본다(`design-tokens` skill "역할 간격 토큰").
+- 인라인 `style`의 간격, 대괄호 값. 숫자 간격과 같이 린트 밖이다.
+
 **신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
 `Divider`(`divider.tsx`), `FeaturedIcon`(`featured-icon.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
 `AlertDialog`(`alert-dialog.tsx`) 등이 `src/shared/ui/atoms/`에 추가됐다 — 이들을 포함해
@@ -367,6 +419,7 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | `--palette-*` (Primitive 20개. 2026-10-29 무채색 10개, 2026-11-26 유채색·투명도 추가)       | 원본 `packages/ui/tokens/palette.tokens.json` → 생성 `tokens.gen.css`의 `:root` 맨 앞 (테마 무관, 다크 파일에 없음)                                                   | 이 문서 §5 "색상 2층", 토큰 표 "팔레트"                                                                         |
 | `--transition-duration-*`(5개)·`--ease-*`(3개) (2026-11-26 추가)                            | 원본 `packages/ui/tokens/duration.tokens.json`·`timing-function.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록 2개(Tailwind 기본값 2개를 함께 다시 정의) | 이 문서 §5 "시간과 곡선", 토큰 표 "시간"·"가속 곡선"                                                            |
 | `--shadow-*`(4개) (2026-11-27 추가)                                                         | 원본 `packages/ui/tokens/shadow.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록                                                                           | 이 문서 §5 "그림자", 토큰 표 "그림자"                                                                           |
+| `--spacing-between-chips`(1개) (2026-11-27 추가)                                            | 원본 `packages/ui/tokens/spacing.tokens.json` → 생성 `tokens.gen.css`의 `@theme static` 블록                                                                          | 이 문서 §5 "역할 간격", 토큰 표 "역할 간격"                                                                     |
 
 패키지 토큰의 "정의 위치"는 2026-11-25부터 원본 파일이다(§5 "토큰 원본과 생성물"). 전체 58개 색상 값 자체는 옮겨적지
 않는다 — 범용 27개는 토큰 원본(`packages/ui/tokens/color.tokens.json`)이, 앱 전용 31개는 `globals.css`가 SSOT다
@@ -388,6 +441,7 @@ URL처럼 공백 없이 긴 토큰이 넘칠 때만 `overflow-wrap: break-word`�
 | 새 토큰 축 추가(모션·그림자 등)                                                        | 원본 `packages/ui/tokens/<축>.tokens.json`, `packages/ui/tokens/tokens.resolver.json`, `packages/ui/scripts/build-tokens.js`, `scripts/generate-token-docs.js`                   | 원본 파일을 만들고 `tokens.resolver.json`의 기본 파일 목록에 더한다 → `build-tokens.js`의 `describePath`(경로를 축·이름으로 나눔)·`cssVarName`(변수 이름)·`renderCss`(어느 테마 블록에 낼지)·`toCssValue`(새 값 타입이면)에 축을 더한다 → `generate-token-docs.js`의 `SECTIONS`에 절을 더한다. 어느 하나를 빠뜨리면 `pnpm tokens`가 그 축 이름을 대며 멈춘다                                                                                                                                                             |
 | 시간·곡선 토큰 더하기                                                                  | 원본 `packages/ui/tokens/duration.tokens.json`·`timing-function.tokens.json`                                                                                                     | 토큰을 더한다(시간은 `{ "value": 250, "unit": "ms" }`, 곡선은 숫자 4개 배열이고 첫째·셋째는 0~1) → `pnpm tokens`(`cn()` 등록 목록과 JS 값 `DURATION_MS`가 함께 만들어진다) → 쓰는 곳에 클래스. 닫힘을 기다리는 JS 타이머는 `DURATION_MS.<이름>`을 읽는다(`motion-ux` skill "exit 애니메이션 동기화 함정"). 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Motion`)는 생성 목록을 읽어 따로 고치지 않는다                                                                                                               |
 | 그림자 단계 더하기                                                                     | 원본 `packages/ui/tokens/shadow.tokens.json`                                                                                                                                     | 깊이 순서에 맞는 자리에 토큰을 더한다(값은 층 배열, 층마다 `color`는 `{ "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 }` 꼴, `offsetX`·`offsetY`·`blur`·`spread`는 `{ "value": 4, "unit": "px" }` 꼴) → `pnpm tokens`(`cn()` 등록 목록 `SHADOW_TOKEN_NAMES`가 함께 만들어진다) → 쓰는 곳에 클래스. 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Shadow`)는 생성 목록을 읽어 따로 고치지 않는다                                                                                                        |
+| 역할 간격 더하기                                                                       | 원본 `packages/ui/tokens/spacing.tokens.json`                                                                                                                                    | 같은 뜻으로 여러 곳에 되풀이되는 간격인지 먼저 본다(한 곳뿐이면 숫자 간격을 그대로 쓴다, §5 "역할 간격") → 토큰을 더한다(값은 `{ "value": 0.75, "unit": "rem" }`처럼 rem, 이름은 `xs`~`7xl` 꼴을 피한다 — 같은 테마 키를 읽는 크기 클래스의 값이 바뀐다) → `pnpm tokens`(`cn()` 등록 목록 `SPACING_TOKEN_NAMES`가 함께 만들어진다) → 쓰는 곳에 `gap-<이름>`. 토큰 표와 카탈로그(`DesignTokens.stories.tsx`의 `Spacing`)는 생성 목록을 읽어 따로 고치지 않는다 → `design-tokens` skill "역할 간격 토큰"에 쓰는 곳 추가    |
 | 토스트의 버튼 자리·닫기 X 바꾸기                                                       | `packages/ui/src/lib/toast/toast-layout.ts`                                                                                                                                      | 호출부는 모양 옵션을 넘길 수 없고 래퍼가 정한다(`FE-ARCHITECTURE.md` §14 "버튼 배치"). 새 모양은 `packages/ui/src/lib/toast/`에 함수로 만들고 `sonner.stories.tsx`에 견본을 더한다                                                                                                                                                                                                                                                                                                                                       |
 | 토스트 종류별 색 바꾸기                                                                | `packages/ui/src/atoms/sonner.tsx`의 `KIND_TOKENS`·`KIND_COLOR_VARS`                                                                                                             | 오류·경고·성공·안내 토스트의 배경·테두리·글자색은 `--destructive`·`--warning`·`--success`·`--info`에서 `color-mix`로 만든다(배경 8%·테두리 30%는 바탕색과, 글자 60%는 본문색과 섞는다). 토큰 값을 바꾸면 따라 바뀐다. 비율이나 토큰을 바꾸면 Storybook `Kinds`·`Notice`에서 밝은·어두운 테마의 제목 대비(4.5:1 이상)를 다시 잰다. sonner가 문서화하지 않은 변수 이름에 기대므로 sonner를 올릴 때도 같은 스토리를 확인한다(`DECISIONS.md` 2026-11-18 "토스트 색")                                                         |
 | 범용 부품이 스스로 보여 주는 글자 더하기                                               | `packages/ui/src/texts/`(타입·한국어 묶음·Provider), `src/app/providers/UiTextsProvider.tsx`(이 앱이 넘기는 값)                                                                  | 부품에 `TEXTS`를 import하지 않는다. `ui-texts.ts` 타입 → `ko-ui-texts.ts` 묶음 → `APP_UI_TEXTS` 순서로 키를 더하고 부품에서 `useUiTexts()`로 읽는다. 순서와 묶는 규칙은 `texts-conventions` skill "공용 UI 부품이 스스로 보여 주는 글자", 배경은 [DESIGN-SYSTEM-PRINCIPLES.md](./DESIGN-SYSTEM-PRINCIPLES.md) §1.2                                                                                                                                                                                                       |
@@ -755,6 +809,34 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
   그 뒤 린트 규칙에 이름 없는 그림자를 더하고 `pnpm check`, `pnpm test`(테스트 3,289개), `pnpm check:docs`를 다시 돌려
   통과했다. 앱 CSS는 그 전과 바이트까지 같다.
 
+2026-11-27 실측 (역할 간격 토큰, 워크트리 `ds-tokens-stage2-spacing`, `main` `d328dacc` 기준) — 직접 측정. 위와 같은 임시
+스크립트로 바꾸기 전 작업 트리와 바꾼 작업 트리(카탈로그 스토리 포함)를 비교했다.
+
+- **빌드된 CSS 비교**: 앱 진입 CSS는 규칙 1,169 → 1,170개이고 공통 규칙의 순서는 같다.
+  - 새 규칙은 칩 간격 클래스 하나(`gap: var(--spacing-between-chips)`)다. 선언이 바뀐 규칙은 테마 층의 `:root, :host` 하나이고
+    토큰 변수 1개가 더해졌다. 옮기기 전의 숫자 간격 규칙은 칩 줄 밖에서도 써서 그대로 남는다.
+  - 옛 클래스와 토큰 클래스의 짝은 선언 글자가 다르다(`calc(var(--spacing) * 2)`와 변수). 그림자처럼 표기만 맞춰 같다고 볼 수
+    없어, 같은 값인지는 아래 계산값과 컴파일 테스트로 보였다.
+  - 예제 앱은 275 → 275개이고 테마 변수 하나만 더해졌다. 토큰 설명·병합 테스트·`cn()` 주석에 클래스 이름을 글자 그대로 적지
+    않아(§5 "시간과 곡선"의 "못 잡는 것") 새 유틸리티 규칙이 생기지 않았다.
+- **브라우저 계산값**(임시 Playwright 스크립트, `setContent`라 네트워크 요청 없음): 전 CSS의 숫자 간격과 후 CSS의 칩 간격을
+  너비 240px 칩 줄(칩 7개, 3줄로 줄바꿈)에 입혔다. 루트 글자 크기 16px에서 가로·세로 간격이 모두 8px, 20px에서 모두 10px로
+  전후가 같고, 칩 7개의 위치·크기도 같다. 간격 클래스를 뺀 줄은 칩 위치가 달라 빈 비교가 아니다.
+- **Storybook 계산값**(빌드한 Storybook을 네트워크 없이 띄움): 동작 칩 `CategoryColors`, 필터 칩 `ActiveVariants`의 칩 줄과
+  카탈로그 `Spacing` 견본이 16px에서 8px, 20px에서 10px다. 피드 카드·필터는 스토리가 없어 병합 뒤 운영 화면에서 본다. 카드를
+  불러오는 동안의 골격은 잠깐만 보여 운영에서 잡기 어렵고, 같은 클래스 하나를 쓰므로 위 칩 줄 계산값으로 갈음한다.
+- **검사가 실제로 막는지**(고쳤다가 되돌림):
+  - `cn()`에 등록하기 전에는 `utils.test.ts`의 새 병합 테스트 1개가 실패했다(숫자 간격과 칩 간격이 둘 다 남는다).
+  - 생성 스크립트의 간격 변수 이름을 `--space-`로 바꾸면 `src/test/tailwind-spacing-theme.test.ts`의 2개가 실패한다. 되돌린 뒤
+    생성물은 같다.
+- **운영 번들**: `pnpm build`의 JS에는 `cn()` 설정의 간격 이름 목록과 쓰는 곳의 클래스 글자만 들어가고, 토큰 설명은 들어가지
+  않는다.
+- **검사 묶음**(같은 작업 트리, `caffeinate -dims`로 묶음): 생성물 최신성(`pnpm tokens` 뒤 세 파일이 같음), `pnpm test`(파일
+  227개, 테스트 3,294개), Claude 훅·git 훅 회귀 테스트, `pnpm check:docs`, `pnpm build`, `pnpm build-storybook`, 예제 앱 빌드,
+  `pnpm test:storybook`(파일 60개, 테스트 221개), `pnpm test:e2e`(chromium·mobile-chrome 396개, 재시도 없음)가 통과했다.
+  `pnpm check`는 이 문서와 로드맵의 표 정렬(Prettier)에서 실패했고, 서식을 맞춘 뒤 `format:check`·`check:deps`를 다시 돌려
+  통과했다(타입 검사와 린트는 첫 실행에서 통과).
+
 ## 10. 시행착오
 
 **Tailwind 스캐너가 CSS/JS 주석·마크다운 문서도 전부 텍스트로 훑는다.** `globals.css`에
@@ -993,8 +1075,10 @@ Storybook a11y 게이트가 실측한 4개 토큰의 라이트 모드 대비 미
 | `--category`         | 0.606 → 0.597 | `#8d4fff`→`#8a4cff`, 육안 구분 거의 안 됨                                                                   |
 | `--success`          | 0.627 → 0.543 | `#2ba321`→`#008900`, **유일하게 눈에 띄게 진해짐**(원래 3.29:1로 가장 크게 미달했던 만큼 조정 폭도 가장 큼) |
 
-- **spacing 토큰 — 축 자체는 여전히 미도입, 반복 패턴은 컴포넌트로 하나씩
-  해소 중(2026-09-16~17)**: Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
+- **spacing 토큰 — 숫자 눈금은 Tailwind 것을 그대로 쓰고, 반복 패턴은 컴포넌트로 하나씩
+  해소 중(2026-09-16~17)**. 2026-11-27에 이름 붙은 역할 간격 하나(칩 사이)를 더했다 — 아래의 "숫자 눈금을 잠그지 않는다"는
+  판단은 그대로이고, "이름 붙은 간격을 하나도 두지 않는다"는 부분만 뒤집혔다(이유는 §5 "역할 간격"). 아래는 2026-09-16의 기록이다.
+  Tailwind v4의 `--spacing`은 `gap-2`·`p-4`·`h-9`·
   `size-4`가 전부 파생되는 단일 배수 변수라, 색상/z-index와 같은 "CSS 커스텀
   프로퍼티 + `no-raw-*` 룰" 해법이 안 맞는다 — `--spacing: initial`로 잠그면
   591개 className이 무너진다. 게다가 padding·margin·gap에 고정 숫자를 넣은 이스케이프

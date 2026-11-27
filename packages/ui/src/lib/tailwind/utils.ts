@@ -4,6 +4,7 @@ import {
   DURATION_TOKEN_NAMES,
   EASE_TOKEN_NAMES,
   SHADOW_TOKEN_NAMES,
+  SPACING_TOKEN_NAMES,
   TEXT_SIZE_TOKEN_NAMES,
 } from '@baechan/ui/tokens';
 
@@ -14,6 +15,8 @@ import {
 // 쪽이 넘긴 duration-d6이 부품의 duration-d4를 지우지 못하고 둘 다 남는다.
 // 그림자 토큰도 등록한다. tailwind-merge 3.7.0은 그림자를 xs·sm 같은 크기 이름으로만 알아 shadow-s4를 그림자 색으로 분류한다.
 // 그러면 쓰는 쪽이 넘긴 shadow-none이 부품의 그림자를 지우지 못한다.
+// 역할 간격 토큰도 등록한다. tailwind-merge 3.7.0은 간격을 px과 숫자로만 알아, 등록하지 않으면 gap 뒤에 토큰 이름을 붙인 클래스를
+// 간격으로 보지 않고 앞의 숫자 간격과 둘 다 남긴다.
 // 이름은 토큰 원본에서 만든 목록을 읽는다 — 원본에 토큰을 더하고 `pnpm tokens`를 돌리면 함께 등록된다(utils.test.ts가 확인)
 const twMerge = extendTailwindMerge({
   extend: {
@@ -21,6 +24,7 @@ const twMerge = extendTailwindMerge({
       text: [...TEXT_SIZE_TOKEN_NAMES],
       ease: [...EASE_TOKEN_NAMES],
       shadow: [...SHADOW_TOKEN_NAMES],
+      spacing: [...SPACING_TOKEN_NAMES],
     },
     classGroups: {
       duration: [{ duration: [...DURATION_TOKEN_NAMES] }],

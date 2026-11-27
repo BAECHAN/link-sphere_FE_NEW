@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { compile } from 'tailwindcss';
 
 // 생성된 토큰 CSS를 설치된 Tailwind로 실제로 컴파일한다. 토큰의 테마 키가 클래스로 이어지는지 보는 테스트가 쓴다
-// (tailwind-motion-theme.test.ts, tailwind-shadow-theme.test.ts)
+// (tailwind-motion-theme.test.ts, tailwind-shadow-theme.test.ts, tailwind-spacing-theme.test.ts)
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const stylesDir = join(repoRoot, 'packages/ui/src/styles');
 const require = createRequire(import.meta.url);

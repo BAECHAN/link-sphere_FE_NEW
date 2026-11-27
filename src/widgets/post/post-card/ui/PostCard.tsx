@@ -308,7 +308,7 @@ export const PostCard = memo(function PostCard({
         </a>
 
         {post.categories && post.categories.length > 0 && (
-          <div className="gap-2 flex-wrap mb-2 mt-3 flex">
+          <div className="gap-between-chips flex-wrap mb-2 mt-3 flex">
             {post.categories?.map((category) => (
               // 누르면 피드를 이 카테고리로 필터한다(usePostCard.handleCategoryClick).
               <ActionChip
@@ -326,7 +326,7 @@ export const PostCard = memo(function PostCard({
         )}
 
         {post.tags && post.tags.length > 0 && (
-          <div className="gap-2 flex-wrap mt-2 flex">
+          <div className="gap-between-chips flex-wrap mt-2 flex">
             {post.tags.map((tag: string) => (
               <Badge key={tag} variant="secondary" className="text-xs">
                 {tag}

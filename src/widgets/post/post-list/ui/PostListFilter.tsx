@@ -27,7 +27,7 @@ export function PostListFilter() {
       <div
         role="group"
         aria-label={TEXTS.ariaLabels.postCategoryFilters}
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap gap-between-chips"
       >
         {categoryOptionList.map((category) => {
           const isSelected = selectedCategories.has(category.label);
@@ -48,7 +48,7 @@ export function PostListFilter() {
       <div
         role="group"
         aria-label={TEXTS.ariaLabels.postScopeFilters}
-        className="flex flex-wrap gap-2"
+        className="flex flex-wrap gap-between-chips"
       >
         <FilterChip
           label={TEXTS.buttons.bookmarkOnly}

@@ -22,7 +22,7 @@ export const Default: Story = {};
 
 export const CategoryColors: Story = {
   render: () => (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-between-chips">
       <ActionChip
         label="개발"
         labelClassName="border-transparent bg-category-1 text-category-1-foreground"

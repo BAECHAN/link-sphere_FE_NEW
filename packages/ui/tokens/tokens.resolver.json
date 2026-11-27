@@ -14,7 +14,8 @@
         { "$ref": "text.tokens.json" },
         { "$ref": "duration.tokens.json" },
         { "$ref": "timing-function.tokens.json" },
-        { "$ref": "shadow.tokens.json" }
+        { "$ref": "shadow.tokens.json" },
+        { "$ref": "spacing.tokens.json" }
       ]
     }
   },

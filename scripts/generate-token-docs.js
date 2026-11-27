@@ -52,6 +52,11 @@ const SECTIONS = [
     groups: ['shadow'],
     render: (tokens) => renderSingleValueTable(tokens, 'shadow-'),
   },
+  {
+    title: '역할 간격',
+    groups: ['spacing'],
+    render: (tokens) => renderSingleValueTable(tokens, 'gap-'),
+  },
 ];
 
 function code(text) {

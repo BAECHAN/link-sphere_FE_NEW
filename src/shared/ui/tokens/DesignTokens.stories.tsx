@@ -1,5 +1,6 @@
 import { useState, type CSSProperties } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Badge } from '@/shared/ui/atoms/badge';
 import { Button } from '@baechan/ui/atoms/button';
 import { cn } from '@baechan/ui/lib/tailwind/utils';
 import { TOKENS } from '@baechan/ui/tokens';
@@ -340,6 +341,31 @@ function ShadowCatalog() {
   );
 }
 
+// 역할 간격 토큰. 값과 쓰임 설명은 원본에서 읽는다. 피드 카드의 태그 줄과 같은 배지를 좁은 상자에 늘어놓아 줄바꿈 간격까지 보인다
+const SPACING_TOKENS = TOKENS.filter((token) => token.group === 'spacing');
+const SAMPLE_CHIP_LABELS = ['리액트', '타입스크립트', '디자인 시스템', '접근성', '성능', '테스트'];
+
+function SpacingCatalog() {
+  return (
+    <div className="flex flex-col gap-6 bg-background p-6">
+      {SPACING_TOKENS.map(({ name, cssVar, value, description }) => (
+        <div key={name} className="flex flex-col gap-2">
+          <div className="flex w-56 flex-wrap" style={{ gap: `var(${cssVar})` }}>
+            {SAMPLE_CHIP_LABELS.map((label) => (
+              <Badge key={label} variant="secondary" className="text-xs">
+                {label}
+              </Badge>
+            ))}
+          </div>
+          <code className="text-xs text-muted-foreground">gap-{name}</code>
+          <code className="text-xs">{value}</code>
+          <span className="text-sm">{description}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const meta = {
   title: 'Shared/UI/Tokens/DesignTokens',
   tags: ['autodocs'],
@@ -375,4 +401,8 @@ export const Motion: Story = {
 
 export const Shadow: Story = {
   render: () => <ShadowCatalog />,
+};
+
+export const Spacing: Story = {
+  render: () => <SpacingCatalog />,
 };
