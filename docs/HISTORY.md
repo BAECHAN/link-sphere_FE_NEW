@@ -1,4 +1,7 @@
 ### 2026-11-27 (FE)
+- 이슈 답변 작성 시 자리표시자(placeholder) 텍스트가 글자 수 계산에 포함되지 않도록 로직 개선 ([#701](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/701))
+
+### 2026-11-27 (FE)
 - 이슈 답변 내 다중 라인 텍스트 파싱 로직 개선 ([#700](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/700))
 
 ### 2026-11-27 (FE)
