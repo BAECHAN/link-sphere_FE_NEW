@@ -1,4 +1,7 @@
 ### 2026-11-27 (FE)
+- 공유하기 기능 개선: URL과 텍스트가 혼합된 공유 문구에서 URL과 제목을 분리하여 파싱하도록 로직 개선 ([#697](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/697))
+
+### 2026-11-27 (FE)
 - 디자인 시스템 UI 토큰 기반 그림자 구현 및 기본 클래스 제거 ([#696](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/696))
 
 ### 2026-11-27 (FE)
