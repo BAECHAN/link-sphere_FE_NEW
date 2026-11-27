@@ -161,6 +161,9 @@ GitHub 이슈·라벨과 Actions 워크플로는 안다고 가정한다.
   줄표를 치기 어렵다).
 - **본 것** — 공백을 빼고 5자 이상이다. 번호 줄 다음 줄은 빈 줄·번호 줄·빌드 줄이 나올 때까지 그 단계의 본 것에 공백 한
   칸으로 이어 붙는다(폰에서 여러 줄 값을 붙여 넣어도 된다). 판정은 번호 줄에서만 읽고, 빈 줄 뒤의 글은 메모로 보고 건너뛴다.
+- **자리표시** — 틀을 값 없이 붙인 답은 세지 않는다. 꺾쇠 안 한글(`<본 것>`), 앞뒤가 띄어진 말줄임표(`지도 … 화면`),
+  콜론 바로 뒤 말줄임표(`제목 칸: …`)다. 글자에 붙은 말줄임표(`불러오는 중…`, `naver.me/…`), 영문 꺾쇠(`<title>`), 괄호는
+  실제 관찰일 수 있어 센다. 괄호 자리표시(`(직접 쓴 제목)`)는 실제 관찰과 구분할 수 없어 못 잡는다.
 - 한 댓글에 모든 단계를 적어도 되고 여러 댓글에 나눠 적어도 된다. 같은 단계에 답이 여럿이면 가장 늦은 답을 센다.
   실패한 단계는 수정이 배포된 뒤 새 댓글로 다시 답하면 된다.
 
@@ -171,7 +174,7 @@ GitHub 이슈·라벨과 Actions 워크플로는 안다고 가정한다.
 | 본문 형식 오류(필수 절, 1부터 이어지는 번호, `기대`·`적을 것`, `확인할 빌드` 줄, 확인할 빌드가 main에 없는 값) | 상태 댓글에 고칠 곳을 적는다. 닫혀 있으면 다시 연다                       |
 | 답이 빠진 단계가 있다                                                                                          | 상태 댓글에 "답 x/y, 남은 단계"를 적는다. 닫혀 있으면 다시 연다           |
 | 답 댓글에 빌드 줄이 없거나, main에 없는 값이거나, 확인할 빌드를 포함하지 않는다                                | 그 댓글의 답을 세지 않고 이유를 적는다                                    |
-| 판정이 `통과`·`실패`가 아니거나 본 것이 5자 미만이거나 본문에 없는 단계 번호다                                 | 그 줄의 답을 세지 않고 이유를 적는다                                      |
+| 판정이 `통과`·`실패`가 아니거나, 본 것에 자리표시가 남았거나 5자 미만이거나, 본문에 없는 단계 번호다           | 그 줄의 답을 세지 않고 이유를 적는다                                      |
 | 모두 답했고 실패가 있다                                                                                        | 열어 두고 실패 단계를 적는다. 닫혀 있으면 다시 연다                       |
 | 모두 통과다                                                                                                    | 댓글 이벤트면 이슈를 닫고 요약(단계·판정·본 것·빌드)을 상태 댓글에 남긴다 |
 | 라벨이 떼어졌다                                                                                                | "검사 대상에서 빠졌습니다(답 x/y)" 댓글을 한 번 남긴다                    |
@@ -214,7 +217,7 @@ GitHub 이슈·라벨과 Actions 워크플로는 안다고 가정한다.
 ## 6. 상태 모델
 
 검사는 저장하는 상태가 없다. 실행마다 그 시점의 이슈 본문과 댓글 전체를 API로 다시 받아 아래 넷 중 하나로 판정한다
-(`scripts/lib/manual-check.js:280`의 `evaluateIssue`).
+(`scripts/lib/manual-check.js:283`의 `evaluateIssue`).
 
 | 판정         | 뜻                          | 열린 이슈에서         | 닫힌 이슈에서 |
 | ------------ | --------------------------- | --------------------- | ------------- |
@@ -223,7 +226,7 @@ GitHub 이슈·라벨과 Actions 워크플로는 안다고 가정한다.
 | `failed`     | 모두 답했고 실패가 있다     | 열어 둔다             | 다시 연다     |
 | `passed`     | 모든 단계가 통과로 답해졌다 | 댓글 이벤트면 닫는다  | 그대로 둔다   |
 
-판정에서 할 일을 정하는 곳은 같은 파일의 `decideActions`(`:393`)다. 실행을 기다리는 사이 라벨이 떼어진 이슈는
+판정에서 할 일을 정하는 곳은 같은 파일의 `decideActions`(`:407`)다. 실행을 기다리는 사이 라벨이 떼어진 이슈는
 `skipped`로 끝내고 아무것도 하지 않는다(`scripts/check-manual-issue.js:155`).
 
 ## 7. 운영 파라미터
@@ -234,7 +237,7 @@ GitHub 이슈·라벨과 Actions 워크플로는 안다고 가정한다.
 | 상태 댓글 표식        | `scripts/lib/manual-check.js:8`         | `<!-- manual-check-status -->`. 워크플로(`.github/workflows/manual-check.yml:96`)에도 적혀 있고 같은 테스트가 본다                                                                                                                                                                                                                                                                                                              |
 | 본 것의 최소 길이     | `scripts/lib/manual-check.js:10`        | 5자(공백 제외). 얕은 검사의 선례를 따랐다 — Danger·GitLab의 "본문 5자 미만이면 실패"([`PR-BODY-CHECK.md`](./PR-BODY-CHECK.md) §5.1)                                                                                                                                                                                                                                                                                             |
 | 필수 절 목록          | `scripts/lib/manual-check.js:12`        | `REQUIRED_SECTIONS` — 이름과 오류 문구에 붙는 안내                                                                                                                                                                                                                                                                                                                                                                              |
-| 답으로 세는 작성자    | `scripts/lib/manual-check.js:214`       | 작성자 관계가 `OWNER`이고 봇이 아닌 댓글                                                                                                                                                                                                                                                                                                                                                                                        |
+| 답으로 세는 작성자    | `scripts/lib/manual-check.js:217`       | 작성자 관계가 `OWNER`이고 봇이 아닌 댓글                                                                                                                                                                                                                                                                                                                                                                                        |
 | 빌드를 대조하는 기준  | `scripts/check-manual-issue.js:25`      | `origin/main`. 배포되는 빌드는 main의 커밋이다                                                                                                                                                                                                                                                                                                                                                                                  |
 | 실행 이벤트           | `.github/workflows/manual-check.yml:9`  | 이슈 `opened`·`edited`·`closed`·`reopened`·`labeled`·`unlabeled`, 댓글 `created`·`edited`·`deleted`                                                                                                                                                                                                                                                                                                                             |
 | 같은 이슈의 실행 순서 | `.github/workflows/manual-check.yml:19` | 이슈마다 하나씩 차례로. `queue: max`로 기다리는 실행을 취소하지 않는다 — 기본값은 _"같은 묶음에서 기다리던 실행이 있으면 취소되고 새로 들어온 실행이 그 자리를 차지한다"_ (번역)라 닫는 실행이 취소될 수 있고, _"취소하지 않고 여러 실행을 줄 세우려면 `queue: max`를 설정한다"_ (번역, 둘 다 [GitHub Docs](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)) |
@@ -246,10 +249,10 @@ GitHub 이슈·라벨과 Actions 워크플로는 안다고 가정한다.
 
 | 단계                           | 파일                                                                                  |
 | ------------------------------ | ------------------------------------------------------------------------------------- |
-| 본문에서 단계·확인할 빌드 뽑기 | `scripts/lib/manual-check.js:185` `parseIssueBody`                                    |
-| 댓글에서 답 뽑아 종합 판정     | `scripts/lib/manual-check.js:280` `evaluateIssue`                                     |
-| 다시 열지·닫을지 정하기        | `scripts/lib/manual-check.js:393` `decideActions`                                     |
-| 상태 댓글 만들기               | `scripts/lib/manual-check.js:477` `renderStatusComment`                               |
+| 본문에서 단계·확인할 빌드 뽑기 | `scripts/lib/manual-check.js:188` `parseIssueBody`                                    |
+| 댓글에서 답 뽑아 종합 판정     | `scripts/lib/manual-check.js:283` `evaluateIssue`                                     |
+| 다시 열지·닫을지 정하기        | `scripts/lib/manual-check.js:407` `decideActions`                                     |
+| 상태 댓글 만들기               | `scripts/lib/manual-check.js:491` `renderStatusComment`                               |
 | 빌드 포함 여부(git)            | `scripts/check-manual-issue.js:71` `checkBuild`                                       |
 | 이슈·댓글 받기와 반영          | `.github/workflows/manual-check.yml` — 판정 job(읽기 권한)과 반영 job(이슈 쓰기 권한) |
 
@@ -261,7 +264,7 @@ GitHub 이슈·라벨과 Actions 워크플로는 안다고 가정한다.
 | 더는 확인할 수 없게 됐다         | 저장소 주인이 라벨 `manual-check`를 뗀다. 검사 대상에서 빠졌다는 댓글이 남는다                                                                                                                                       |
 | 실패한 단계를 고쳤다             | 수정이 배포된 뒤 그 단계만 새 댓글로 다시 답한다(늦은 답이 센다). 실패 분석과 수정은 새 이슈·PR에서 하고 `Refs #번호`로 건다                                                                                         |
 | 로컬에서 판정을 돌려 보기        | `gh api repos/<소유자>/<저장소>/issues/<번호>`와 같은 주소의 `/comments`를 워크플로와 같은 `--jq`로 파일에 받아 `node scripts/check-manual-issue.js --evaluate <이슈 JSON> <댓글 NDJSON>`. 결과가 표준 출력에 나온다 |
-| 필수 절·답 형식·최소 길이 바꾸기 | `scripts/lib/manual-check.js`, 이 문서 §5.3~§5.5, 상태 댓글 꼬리말(`scripts/lib/manual-check.js:453`)을 함께 고친다. 테스트는 `src/test/scripts/manual-check.test.ts`                                                |
+| 필수 절·답 형식·최소 길이 바꾸기 | `scripts/lib/manual-check.js`, 이 문서 §5.3~§5.5, 상태 댓글 꼬리말(`scripts/lib/manual-check.js:467`)을 함께 고친다. 테스트는 `src/test/scripts/manual-check.test.ts`                                                |
 | 라벨 이름·표식 바꾸기            | `scripts/lib/manual-check.js`와 `.github/workflows/manual-check.yml`을 함께 고친다(다르면 테스트가 실패한다). claude-base 가드의 라벨 상수도 같이 바꾼다                                                             |
 | 끄기(되돌리기)                   | `.github/workflows/manual-check.yml`을 지우면 검사가 멈춘다. 이슈와 댓글은 그대로 남는다                                                                                                                             |
 
@@ -367,6 +370,16 @@ _"워크플로 파일이 기본 브랜치에 있을 때만 워크플로 실행�
 - **고친 것**: 번호 줄 다음 줄을 빈 줄이 나올 때까지 그 단계의 본 것에 이어 붙인다(§5.4). 빈 줄 뒤 메모를 마지막 단계에
   붙일지는 사용자가 질문으로 정했다("빈 줄 전까지"). 판정은 번호 줄에서만 읽어 이어 붙인 줄의 "실패" 낱말은 판정을 바꾸지
   않는다. 이미 닫힌 이슈는 다음 댓글·수정이 올 때 표가 새로 그려진다.
+
+### 10.3 값 없이 붙인 틀이 통과했다 (2026-11-27)
+
+- **증상**: #698의 첫 답은 에이전트가 대화에서 건넨 예시 틀(`제목 칸: …`, `네이버 지도 … 화면`, `(직접 쓴 제목)`)을 값을
+  채우지 않고 붙인 것이었는데, 4단계 모두 통과로 세어 이슈가 닫혔다. 사용자가 실제 값으로 고친 뒤에야 본 것이 남았다.
+- **원인**: 본 것은 공백을 빼고 5자 이상인지만 봤다. 틀의 자리표시도 그 길이를 넘는다. 예시 틀에 그럴듯한 자리표시를
+  넣은 것도 원인이다.
+- **고친 것**: 자리표시가 남은 답은 세지 않고 이유를 적는다(§5.4). 어디까지 막을지는 사용자가 질문으로 정했다("꺾쇠 안
+  한글 + 띄어 쓴 말줄임표"). 말줄임표 전부를 막는 안은 토스트 문구 `불러오는 중…` 같은 실제 관찰까지 거절해 택하지 않았다.
+  자리표시는 짧은 경우가 많아 길이 검사보다 먼저 본다.
 
 ## 11. 남은 것
 

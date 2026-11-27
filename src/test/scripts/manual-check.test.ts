@@ -320,6 +320,51 @@ describe('evaluateIssue', () => {
     ]);
   });
 
+  it('틀의 자리표시(꺾쇠 안 한글, 띄어 쓴 말줄임표, 콜론 뒤 말줄임표)가 남은 답은 세지 않는다', () => {
+    // #698 첫 답은 안내 틀을 그대로 붙여 값 없이 통과했다
+    const rejectedAnswers = [
+      '1. 통과 — URL 칸: https://naver.me/x 제목 칸: … / 안내: 옮겼어요',
+      '1. 통과 — 링크 누르니 네이버 지도 … 화면',
+      '1. 통과 — 링크 누르니 네이버 지도 ... 화면',
+      '1. 통과 — <본 것>',
+      '1. 통과 — 제목 칸:...',
+    ];
+
+    for (const answer of rejectedAnswers) {
+      const result = evaluateIssue({
+        body: BODY,
+        comments: [comment(`빌드: cbc937c\n${answer}`)],
+        checkBuild: acceptAnyBuild,
+      });
+
+      expect(result.answers[0], answer).toBeNull();
+      expect(
+        result.rejected.map(({ reason }) => reason),
+        answer
+      ).toEqual([expect.stringContaining('1번: 자리표시')]);
+    }
+  });
+
+  it('글자에 붙은 말줄임표·영문 꺾쇠·괄호는 실제 관찰로 보고 센다', () => {
+    const countedAnswers = [
+      "1. 통과 — 토스트 '불러오는 중…'이 떴다가 사라짐",
+      '1. 통과 — 주소창에 naver.me/… 로 잘려 보임',
+      '1. 통과 — 탭 제목 <title>이 글 제목으로 바뀜',
+      '1. 통과 — 제목 칸: 알배기 (망원) 독막로3길',
+    ];
+
+    for (const answer of countedAnswers) {
+      const result = evaluateIssue({
+        body: BODY,
+        comments: [comment(`빌드: cbc937c\n${answer}`)],
+        checkBuild: acceptAnyBuild,
+      });
+
+      expect(result.answers[0], answer).toMatchObject({ verdict: '통과' });
+      expect(result.rejected, answer).toEqual([]);
+    }
+  });
+
   it('본문에 없는 단계 번호의 답은 세지 않는다', () => {
     const result = evaluateIssue({
       body: BODY,
