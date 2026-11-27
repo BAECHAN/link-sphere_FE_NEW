@@ -31,6 +31,9 @@ const BUILD_LINE = /^\s*빌드\s*:\s*`?([0-9a-fA-F]{7,40})`?\s*$/;
 const NUMBERED_LINE = /^\s*(\d+)\s*[.)]\s*(.*)$/;
 // 폰 자판에서는 긴 줄표를 치기 어려워 하이픈·콜론도 받고, 구분 기호가 없어도 받는다
 const VERDICT_AND_OBSERVATION = new RegExp(`^(${VERDICTS.join('|')})\\s*[—–\\-:]*\\s*(.*)$`);
+// 안내 틀을 값 없이 붙인 답(#698): 꺾쇠 안 한글(`<본 것>`), 앞뒤가 띄어진 말줄임표(`지도 … 화면`), 콜론 바로 뒤
+// 말줄임표(`제목 칸: …`). 글자에 붙은 말줄임표(`중…`, `naver.me/…`)·영문 꺾쇠(`<title>`)·괄호는 실제 관찰일 수 있어 통과한다
+const PLACEHOLDER = /<[^>]*[가-힣][^>]*>|(?:^|\s)(?:…|\.{3})(?=\s|$)|:\s*(?:…|\.{3})(?=[\s/,|]|$)/;
 
 function stripComments(text) {
   return text.replace(/<!--[\s\S]*?-->/g, '');
@@ -344,6 +347,17 @@ export function evaluateIssue({ body, comments, checkBuild, checkRequiredBuild }
         rejected.push({
           url: comment.url,
           reason: `${line.number}번: 판정은 "통과"나 "실패"로 적어 주세요`,
+        });
+        continue;
+      }
+
+      // 자리표시는 짧은 경우가 많아(`<본 것>`) 길이보다 먼저 본다 - 이유가 더 정확하다
+      const placeholder = PLACEHOLDER.exec(line.observation);
+
+      if (placeholder) {
+        rejected.push({
+          url: comment.url,
+          reason: `${line.number}번: 자리표시(\`${placeholder[0].trim()}\`)가 남아 있습니다. 실제로 본 값으로 바꿔 주세요`,
         });
         continue;
       }
