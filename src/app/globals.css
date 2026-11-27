@@ -66,7 +66,7 @@
   --kbd-in-primary-color: rgba(255, 255, 255, 0.6);
   /* 명도(L)를 낮춘 이유는 패키지 토큰 CSS의 --info·--success 주석과 같다 */
   --category: oklch(0.597 0.256 292);
-  --category-foreground: var(--palette-white);
+  --category-foreground: var(--bui-color-palette-white);
   /* 카테고리별 색상 8종(틴트) - id % 8로 배정한다(entities/category/config/category.const.ts).
      BE 응답(GET /common/category-option)에 color 필드가 없고 카테고리 개수가 가변이라
      이름 하드코딩 대신 id 기반으로 정했다. 라이트: 배경 색/12% 틴트 + 진한 글자(L 0.42).
@@ -93,56 +93,56 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: var(--palette-gray-50);
-  --sidebar-foreground: var(--palette-gray-950);
-  --sidebar-primary: var(--palette-gray-900);
-  --sidebar-primary-foreground: var(--palette-gray-50);
-  --sidebar-accent: var(--palette-gray-100);
-  --sidebar-accent-foreground: var(--palette-gray-900);
-  --sidebar-border: var(--palette-gray-200);
-  --sidebar-ring: var(--palette-gray-400);
+  --sidebar: var(--bui-color-palette-gray-50);
+  --sidebar-foreground: var(--bui-color-palette-gray-950);
+  --sidebar-primary: var(--bui-color-palette-gray-900);
+  --sidebar-primary-foreground: var(--bui-color-palette-gray-50);
+  --sidebar-accent: var(--bui-color-palette-gray-100);
+  --sidebar-accent-foreground: var(--bui-color-palette-gray-900);
+  --sidebar-border: var(--bui-color-palette-gray-200);
+  --sidebar-ring: var(--bui-color-palette-gray-400);
 }
 
 .dark {
   --kbd-in-primary-bg: rgba(0, 0, 0, 0.2);
   --kbd-in-primary-color: rgba(0, 0, 0, 0.55);
   --category: oklch(0.714 0.203 292);
-  --category-foreground: var(--palette-white);
+  --category-foreground: var(--bui-color-palette-white);
   /* 다크 카테고리 - 라이트와 반대로 솔리드 배경(L 0.75) + 어두운 글자.
      그림자가 어두운 배경에서 거의 안 보이는 것과 같은 이유로, 낮은 알파 틴트를
      다크 배경에 얹으면 대비가 부족해진다 - 직접 계산 결과 L 0.75 + 어두운 글자
      조합이 7.3~8.7:1로 라이트보다 오히려 여유 있게 통과한다. */
   --category-1: oklch(0.75 0.18 255);
-  --category-1-foreground: var(--palette-gray-900);
+  --category-1-foreground: var(--bui-color-palette-gray-900);
   --category-2: oklch(0.75 0.14 30);
-  --category-2-foreground: var(--palette-gray-900);
+  --category-2-foreground: var(--bui-color-palette-gray-900);
   --category-3: oklch(0.75 0.22 292);
-  --category-3-foreground: var(--palette-gray-900);
+  --category-3-foreground: var(--bui-color-palette-gray-900);
   --category-4: oklch(0.75 0.16 340);
-  --category-4-foreground: var(--palette-gray-900);
+  --category-4-foreground: var(--bui-color-palette-gray-900);
   --category-5: oklch(0.75 0.045 150);
-  --category-5-foreground: var(--palette-gray-900);
+  --category-5-foreground: var(--bui-color-palette-gray-900);
   --category-6: oklch(0.75 0.05 200);
-  --category-6-foreground: var(--palette-gray-900);
+  --category-6-foreground: var(--bui-color-palette-gray-900);
   --category-7: oklch(0.75 0.11 85);
-  --category-7-foreground: var(--palette-gray-900);
+  --category-7-foreground: var(--bui-color-palette-gray-900);
   --category-8: oklch(0.75 0.15 15);
-  --category-8-foreground: var(--palette-gray-900);
+  --category-8-foreground: var(--bui-color-palette-gray-900);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: var(--palette-gray-900);
-  --sidebar-foreground: var(--palette-gray-50);
+  --sidebar: var(--bui-color-palette-gray-900);
+  --sidebar-foreground: var(--bui-color-palette-gray-50);
   --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: var(--palette-gray-50);
-  --sidebar-accent: var(--palette-gray-800);
-  --sidebar-accent-foreground: var(--palette-gray-50);
+  --sidebar-primary-foreground: var(--bui-color-palette-gray-50);
+  --sidebar-accent: var(--bui-color-palette-gray-800);
+  --sidebar-accent-foreground: var(--bui-color-palette-gray-50);
   /* 흰색에 투명도를 얹은 값. 앱 전용 토큰은 디자인 토큰 2단계 범위 밖이라 숫자로 남겨 둔다. 같은 값의 팔레트
-     --palette-white-alpha-10이 있다(패키지 다크 --border가 가리킨다, docs/DESIGN-SYSTEM.md §5 "유채색도 팔레트로") */
+     --bui-color-palette-white-alpha-10이 있다(패키지 다크 stroke.neutral-weak가 가리킨다, docs/DESIGN-SYSTEM.md §5 "유채색도 팔레트로") */
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: var(--palette-gray-500);
+  --sidebar-ring: var(--bui-color-palette-gray-500);
 }
 
 /*

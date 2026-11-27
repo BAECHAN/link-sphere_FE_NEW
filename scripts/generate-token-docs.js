@@ -20,11 +20,14 @@ const OUTPUT = 'docs/DESIGN-TOKENS.md';
 const SOURCE_DIR = 'packages/ui/tokens';
 const ROOT_FONT_SIZE_PX = 16;
 const SAME_AS_LIGHT = '라이트와 같음';
+// 의미 색 이름의 첫 마디(종류)마다 대표 클래스 접두사. 종류는 2026-11-27 게이트 3의 fg·bg·stroke다
+const CLASS_PREFIX_BY_KIND = { fg: 'text-', bg: 'bg-', stroke: 'border-' };
 
 /** 문서의 절. 축(원본의 맨 위 그룹)이 여기 없으면 실패한다 - 축을 더하면 어떤 표로 보일지 정해야 한다. */
 const SECTIONS = [
   { title: '팔레트', groups: ['palette'], render: renderPaletteTable },
-  { title: '의미 색', groups: ['color'], render: renderColorTable },
+  { title: '의미 색', groups: ['color'], render: renderSemanticColorTable },
+  { title: '옛 shadcn 이름(별칭)', groups: ['shadcn'], render: renderColorTable },
   {
     title: '반경',
     groups: ['radius'],
@@ -119,6 +122,17 @@ function renderPaletteTable(tokens) {
   );
 }
 
+function darkCell(token) {
+  if (token.darkValue !== null) {
+    return withResolved(token.darkValue, token.darkResolved);
+  }
+
+  // 다크 파일에 없어도 가리키는 토큰이 다크에서 바뀌면 최종 값이 다르다
+  return token.darkResolved === token.resolved
+    ? SAME_AS_LIGHT
+    : withResolved(token.value, token.darkResolved);
+}
+
 function renderColorTable(tokens) {
   return table(
     ['이름', 'CSS 변수', '라이트', '다크', '설명'],
@@ -126,9 +140,40 @@ function renderColorTable(tokens) {
       code(token.name),
       code(token.cssVar),
       withResolved(token.value, token.resolved),
-      token.darkValue === null ? SAME_AS_LIGHT : withResolved(token.darkValue, token.darkResolved),
+      darkCell(token),
       cell(describe(token)),
     ])
+  );
+}
+
+/** 의미 색 표. 대표 클래스와, 이 색을 가리키는 옛 shadcn 이름을 함께 보인다. */
+function renderSemanticColorTable(tokens) {
+  const aliasesByVar = new Map();
+
+  for (const alias of TOKENS.filter((token) => token.group === 'shadcn')) {
+    aliasesByVar.set(alias.value, [...(aliasesByVar.get(alias.value) ?? []), alias.name]);
+  }
+
+  return table(
+    ['클래스(예)', 'CSS 변수', '라이트', '다크', '옛 이름', '설명'],
+    tokens.map((token) => {
+      const kind = token.name.split('-')[0];
+
+      if (!(kind in CLASS_PREFIX_BY_KIND)) {
+        throw new Error(
+          `의미 색 ${token.id}의 종류(${kind})에 대표 클래스가 없다. scripts/generate-token-docs.js의 CLASS_PREFIX_BY_KIND에 더한다.`
+        );
+      }
+
+      return [
+        code(`${CLASS_PREFIX_BY_KIND[kind]}${token.name}`),
+        code(token.cssVar),
+        withResolved(token.value, token.resolved),
+        darkCell(token),
+        (aliasesByVar.get(`var(${token.cssVar})`) ?? []).map(code).join(', '),
+        cell(describe(token)),
+      ];
+    })
   );
 }
 
@@ -196,13 +241,10 @@ function renderSection(section) {
   const descriptions = TOKEN_GROUPS.filter((group) => section.groups.includes(group.id))
     .map((group) => group.description)
     .filter(Boolean);
-  const sources = section.groups.map(
-    (group) => `[\`${group}.tokens.json\`](../${SOURCE_DIR}/${group}.tokens.json)`
-  );
-
-  if (section.groups.includes('color')) {
-    sources.push(`[\`color.dark.tokens.json\`](../${SOURCE_DIR}/color.dark.tokens.json)`);
-  }
+  const sources = section.groups
+    .flatMap((group) => [`${group}.tokens.json`, `${group}.dark.tokens.json`])
+    .filter((file) => fs.existsSync(path.join(ROOT, SOURCE_DIR, file)))
+    .map((file) => `[\`${file}\`](../${SOURCE_DIR}/${file})`);
 
   return [
     `## ${section.title}`,

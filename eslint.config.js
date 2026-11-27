@@ -12,10 +12,12 @@ import { mutationRetryRule } from './scripts/lib/mutation-retry-rule.js';
 import { noIndexFileRule, noValueReExportRule } from './scripts/lib/no-barrel-rules.js';
 import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.js';
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
+import { noRawColorRule } from './scripts/lib/no-raw-color-rule.js';
 import { noRawMotionRule } from './scripts/lib/no-raw-motion-rule.js';
 import { noRawShadowRule } from './scripts/lib/no-raw-shadow-rule.js';
 import { noStoryNameRule } from './scripts/lib/no-story-name-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
+import { semanticColorKindRule } from './scripts/lib/semantic-color-kind-rule.js';
 import { classNameLastRule, cvaVariantKeysRule } from './scripts/lib/ui-api-rule.js';
 import { noAppImportInGenericUiRule } from './scripts/lib/ui-boundary-rule.js';
 
@@ -437,53 +439,13 @@ const customTailwindRulesPlugin = {
         };
       },
     },
-    // [금지] 검정·흰색·명명 팔레트(gray-500 등) 리터럴 색상 클래스
-    // 이유: CLAUDE.md가 "ESLint 미강제라 회귀해도 안 잡힌다"고 명시해온 유일한 색상
-    //       규칙이었다(2026-09-09 감사에서 raw gray/zinc 잔존을 발견해 수동으로만 고침).
-    //       검정·흰색은 명명 팔레트가 아니라 grep 규칙에도 안 걸렸는데, 실제로
-    //       ImageViewer.tsx 등 12곳에 그런 리터럴이 남아 있었다(2026-09-13 조사).
-    //       토큰 CSS(packages/ui/src/styles/tokens.css)에 --scrim/--scrim-foreground를 뒀으니 이제 코드로 강제한다.
-    // (주석에 실제 클래스명을 그대로 적지 않는다 - Tailwind 스캐너가 CSS/JS 주석도
-    //  텍스트로 훑어 후보로 오인식해 불필요한 유틸리티를 생성한다.)
-    'no-raw-color': {
-      meta: {
-        type: 'problem',
-        docs: {
-          description: 'black/white/명명 팔레트 리터럴 색상 클래스 금지, 디자인 토큰 사용',
-        },
-        messages: {
-          rawColor:
-            '"{{value}}" 대신 토큰 CSS(packages/ui/src/styles/tokens.css)·src/app/globals.css의 디자인 토큰 기반 클래스(bg-scrim, text-destructive-foreground 등)를 사용하세요.',
-        },
-      },
-      create(context) {
-        const RAW_COLOR_PATTERN =
-          /\b(?:bg|text|border|ring|from|to|via|fill|stroke|divide|outline|shadow|decoration|accent|caret|placeholder)-(?:black|white|slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)(?:-(?:50|100|200|300|400|500|600|700|800|900|950))?\b/;
-
-        function report(node, value) {
-          if (typeof value !== 'string') {
-            return;
-          }
-
-          const match = RAW_COLOR_PATTERN.exec(value);
-
-          if (match) {
-            context.report({ node, messageId: 'rawColor', data: { value: match[0] } });
-          }
-        }
-
-        return {
-          Literal(node) {
-            report(node, node.value);
-          },
-          TemplateLiteral(node) {
-            for (const quasi of node.quasis) {
-              report(quasi, quasi.value.raw);
-            }
-          },
-        };
-      },
-    },
+    // [금지] 검정·흰색·명명 팔레트(gray-500 등) 리터럴 색상 클래스 - 의미 색 클래스를 쓴다
+    // 이유: 2026-09-13 조사에서 12곳에 그런 리터럴이 남아 있었다.
+    // 본체는 단위 테스트를 위해 scripts/lib/no-raw-color-rule.js에 둔다(2026-11-27 옮김) - 그 파일 머리말 참고
+    'no-raw-color': noRawColorRule,
+    // [금지] 종류가 맞지 않는 의미 색(글자 유틸리티에 배경 색 등) - 2026-11-27 게이트 3
+    // 본체는 단위 테스트를 위해 scripts/lib/semantic-color-kind-rule.js에 둔다 - 그 파일 머리말 참고
+    'semantic-color-kind': semanticColorKindRule,
     // [금지] 숫자·Tailwind 기본 이름·대괄호 값의 시간·곡선 유틸리티 - 토큰 클래스(duration-d4, ease-easing 등)를 쓴다
     // 이유: 같은 시간이 여러 파일에 숫자로, 일부는 JS 타이머에도 따로 적혀 있었다(2026-11-26 게이트 2에서 토큰으로 옮김).
     // 본체는 단위 테스트를 위해 scripts/lib/no-raw-motion-rule.js에 둔다 - 그 파일 머리말 참고
@@ -2032,6 +1994,7 @@ export default [
     rules: {
       'custom-tailwind/no-raw-z-index': 'error',
       'custom-tailwind/no-raw-color': 'error',
+      'custom-tailwind/semantic-color-kind': 'error',
       'custom-tailwind/no-raw-text-size': 'error',
       'custom-tailwind/no-raw-motion': 'error',
       'custom-tailwind/no-raw-shadow': 'error',

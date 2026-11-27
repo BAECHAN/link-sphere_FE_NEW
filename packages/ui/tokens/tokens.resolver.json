@@ -7,6 +7,7 @@
       "sources": [
         { "$ref": "palette.tokens.json" },
         { "$ref": "color.tokens.json" },
+        { "$ref": "shadcn.tokens.json" },
         { "$ref": "radius.tokens.json" },
         { "$ref": "z-index.tokens.json" },
         { "$ref": "font-size.tokens.json" },
@@ -23,7 +24,7 @@
     "theme": {
       "contexts": {
         "light": [],
-        "dark": [{ "$ref": "color.dark.tokens.json" }]
+        "dark": [{ "$ref": "color.dark.tokens.json" }, { "$ref": "shadcn.dark.tokens.json" }]
       },
       "default": "light"
     }
