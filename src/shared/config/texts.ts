@@ -297,6 +297,11 @@ export const TEXTS = {
         failed: '미리보기를 불러오지 못했어요. 그래도 등록할 수 있어요.',
         ariaLabel: '링크 미리보기',
       },
+      // URL 앞에 글자가 붙은 공유 문구를 나눈 뒤 URL 칸 아래 안내(useSharedTextUrlSplit) - 등록·수정 폼 공용
+      sharedText: {
+        movedToTitle: 'URL 앞 글자를 제목으로 옮겼어요.',
+        urlOnly: '제목이 이미 있어서 URL 앞 글자는 지웠어요.',
+      },
     },
     card: {
       // 댓글(CommentAuthor, BE가 채워주는 "탈퇴한 사용자")과 표시를 통일한다 - 예전엔

@@ -19,6 +19,7 @@ import { ErrorUtil } from '@/shared/utils/error.util';
 import { useEffect, useRef, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
 import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
+import { useSharedTextUrlSplit } from '@/entities/post/hooks/useSharedTextUrlSplit';
 
 type PostSubmitFormError = Extract<PostSubmitErrorResolution, { kind: 'form' }>;
 
@@ -77,6 +78,8 @@ export function useCreatePost() {
   const titleValue = useWatch({ control: form.control, name: 'title' });
   const linkPreview = useLinkPreview(urlValue, account?.emailVerified === true);
   const previewUrlError = linkPreview.status === 'urlError' ? linkPreview.message : null;
+  // 앞에 글자가 붙은 공유 문구(네이버 지도 링크 복사 등)를 URL과 제목으로 나눈 뒤 URL 칸 아래 안내
+  const urlSplitNotice = useSharedTextUrlSplit(form);
 
   useEffect(
     function showPreviewUrlErrorOnField() {
@@ -249,6 +252,7 @@ export function useCreatePost() {
       : submitError,
     linkPreview,
     titleValue,
+    urlSplitNotice,
     submitButtonRef,
   };
 }

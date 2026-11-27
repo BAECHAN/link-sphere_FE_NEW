@@ -12,9 +12,10 @@ import { TEXTS } from '@/shared/config/texts';
 import { UrlUtil } from '@/shared/utils/url.util';
 import { ScrollUtil } from '@/shared/utils/scroll.util';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { PostUtil, PostSubmitErrorResolution } from '@/entities/post/utils/post.util';
 import { useLinkPreview } from '@/entities/post/hooks/useLinkPreview';
+import { useSharedTextUrlSplit } from '@/entities/post/hooks/useSharedTextUrlSplit';
 import { useAccount } from '@/entities/account/hooks/useAccount';
 import { useAuthGuard } from '@/entities/auth/hooks/useAuthGuard';
 import { useSignedOutNotice } from '@/entities/auth/hooks/useSignedOutNotice';
@@ -125,6 +126,20 @@ export function useUpdatePost(postId: string) {
     },
     [urlValue, form]
   );
+
+  // 공유 문구로 URL을 처음 바꾸면 위 effect가 옛 제목을 비우므로 그 자리에 앞 글자를 넣는다(위와 같은 조건).
+  // 공용 훅이 구독 effect의 의존성으로 쓰므로 참조를 고정한다 - 함수가 이 폼의 ref를 읽어 훅의 effect 안으로
+  // 옮길 수 없다(https://react.dev/reference/react/useCallback#preventing-an-effect-from-firing-too-often)
+  const willClearTitleOnUrlChange = useCallback(
+    (url: string) =>
+      initializedUrlRef.current !== null &&
+      !wasUrlChangedRef.current &&
+      url !== initializedUrlRef.current,
+    []
+  );
+  const urlSplitNotice = useSharedTextUrlSplit(form, {
+    willClearTitle: willClearTitleOnUrlChange,
+  });
 
   const { clearNow } = useUnsavedChanges(`post-update:${postId}`, form.formState.isDirty);
   usePendingSubmit(`post-update:${postId}`, isUpdating, TEXTS.unsavedChanges.pending.postUpdate);
@@ -279,6 +294,7 @@ export function useUpdatePost(postId: string) {
     titleValue,
     showUrlChangedNotice,
     showTitleClearedNotice,
+    urlSplitNotice,
     submitButtonRef,
   };
 }

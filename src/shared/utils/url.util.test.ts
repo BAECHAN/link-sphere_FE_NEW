@@ -76,4 +76,47 @@ describe('UrlUtil', () => {
       expect(UrlUtil.toInAppPostPath('not a url')).toBeNull();
     });
   });
+
+  describe('splitSharedText', () => {
+    it('앞에 장소명·주소가 붙은 공유 문구에서 URL과 나머지 글자를 나눈다(네이버 지도 링크 복사)', () => {
+      expect(UrlUtil.splitSharedText('알배기 독막로3길 35 2층 https://naver.me/abc')).toEqual({
+        url: 'https://naver.me/abc',
+        text: '알배기 독막로3길 35 2층',
+      });
+    });
+
+    it('줄바꿈이 지워져 글자와 URL이 붙어 있어도 나눈다', () => {
+      expect(UrlUtil.splitSharedText('알배기https://naver.me/abc')).toEqual({
+        url: 'https://naver.me/abc',
+        text: '알배기',
+      });
+    });
+
+    it('여러 줄·여러 칸 공백은 한 칸으로 줄이고, URL 뒤 글자도 제목 글자에 넣는다', () => {
+      expect(
+        UrlUtil.splitSharedText('상품명\n  쿠팡  http://link.example.com/a?b=1 에서 확인')
+      ).toEqual({
+        url: 'http://link.example.com/a?b=1',
+        text: '상품명 쿠팡 에서 확인',
+      });
+    });
+
+    it('URL이 둘 이상이면 첫 URL을 쓰고 나머지는 글자로 둔다', () => {
+      expect(UrlUtil.splitSharedText('보기 https://a.com/1 https://b.com/2')).toEqual({
+        url: 'https://a.com/1',
+        text: '보기 https://b.com/2',
+      });
+    });
+
+    it('http(s)://로 시작하는 값은 나누지 않는다(공백 낀 URL은 지금처럼 normalizeUrl이 맡는다)', () => {
+      expect(UrlUtil.splitSharedText('https://example.com/a b')).toBeNull();
+      expect(UrlUtil.splitSharedText('  https://naver.me/abc 알배기')).toBeNull();
+    });
+
+    it('http(s):// 주소가 없으면 null이다', () => {
+      expect(UrlUtil.splitSharedText('알배기 독막로3길 35 2층')).toBeNull();
+      expect(UrlUtil.splitSharedText('주소 ftp://example.com')).toBeNull();
+      expect(UrlUtil.splitSharedText('')).toBeNull();
+    });
+  });
 });

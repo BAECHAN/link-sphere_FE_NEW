@@ -114,6 +114,32 @@ describe('useCreatePost', () => {
     expect(result.current.form.getValues('url')).toBe('');
   });
 
+  it('URL 칸에 공유 문구를 넣으면 나눈 URL과 제목으로 등록 요청을 보낸다', async () => {
+    let body: unknown;
+    server.use(
+      http.post(url(API_ENDPOINTS.post.base), async ({ request }) => {
+        body = await request.json();
+
+        return HttpResponse.json({ status: 500, code: 'INTERNAL_SERVER_ERROR' }, { status: 500 });
+      })
+    );
+    const { result } = renderHook(() => useCreatePost(), {
+      wrapper: createWrapper(createTestQueryClient()),
+    });
+
+    act(() => {
+      result.current.form.setValue('url', '알배기 독막로3길 35 2층 https://naver.me/abc', {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+    });
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(body).toMatchObject({ url: 'https://naver.me/abc', title: '알배기 독막로3길 35 2층' });
+  });
+
   it('등록이 실패하면 이동하지 않고 입력한 값을 그대로 남긴다', async () => {
     server.use(
       http.post(url(API_ENDPOINTS.post.base), () =>

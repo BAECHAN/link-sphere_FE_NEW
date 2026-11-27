@@ -11,6 +11,14 @@
 
 ### Added
 
+- `post` URL 앞에 장소명 등이 붙은 공유 문구를 넣으면 URL과 제목으로 나누기
+  <details><summary>배경·구현</summary>
+
+  네이버 지도의 "링크 복사"는 `알배기 독막로3길 35 2층 https://naver.me/…`처럼 URL 앞에 장소명·주소를 붙여 준다. 지금까지는 URL 칸 값 전체를 URL로 검증해 "http:// 또는 https://로 시작하는 웹 주소만 등록할 수 있어요."가 뜨고 등록·미리보기가 막혔다. 이제 값이 http(s)://로 시작하지 않는데 안에 http(s):// 주소가 있으면 URL만 남기고, 제목 칸이 비었으면 나머지 글자를 제목으로 옮긴 뒤 URL 칸 아래에 안내한다. 직접 쓴 제목은 덮지 않는다. 클라이언트에서 나눠 등록 전에 결과를 보고 고칠 수 있고 BE API 계약은 그대로다. 붙여넣기 이벤트가 아니라 값 구독으로 나눠 키보드 클립보드 입력도 잡고, react-hook-form이 값이 바뀐 뒤 끝난 옛 검증을 버려 형식 오류 문구가 깜빡이지 않는다. 수정 폼은 URL을 바꾸면 제목을 비우는 기존 규칙 뒤에 앞 글자를 채운다. 계획은 [`docs/plans/2026-11-27-shared-text-url-split.md`](docs/plans/2026-11-27-shared-text-url-split.md).
+  (`shared/utils/url.util.ts`, `entities/post/hooks/useSharedTextUrlSplit.ts`(신규), `features/post/create/hooks/useCreatePost.ts`, `features/post/create/ui/CreatePostForm.tsx`, `features/post/update/hooks/useUpdatePost.ts`, `features/post/update/ui/UpdatePostForm.tsx`, `shared/config/texts.ts`, `docs/POST.md`, [PR #697](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/697))
+
+  </details>
+
 - `post` 메신저에 글 주소를 붙이면 그 글의 제목·설명·썸네일로 미리보기
   <details><summary>배경·구현</summary>
 

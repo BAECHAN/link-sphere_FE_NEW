@@ -8,7 +8,7 @@
 > 파일에서 어떤 API를 부르고 어느 캐시를 어떻게 바꾸는지 안다. "등록 직후 새 글이 안 보인다",
 > "좋아요가 목록에 반영 안 된다" 같은 증상을 받았을 때 어디부터 열어볼지 정할 수 있다.
 >
-> **마지막 검토**: 2026-11-11
+> **마지막 검토**: 2026-11-27
 
 이 앱의 중심 데이터다. 사용자가 링크(URL)를 등록하면 BE가 그 페이지를 크롤링해 제목·설명·
 썸네일을 채우고, 그 뒤 비동기로 AI 요약·태그를 붙인다. FE는 그 결과를 피드(`/post`)에 카드로
@@ -473,6 +473,25 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
      오류)는 "미리보기를 불러오지 못했어요. 그래도 등록할 수 있어요"만 보여주고 등록은 막지 않는다.
    - 토스트는 띄우지 않는다(`useFetchLinkPreviewQuery`의 `manualErrorHandling`, `retry: false`).
    - 위치(URL 칸 바로 아래)·모양(가로형) 결정은 [`DECISIONS.md`](./DECISIONS.md) 2026-10-03 "응답 대기" 항목의 상태.
+9. **앞에 글자가 붙은 공유 문구 나누기**(2026-11-27): 네이버 지도의 "링크 복사"처럼 앱이 URL 앞에 장소명·주소를 붙여
+   주면(`알배기 독막로3길 35 2층 https://naver.me/…`) URL 칸에는 URL만 남기고 나머지 글자를 제목 칸으로 옮긴다. 전에는
+   값 전체를 URL로 검증해 "http:// 또는 https://로 시작하는 웹 주소만 등록할 수 있어요."가 뜨고 등록·미리보기가 막혔다.
+   - 나누는 규칙(`UrlUtil.splitSharedText`, `shared/utils/url.util.ts`): 값이 `http(s)://`로 시작하면 나누지 않는다(공백 낀
+     URL은 지금처럼 `normalizeUrl`이 맡는다). 아니면 첫 `http(s)://` 토큰(공백 전까지)을 URL로, 앞뒤 나머지를 공백 한 칸으로
+     줄여 제목 글자로 쓴다. `http(s)://`가 없으면 나누지 않아 지금 문구가 그대로 뜬다. `[네이버지도]` 같은 머리말은 지우지
+     않는다 — 사용자가 제목 칸에서 고친다.
+   - 연결(`useSharedTextUrlSplit`, `entities/post/hooks/useSharedTextUrlSplit.ts`, 등록·수정 공용): 붙여넣기 이벤트가 아니라
+     값 구독(`form.subscribe`)으로 나눈다. `FormInput`이 register의 `onChange`를 가로챌 수 없고, 붙여넣기 이벤트 없이 글자를
+     넣는 키보드 클립보드도 잡기 위해서다. 구독 콜백은 검증보다 먼저 불리고, react-hook-form은 검증이 끝났을 때 값이 이미
+     바뀌었으면 그 결과를 버려(7.91.0 `dist/index.esm.mjs:2900-2904, 2972-2978`) 형식 오류 문구가 한 번도 그려지지 않는다.
+   - 제목 칸이 비었으면 글자를 넣고 URL 칸 아래에 `TEXTS.post.form.sharedText.movedToTitle`, 직접 쓴 제목이 있으면 덮지
+     않고 `urlOnly`("제목이 이미 있어서 …")를 회색 안내(`FormField` `description`)로 띄운다. URL 칸을 다시 고치면 안내가
+     사라진다. 문구·색은 실제 화면 미리보기로 골랐다(2026-11-27 사용자 결정).
+   - 여러 줄 공유 문구: Chrome은 한 줄 입력칸에 붙일 때 줄바꿈을 공백으로 바꾼다(`첫줄\n둘째줄` → `첫줄 둘째줄`, 모킹
+     Playwright 스펙에서 실제 클립보드로 확인). 그래서 따로 붙여넣기 원문을 읽지 않는다.
+   - 요청 본문: `CreatePostForm.test.tsx`·`UpdatePostForm.test.tsx`가 실제로 붙여 넣고 버튼을 눌러, MSW가 받은 등록(POST)·수정
+     (PATCH) 본문의 `url`(쿼리·`#` 포함)과 `title`이 한 글자도 빠지지 않았는지 비교한다. URL 쿼리를 자르거나 제목 첫 단어를
+     빠뜨리게 구현을 깨면 이 테스트가 실패하는 것을 확인했다.
 
 ### 수정
 
@@ -483,6 +502,10 @@ TanStack Query의 쿼리 키·`invalidateQueries`·`setQueryData`, 무한 쿼리
   고친 값을 덮지 않는다(2026-10-28, [`AUTH.md`](./AUTH.md) §8-I).
 - **URL을 바꾸면 제목·카테고리를 비운다**(`clearDerivedFieldsOnUrlChange`) — 둘 다 옛 링크 기준이기 때문이다. 초기
   `reset` 직후의 오탐을 막으려 `form.getValues('url')`을 다시 읽어 비교한다.
+- 앞에 글자가 붙은 공유 문구는 작성 9번과 같이 나눈다. URL을 처음 바꾸는 순간 위 규칙이 옛 제목을 비우므로, 그 빈
+  제목에 앞 글자를 넣고(`willClearTitleOnUrlChange`) URL 칸 아래에는 "다시 가져와요" 대신 옮겼다는 안내를 띄운다 — 제목을
+  앞 글자로 채우면 "제목을 다시 가져와요"가 맞지 않기 때문이다(2026-11-27 사용자 결정). URL을 이미 바꾼 뒤 직접 쓴 제목은
+  덮지 않는다.
 - 안내 문구: URL을 바꾸면 "다시 가져와요" 안내, URL은 그대로인데 제목만 비우면 "제목을 다시
   가져오고, 못 가져오면 기존 제목 유지" 안내(`UpdatePostForm.tsx`의 `isUrlChanged`·`isTitleCleared`). 제목만
   비운 재수집이 다른 필드를 덮지 않는 BE 정책은 `docs/DECISIONS.md` 2026-09-08 "제목 비움
@@ -943,6 +966,13 @@ stretched link로 풀었다(근거·대안 비교는 `docs/DECISIONS.md` 2026-09
 **AI 대기 UI를 걷어낸 경위(2026-03-06, `cee7acc`)**: 한때 AI 처리 상태를 SSE로 받는 훅
 (`usePostAIEvents`)이 있었으나 삭제됐다. 지금 FE는 AI 진행 상태를 실시간으로 받지 않는다(§11).
 당시 결정 배경 문서는 찾지 못했다.
+
+**공유 문구 나누기 테스트가 구현을 깨도 통과하던 문제(2026-11-27)**: 구현을 일부러 깨 보는 확인에서 두 가지가 그대로
+통과했다. ① 수정 폼 테스트가 `user.clear`로 URL 칸을 먼저 비워, 그 순간 URL 변경으로 제목이 이미 비워졌다 — "곧 비워질
+제목"을 판정하는 `willClearTitleOnUrlChange`를 지나지 않았다. 전체 선택 뒤 붙여 넣어 한 번에 바꾸도록 고쳤다. ② 나눈 URL을
+`setValue` 전에 적어 두는 순서는 두 번째 공유 문구를 붙일 때만 차이가 난다(`setValue`가 구독 콜백을 다시 부르는데, 적어 둔
+값이 이전 URL이면 "사용자가 고쳤다"로 보고 안내를 지운다). 두 번 붙이는 케이스를 더했다. 형식 오류 문구가 잠깐이라도
+그려졌는지는 `MutationObserver`로 본다 — 마지막 화면만 보면 떴다 사라진 것을 놓친다(`CreatePostForm.test.tsx`).
 
 ## 11. 남은 것
 
