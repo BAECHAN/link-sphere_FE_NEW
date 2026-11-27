@@ -1,4 +1,8 @@
 ### 2026-11-27 (FE)
+- UI 디자인 시스템 내 의미 색상 체계 재구성 및 명칭 변경
+  - 당근 색상 명칭을 정식 도입하고, 기존 shadcn 기반의 명칭을 별칭으로 전환하여 네이밍 일관성 확보 ([#702](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/702))
+
+### 2026-11-27 (FE)
 - 이슈 답변 작성 시 자리표시자(placeholder) 텍스트가 글자 수 계산에 포함되지 않도록 로직 개선 ([#701](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/701))
 
 ### 2026-11-27 (FE)
