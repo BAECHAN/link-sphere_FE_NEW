@@ -1,4 +1,7 @@
 ### 2026-11-27 (FE)
+- UI 레이아웃 일관성 강화를 위해 칩 사이 간격을 역할 간격 토큰 기반으로 리팩터링 ([#699](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/699))
+
+### 2026-11-27 (FE)
 - 공유하기 기능 개선: URL과 텍스트가 혼합된 공유 문구에서 URL과 제목을 분리하여 파싱하도록 로직 개선 ([#697](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/697))
 
 ### 2026-11-27 (FE)
