@@ -1,44 +1,171 @@
 {
   "color": {
-    "$description": "의미 색(라이트). shadcn/ui 이름을 쓴다. Tailwind 색 이름으로 내보내 bg-primary, text-muted-foreground 같은 클래스가 된다. 값은 모두 팔레트(palette)를 가리키는 별칭이다. 다크에서 달라지는 값은 color.dark.tokens.json에 있다.",
-    "background": { "$type": "color", "$value": "{palette.white}" },
-    "foreground": { "$type": "color", "$value": "{palette.gray.950}" },
-    "card": { "$type": "color", "$value": "{palette.white}" },
-    "card-foreground": { "$type": "color", "$value": "{palette.gray.950}" },
-    "popover": { "$type": "color", "$value": "{palette.white}" },
-    "popover-foreground": { "$type": "color", "$value": "{palette.gray.950}" },
-    "primary": { "$type": "color", "$value": "{palette.gray.900}" },
-    "primary-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
-    "secondary": { "$type": "color", "$value": "{palette.gray.100}" },
-    "secondary-foreground": { "$type": "color", "$value": "{palette.gray.900}" },
-    "muted": { "$type": "color", "$value": "{palette.gray.100}" },
-    "muted-foreground": {
-      "$type": "color",
-      "$value": "{palette.gray.550}",
-      "$description": "muted 배경 위에서 WCAG AA(4.5:1)를 넘기려고 gray.500 대신 gray.550을 가리킨다. 값을 정한 근거는 palette.gray.550의 설명에 있다."
+    "$description": "의미 색(라이트). 당근(SEED)의 이름 짓기를 따른다: 종류(fg 글자, bg 배경, stroke 선) 뒤에 역할(neutral, brand, critical, informative, positive, warning)과 변형(muted, weak, solid)을 붙인다. Tailwind 색 이름 fg-…, bg-…, stroke-…로 내보내 text-fg-neutral-muted, bg-bg-layer-default, border-stroke-neutral-weak 같은 클래스가 된다(2026-11-27 게이트 3). 값은 모두 팔레트(palette)를 가리키는 별칭이다. 다크에서 달라지는 값은 color.dark.tokens.json에 있다. 옛 shadcn/ui 이름은 shadcn.tokens.json의 별칭이다.",
+    "fg": {
+      "neutral": {
+        "$type": "color",
+        "$value": "{palette.gray.950}",
+        "$description": "기본 글자색. 본문과 제목에 쓴다."
+      },
+      "neutral-muted": {
+        "$type": "color",
+        "$value": "{palette.gray.550}",
+        "$description": "보조 글자색(설명, 날짜, 아이콘). muted 배경 위에서 WCAG AA(4.5:1)를 넘기려고 gray.500 대신 gray.550을 가리킨다. 값을 정한 근거는 palette.gray.550의 설명에 있다."
+      },
+      "placeholder": {
+        "$type": "color",
+        "$value": "{palette.gray.550}",
+        "$description": "입력칸의 안내 글자. 지금은 fg.neutral-muted와 같은 값이다."
+      },
+      "brand": {
+        "$type": "color",
+        "$value": "{palette.gray.900}",
+        "$description": "브랜드 글자색(링크, 선택된 메뉴의 아이콘과 이름). 우리 브랜드 색은 무채색이다(2026-11-27 게이트 3)."
+      },
+      "on-brand-solid": {
+        "$type": "color",
+        "$value": "{palette.gray.50}",
+        "$description": "bg.brand-solid 위의 글자색."
+      },
+      "critical": {
+        "$type": "color",
+        "$value": "{palette.red.600}",
+        "$description": "오류와 위험을 알리는 글자색."
+      },
+      "on-critical-solid": {
+        "$type": "color",
+        "$value": "{palette.white}",
+        "$description": "bg.critical-solid 위의 글자색."
+      },
+      "informative": {
+        "$type": "color",
+        "$value": "{palette.blue.600}",
+        "$description": "정보를 알리는 글자색."
+      },
+      "on-informative-solid": {
+        "$type": "color",
+        "$value": "{palette.white}",
+        "$description": "bg.informative-solid 위의 글자색."
+      },
+      "positive": {
+        "$type": "color",
+        "$value": "{palette.green.700}",
+        "$description": "성공과 완료를 알리는 글자색."
+      },
+      "on-positive-solid": {
+        "$type": "color",
+        "$value": "{palette.white}",
+        "$description": "bg.positive-solid 위의 글자색."
+      },
+      "warning": {
+        "$type": "color",
+        "$value": "{palette.yellow.500}",
+        "$description": "주의를 알리는 글자색."
+      },
+      "on-warning-solid": {
+        "$type": "color",
+        "$value": "{palette.gray.950}",
+        "$description": "bg.warning-solid 위의 글자색. 노란 배경이라 어두운 글자다."
+      },
+      "on-overlay": {
+        "$type": "color",
+        "$value": "{palette.white}",
+        "$description": "bg.overlay(딤) 위의 글자와 아이콘. 모드와 무관해 다크에서 다시 정하지 않는다. 당근에는 없는 이름이라 on-<배경> 꼴을 따라 더했다(2026-11-27 게이트 3)."
+      }
     },
-    "accent": { "$type": "color", "$value": "{palette.gray.100}" },
-    "accent-foreground": { "$type": "color", "$value": "{palette.gray.900}" },
-    "destructive": { "$type": "color", "$value": "{palette.red.600}" },
-    "destructive-foreground": { "$type": "color", "$value": "{palette.white}" },
-    "scrim": {
-      "$type": "color",
-      "$value": "{palette.black}",
-      "$description": "딤(scrim) 오버레이 전용. 모드와 무관해 다크에서 다시 정하지 않는다. 쓰는 곳은 투명도 수식자를 붙여 쓴다(docs/DECISIONS.md 2026-09-13)."
+    "bg": {
+      "layer-basement": {
+        "$type": "color",
+        "$value": "{palette.white}",
+        "$description": "화면 맨 바닥(페이지 배경). 표면 세 층(basement, default, floating) 가운데 가장 아래다."
+      },
+      "layer-default": {
+        "$type": "color",
+        "$value": "{palette.white}",
+        "$description": "바닥 위에 놓이는 기본 표면(카드)."
+      },
+      "layer-floating": {
+        "$type": "color",
+        "$value": "{palette.white}",
+        "$description": "다른 내용 위에 떠 있는 표면(팝오버, 메뉴). 지금 값은 bg.layer-default와 같다."
+      },
+      "neutral-muted": {
+        "$type": "color",
+        "$value": "{palette.gray.100}",
+        "$description": "표면 위에서 영역을 나누는 옅은 배경(빈 상태, 미리보기 자리, 검색칸)."
+      },
+      "neutral-weak": {
+        "$type": "color",
+        "$value": "{palette.gray.100}",
+        "$description": "옅은 채움(보조 버튼)."
+      },
+      "transparent-pressed": {
+        "$type": "color",
+        "$value": "{palette.gray.100}",
+        "$description": "평소 투명한 칸이 호버, 눌림, 키보드 선택, 선택됐을 때의 배경. 당근은 선택된 칸을 transparent-selected로 따로 두지만, 우리는 지금 두 경우가 같은 값이라 하나로 둔다(2026-11-27 게이트 3)."
+      },
+      "brand-solid": {
+        "$type": "color",
+        "$value": "{palette.gray.900}",
+        "$description": "브랜드 채움(주 버튼). 화면에서 가장 중요한 액션에 쓴다."
+      },
+      "critical-solid": {
+        "$type": "color",
+        "$value": "{palette.red.600}",
+        "$description": "위험 채움(삭제 버튼, 알림 점)."
+      },
+      "informative-solid": {
+        "$type": "color",
+        "$value": "{palette.blue.600}",
+        "$description": "정보 채움. 옅은 배경은 투명도 수식자를 붙여 쓴다."
+      },
+      "positive-solid": {
+        "$type": "color",
+        "$value": "{palette.green.700}",
+        "$description": "성공 채움."
+      },
+      "warning-solid": {
+        "$type": "color",
+        "$value": "{palette.yellow.500}",
+        "$description": "주의 채움."
+      },
+      "overlay": {
+        "$type": "color",
+        "$value": "{palette.black}",
+        "$description": "딤(scrim) 오버레이 전용. 모드와 무관해 다크에서 다시 정하지 않는다. 쓰는 곳은 투명도 수식자를 붙여 쓴다(docs/DECISIONS.md 2026-09-13)."
+      }
     },
-    "scrim-foreground": {
-      "$type": "color",
-      "$value": "{palette.white}",
-      "$description": "딤 위의 글자색. destructive-foreground와 값은 같은 흰색이지만 역할이 다른(딤 위 글자, 버튼 위 글자) 별도 토큰이다."
-    },
-    "info": { "$type": "color", "$value": "{palette.blue.600}" },
-    "info-foreground": { "$type": "color", "$value": "{palette.white}" },
-    "warning": { "$type": "color", "$value": "{palette.yellow.500}" },
-    "warning-foreground": { "$type": "color", "$value": "{palette.gray.950}" },
-    "success": { "$type": "color", "$value": "{palette.green.700}" },
-    "success-foreground": { "$type": "color", "$value": "{palette.white}" },
-    "border": { "$type": "color", "$value": "{palette.gray.200}" },
-    "input": { "$type": "color", "$value": "{palette.gray.200}" },
-    "ring": { "$type": "color", "$value": "{palette.gray.400}" }
+    "stroke": {
+      "neutral-weak": {
+        "$type": "color",
+        "$value": "{palette.gray.200}",
+        "$description": "카드, 입력칸 같은 요소의 외곽선과 구분선."
+      },
+      "brand-solid": {
+        "$type": "color",
+        "$value": "{palette.gray.900}",
+        "$description": "브랜드 선(강조 테두리, 끌어 놓을 때의 링)."
+      },
+      "critical-solid": {
+        "$type": "color",
+        "$value": "{palette.red.600}",
+        "$description": "위험 선(잘못된 입력의 테두리와 링)."
+      },
+      "informative-solid": {
+        "$type": "color",
+        "$value": "{palette.blue.600}",
+        "$description": "정보 선."
+      },
+      "warning-solid": {
+        "$type": "color",
+        "$value": "{palette.yellow.500}",
+        "$description": "주의 선."
+      },
+      "focus-ring": {
+        "$type": "color",
+        "$value": "{palette.gray.400}",
+        "$description": "키보드 초점 링."
+      }
+    }
   }
 }

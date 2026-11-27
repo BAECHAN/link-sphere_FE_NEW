@@ -113,3 +113,49 @@ describe('cn()의 역할 간격 토큰 병합', () => {
     expect(cn(`gap-${token}`, numericGap(3))).toBe(numericGap(3));
   });
 });
+
+// 의미 색(2026-11-27 게이트 3)은 utils.ts에 등록하지 않는다. tailwind-merge 3.7.0은 text-·bg-·border- 뒤에 오는, 글자 크기 등
+// 다른 묶음에 등록되지 않은 이름을 색으로 본다. 이 묶음은 그 동작을 고정한다 - 글자 크기 토큰처럼 등록이 필요해지면 여기서 실패한다.
+// 클래스 이름은 목록에서 읽어 만든다. 글자 그대로 적으면 Tailwind가 이 파일에서 찾아 쓰지 않는 규칙을 만든다
+const semanticColors = TOKENS.filter((token) => token.group === 'color').map((token) => token.name);
+const UTILITY_BY_KIND = { fg: 'text', bg: 'bg', stroke: 'border' } as const;
+type SemanticKind = keyof typeof UTILITY_BY_KIND;
+const kindOf = (name: string) => name.split('-')[0] as SemanticKind;
+const ofKind = (kind: SemanticKind) => semanticColors.filter((name) => kindOf(name) === kind);
+const asClass = (name: string) => `${UTILITY_BY_KIND[kindOf(name)]}-${name}`;
+
+describe('cn()의 의미 색 병합', () => {
+  it('토큰 목록의 의미 색은 모두 fg·bg·stroke 가운데 하나로 시작한다', () => {
+    expect(ofKind('fg').length).toBeGreaterThan(0);
+    expect(ofKind('bg').length).toBeGreaterThan(0);
+    expect(ofKind('stroke').length).toBeGreaterThan(0);
+    expect(ofKind('fg').length + ofKind('bg').length + ofKind('stroke').length).toBe(
+      semanticColors.length
+    );
+  });
+
+  it.each(semanticColors)('%s가 같은 속성의 앞 색을 지운다', (name) => {
+    const other = ofKind(kindOf(name)).find((candidate) => candidate !== name) ?? '';
+
+    expect(cn(asClass(other), asClass(name))).toBe(asClass(name));
+  });
+
+  // 등록을 잘못하면(글자 크기 묶음에 넣는 등) 글자 색이 글자 크기를 지운다
+  it.each(ofKind('fg'))('%s와 글자 크기 토큰은 서로 지우지 않는다', (name) => {
+    expect(cn('text-screen-title', asClass(name))).toBe(`text-screen-title ${asClass(name)}`);
+    expect(cn(asClass(name), 'text-micro')).toBe(`${asClass(name)} text-micro`);
+  });
+
+  // 쓰는 곳을 옮기는 동안 부품의 옛 이름과 쓰는 쪽의 새 이름이 섞인다(PR 7, 5단계). 옛 이름 클래스도 조각을 이어 만든다 -
+  // 예제 앱이 쓰지 않는 옛 이름이 있다
+  it('옛 shadcn 이름과 새 이름도 같은 속성이면 뒤에 온 쪽만 남는다', () => {
+    const fg = ofKind('fg')[0] ?? '';
+    const bg = ofKind('bg')[0] ?? '';
+    const stroke = ofKind('stroke')[0] ?? '';
+    const shadcnClass = (utility: string, name: string) => [utility, name].join('-');
+
+    expect(cn(shadcnClass('text', 'muted-foreground'), asClass(fg))).toBe(asClass(fg));
+    expect(cn(asClass(bg), shadcnClass('bg', 'background'))).toBe(shadcnClass('bg', 'background'));
+    expect(cn(shadcnClass('border', 'border'), asClass(stroke))).toBe(asClass(stroke));
+  });
+});

@@ -11,9 +11,11 @@ import { TOKENS } from '@baechan/ui/tokens';
 // (Tailwind의 `bg-${token}`처럼 클래스명을 동적으로 조합하면 JIT 스캐너가 정적 문자열만
 // 인식하기 때문에 생성되지 않는다 - 그래서 여기서는 클래스가 아니라 CSS 변수를 직접 쓴다.)
 // 범용 토큰의 이름과 쓰임 설명은 원본에서 만든 목록(TOKENS)에서 읽는다. 앱 전용 토큰은 원본이 없어 아래에 손으로 적는다.
+// 의미 색(fg·bg·stroke, 2026-11-27 게이트 3)은 변수 이름이 이름과 달라(--bui-color-fg-neutral) 목록의 cssVar를 읽는다.
 // 다크모드는 툴바의 테마 토글(.storybook/preview.tsx)로 확인한다.
 
-type PackageColorName = Extract<(typeof TOKENS)[number], { group: 'color' }>['name'];
+type DesignToken = (typeof TOKENS)[number];
+type ShadcnColorName = Extract<DesignToken, { group: 'shadcn' }>['name'];
 
 interface ColorToken<Name extends string = string> {
   /** Tailwind 색상 유틸리티 접미사 (bg-{token}) */
@@ -27,28 +29,28 @@ interface ColorGroup {
   tokens: ColorToken[];
 }
 
-/** 범용(패키지) 색 묶음. 묶음 제목은 원본에 없어 여기서 정하고, 색 이름이 원본에 없으면 타입 오류가 난다. */
-function packageColors(title: string, tokens: ColorToken<PackageColorName>[]): ColorGroup {
-  return { title, tokens };
+/** 옛 shadcn 이름 묶음. 묶음 제목은 원본에 없어 여기서 정하고, 색 이름이 원본에 없으면 타입 오류가 난다. */
+function shadcnColors(title: string, tokens: ColorToken<ShadcnColorName>[]): ColorGroup {
+  return { title: `${title} (옛 shadcn 이름)`, tokens };
 }
 
-// 범용 색은 packageColors로, 앱 전용 색(src/app/globals.css의 @theme inline 블록)은 그대로 적는다.
+// 옛 이름은 shadcnColors로, 앱 전용 색(src/app/globals.css의 @theme inline 블록)은 그대로 적는다.
 const COLOR_GROUPS: ColorGroup[] = [
-  packageColors('기본', [{ token: 'background', foreground: 'foreground' }]),
-  packageColors('딤(Scrim) — 이미지 뷰어·모달 오버레이 전용, 테마 무관', [
+  shadcnColors('기본', [{ token: 'background', foreground: 'foreground' }]),
+  shadcnColors('딤(Scrim) — 이미지 뷰어·모달 오버레이 전용, 테마 무관', [
     { token: 'scrim', foreground: 'scrim-foreground' },
   ]),
-  packageColors('표면', [
+  shadcnColors('표면', [
     { token: 'card', foreground: 'card-foreground' },
     { token: 'popover', foreground: 'popover-foreground' },
   ]),
-  packageColors('액션', [
+  shadcnColors('액션', [
     { token: 'primary', foreground: 'primary-foreground' },
     { token: 'secondary', foreground: 'secondary-foreground' },
     { token: 'muted', foreground: 'muted-foreground' },
     { token: 'accent', foreground: 'accent-foreground' },
   ]),
-  packageColors('상태', [
+  shadcnColors('상태', [
     { token: 'destructive', foreground: 'destructive-foreground' },
     { token: 'info', foreground: 'info-foreground' },
     { token: 'warning', foreground: 'warning-foreground' },
@@ -68,7 +70,7 @@ const COLOR_GROUPS: ColorGroup[] = [
       { token: 'category-8', foreground: 'category-8-foreground' },
     ],
   },
-  packageColors('폼 / 포커스', [{ token: 'border' }, { token: 'input' }, { token: 'ring' }]),
+  shadcnColors('폼 / 포커스', [{ token: 'border' }, { token: 'input' }, { token: 'ring' }]),
   {
     title: '차트',
     tokens: [
@@ -118,23 +120,94 @@ function ColorSwatch({ token, foreground }: ColorToken) {
   );
 }
 
-// 원본에 색을 더하고 위 묶음에 넣지 않아도 카탈로그에서 빠지지 않게, 묶이지 않은 범용 색을 따로 모은다(지금은 없다).
+// 원본에 색을 더하고 위 묶음에 넣지 않아도 카탈로그에서 빠지지 않게, 묶이지 않은 옛 이름을 따로 모은다(지금은 없다).
 const GROUPED_COLOR_NAMES = new Set(
   COLOR_GROUPS.flatMap(({ tokens }) =>
     tokens.flatMap(({ token, foreground }) => [token, foreground])
   )
 );
 const UNGROUPED_PACKAGE_COLORS: ColorToken[] = TOKENS.filter(
-  (token) => token.group === 'color' && !GROUPED_COLOR_NAMES.has(token.name)
+  (token) => token.group === 'shadcn' && !GROUPED_COLOR_NAMES.has(token.name)
 ).map((token) => ({ token: token.name }));
 const ALL_COLOR_GROUPS: ColorGroup[] =
   UNGROUPED_PACKAGE_COLORS.length > 0
     ? [...COLOR_GROUPS, { title: '묶음에 넣지 않은 범용 색', tokens: UNGROUPED_PACKAGE_COLORS }]
     : COLOR_GROUPS;
 
+// 의미 색은 종류(이름의 첫 마디)마다 한 묶음이고 원본 순서대로 보인다. 글자 색은 칠한 상자로 보인다. 글자로 읽히는 모습은
+// 배경 묶음의 Aa(그 배경에 얹는 글자 색)로 본다 - 노란 글자 색을 흰 바탕에 글자로 그리면 a11y 검사(대비)에 걸린다.
+const SEMANTIC_KINDS = [
+  { kind: 'fg', title: '글자(fg)', classPrefix: 'text-' },
+  { kind: 'bg', title: '배경(bg)', classPrefix: 'bg-' },
+  { kind: 'stroke', title: '선(stroke)', classPrefix: 'border-' },
+] as const;
+const SEMANTIC_COLORS = TOKENS.filter((token) => token.group === 'color');
+const SHADCN_COLORS = TOKENS.filter((token) => token.group === 'shadcn');
+
+/** 배경에 얹는 글자 색. 채움(solid)과 딤 배경은 짝(fg-on-…)이 있고, 나머지 표면은 기본 글자색이다 */
+function textColorOn(background: DesignToken) {
+  const pair = SEMANTIC_COLORS.find(
+    (token) => token.name === background.name.replace(/^bg-/, 'fg-on-')
+  );
+
+  return (pair ?? SEMANTIC_COLORS.find((token) => token.name === 'fg-neutral'))?.cssVar;
+}
+
+function SemanticColorSwatch({
+  token,
+  kind,
+  classPrefix,
+}: { token: DesignToken } & (typeof SEMANTIC_KINDS)[number]) {
+  const aliases = SHADCN_COLORS.filter((alias) => alias.value === `var(${token.cssVar})`).map(
+    (alias) => alias.name
+  );
+  const textColor = kind === 'bg' ? textColorOn(token) : undefined;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div
+        className={cn(
+          'flex h-16 w-full items-center justify-center rounded-md',
+          kind === 'stroke' ? 'border-2' : 'border'
+        )}
+        style={
+          kind === 'stroke'
+            ? { borderColor: `var(${token.cssVar})` }
+            : { backgroundColor: `var(${token.cssVar})` }
+        }
+      >
+        {textColor && (
+          <span className="text-xs font-medium" style={{ color: `var(${textColor})` }}>
+            Aa
+          </span>
+        )}
+      </div>
+      <code className="text-xs text-muted-foreground">
+        {classPrefix}
+        {token.name}
+      </code>
+      {aliases.length > 0 && (
+        <span className="text-xs text-muted-foreground">옛 이름: {aliases.join(', ')}</span>
+      )}
+    </div>
+  );
+}
+
 function ColorsCatalog() {
   return (
     <div className="flex flex-col gap-8 p-4">
+      {SEMANTIC_KINDS.map((semanticKind) => (
+        <div key={semanticKind.kind} className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">{semanticKind.title}</h3>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 md:grid-cols-6">
+            {SEMANTIC_COLORS.filter((token) => token.name.startsWith(`${semanticKind.kind}-`)).map(
+              (token) => (
+                <SemanticColorSwatch key={token.name} token={token} {...semanticKind} />
+              )
+            )}
+          </div>
+        </div>
+      ))}
       {ALL_COLOR_GROUPS.map((group) => (
         <div key={group.title} className="flex flex-col gap-3">
           <h3 className="text-sm font-semibold">{group.title}</h3>
@@ -238,8 +311,6 @@ function RoleTokensCatalog() {
 // 시간·곡선 토큰. 시간은 원본 순서, 곡선은 같은 시간(d12)에 곡선만 바꿔 비교한다. 값과 쓰임 설명은 원본에서 읽는다.
 // 당근 SEED의 Motion 문서(https://seed-design.io/foundations/motion)는 값 표만 둔다. 곡선은 숫자만으로 차이가 안 보여
 // 여기서는 표 옆에 재생 예시를 함께 둔다(2026-11-26 사용자 결정).
-type DesignToken = (typeof TOKENS)[number];
-
 const MOTION_SECTIONS: {
   title: string;
   prefix: string;

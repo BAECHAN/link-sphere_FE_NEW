@@ -19,7 +19,10 @@
 //     댄다(assertReferencesExist, resolveTree의 valueErrors).
 //   - 블록 배치: Tailwind 4의 @theme 블록과 하위 키(--text-<이름>--line-height)는 내장 출력에 없다. Tailwind 기본 시간·곡선이
 //     토큰을 가리키게 하는 줄(TAILWIND_DEFAULTS)도 여기서 더한다.
-//   - 층 규칙: 의미 색은 값을 숫자로 적지 않고 팔레트를 가리킨다(2026-11-26 게이트 2, assertColorsUsePalette).
+//   - 층 규칙: 의미 색은 값을 숫자로 적지 않고 팔레트를 가리킨다(2026-11-26 게이트 2, assertColorsUsePalette). 옛 shadcn
+//     이름은 의미 색이나 팔레트를 가리킨다(2026-11-27 게이트 3, assertShadcnUsesColor).
+//   - 다크의 별칭: 다크 파일에 없는 별칭도 가리키는 토큰이 다크에서 바뀌면 .dark에 같은 값을 한 번 더 적는다. CSS 변수 안의
+//     var()는 그 변수를 적은 요소에서 풀려, :root에만 적으면 안쪽 요소에 붙은 .dark를 따르지 못한다.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -172,6 +175,7 @@ function describePath(path) {
   switch (group) {
     case 'palette':
     case 'color':
+    case 'shadcn':
       return { group, name: rest.join('-'), part: null };
     case 'radius':
     case 'z-index':
@@ -189,14 +193,19 @@ function describePath(path) {
   }
 }
 
-/** 토큰 경로를 CSS 변수 이름으로 바꾼다. 색 이름은 shadcn/ui 관례대로 접두사가 없다(--primary). */
+/**
+ * 토큰 경로를 CSS 변수 이름으로 바꾼다. 팔레트와 의미 색은 --bui-color-를 붙인다. 이 패키지를 쓰는 앱의 다른 전역 변수와
+ * 겹치지 않게 하려는 것이다(2026-11-27 게이트 3). 옛 shadcn 이름은 쓰는 곳이 그대로 동작하게 예전처럼 접두사가 없다(--primary).
+ */
 function cssVarName(path) {
   const { group, name, part } = describePath(path);
 
   switch (group) {
     case 'palette':
-      return `--palette-${name}`;
+      return `--bui-color-palette-${name}`;
     case 'color':
+      return `--bui-color-${name}`;
+    case 'shadcn':
       return `--${name}`;
     case 'radius':
       return `--radius-${name}`;
@@ -322,6 +331,21 @@ function assertColorsUsePalette(tree) {
   }
 }
 
+/** 옛 shadcn 이름(shadcn)이 모두 의미 색이나 팔레트를 가리키는지 본다. 값을 직접 적으면 멈춘다. */
+function assertShadcnUsesColor(tree) {
+  for (const [id, token] of listTokens(tree)) {
+    const reference = typeof token.$value === 'string' ? token.$value.match(REFERENCE) : null;
+    const target = reference?.[1] ?? '';
+
+    if (id.startsWith('shadcn.') && !/^(color|palette)\./.test(target)) {
+      fail(
+        id,
+        `옛 shadcn 이름은 값을 직접 적지 않고 의미 색을 가리킨다(예: {color.bg.layer-basement}, 받은 값: ${JSON.stringify(token.$value)})`
+      );
+    }
+  }
+}
+
 /** 토큰 나무를 Style Dictionary에 넘겨 별칭을 풀고 토큰마다 CSS 값을 낸다. */
 async function resolveTree(tree) {
   assertReferencesExist(tree);
@@ -401,8 +425,10 @@ async function buildModel() {
     listTokens(source).forEach(([id]) => declaredInDark.add(id));
   }
 
-  assertColorsUsePalette(lightTree);
-  assertColorsUsePalette(darkTree);
+  for (const tree of [lightTree, darkTree]) {
+    assertColorsUsePalette(tree);
+    assertShadcnUsesColor(tree);
+  }
 
   const light = await resolveTree(lightTree);
   const darkById = new Map((await resolveTree(darkTree)).map((token) => [token.id, token]));
@@ -437,7 +463,7 @@ async function buildModel() {
 function renderCss({ tokens }) {
   const inGroup = (group) => tokens.filter((token) => token.group === group);
   const line = (token) => `  ${token.cssVar}: ${token.value};`;
-  const colors = inGroup('color');
+  const colors = [...inGroup('color'), ...inGroup('shadcn')];
   const lineHeights = new Map(inGroup('line-height').map((token) => [token.name, token]));
   // 시간·곡선 축의 토큰 뒤에, 그 축을 가리키는 Tailwind 기본값 줄을 붙인다
   const withTailwindDefaults = (group) => [
@@ -456,7 +482,8 @@ function renderCss({ tokens }) {
   ];
 
   // 블록마다 Tailwind 테마 옵션이 다르다.
-  //   inline: 유틸리티가 --color-<이름>을 거치지 않고 var(--<이름>)을 바로 쓴다(:root, .dark의 값이 모드마다 바뀐다).
+  //   inline: 유틸리티가 --color-<이름>을 거치지 않고 토큰 변수(var(--bui-color-fg-neutral), var(--primary))를 바로 쓴다
+  //   (:root, .dark의 값이 모드마다 바뀐다).
   //   static: 쓰는 곳이 없어도 변수를 출력한다. Storybook 토큰 카탈로그가 변수 값을 읽어 그린다.
   //   (옵션 없음): 클래스로 쓰일 때만 변수와 유틸리티가 나온다. 글자 역할은 모두 클래스로 쓴다.
   const blocks = [
@@ -486,9 +513,14 @@ function renderCss({ tokens }) {
     [':root', [...inGroup('palette'), ...colors].map(line)],
     [
       '.dark',
-      tokens
-        .filter((token) => token.darkValue !== null)
-        .map((token) => `  ${token.cssVar}: ${token.darkValue};`),
+      tokens.flatMap((token) => {
+        if (token.darkValue !== null) {
+          return [`  ${token.cssVar}: ${token.darkValue};`];
+        }
+
+        // 다크 파일에 없지만 가리키는 토큰이 다크에서 바뀌는 별칭(맨 위 주석 "다크의 별칭")
+        return token.darkResolved === token.resolved ? [] : [line(token)];
+      }),
     ],
   ];
   const header = `/*\n${GENERATED_NOTICE.map((text) => ` * ${text}`).join('\n')}\n */`;
@@ -535,7 +567,7 @@ export interface DesignToken {
   /** 원본에서의 경로(점으로 이음) */
   id: string;
   group: TokenGroup;
-  /** 축 안에서의 이름. Tailwind 클래스의 뒷부분이 된다(bg-primary의 primary, z-nav의 nav) */
+  /** 축 안에서의 이름. Tailwind 클래스의 뒷부분이 된다(의미 색 fg-neutral, 옛 이름 primary, z-nav의 nav) */
   name: string;
   /** 글자 역할(text)에서만 값이 있다. 한 역할이 글자 크기, 줄 높이, 두께로 나뉜다 */
   part: 'font-size' | 'line-height' | 'font-weight' | null;

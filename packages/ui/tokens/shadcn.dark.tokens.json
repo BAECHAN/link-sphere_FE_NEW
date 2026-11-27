@@ -1,0 +1,7 @@
+{
+  "shadcn": {
+    "secondary-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "accent-foreground": { "$type": "color", "$value": "{palette.gray.50}" },
+    "input": { "$type": "color", "$value": "{palette.white-alpha.15}" }
+  }
+}

@@ -27,9 +27,16 @@ UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카�
 정한 이유는 토큰 표가 정본이다** — 아래에는 고르는 법과 쓰는 법만 둔다(구조: `docs/DESIGN-SYSTEM.md` §5 "토큰 원본과
 생성물"). 앱 전용 토큰은 원본이 없어 `globals.css`를 직접 고친다.
 
-범용 의미 토큰의 값은 모두 `:root`의 `--palette-*`(Primitive 층)를 참조한다. `--palette-*`는 Tailwind
-클래스가 없고, 컴포넌트에서 `var(--palette-*)`로 직접 쓰지도 않는다 — 항상 아래 의미 토큰을 쓴다
+범용 의미 토큰의 값은 모두 `:root`의 `--bui-color-palette-*`(Primitive 층, 2026-11-27 전에는 `--palette-*`)를 참조한다.
+팔레트는 Tailwind 클래스가 없고, 컴포넌트에서 `var(--bui-color-palette-*)`로 직접 쓰지도 않는다 — 항상 아래 의미 토큰을 쓴다
 (층 구조와 예외는 `docs/DESIGN-SYSTEM.md` §5 "색상 2층").
+
+**색 이름이 바뀌는 중이다(2026-11-27 게이트 3).** 당근 꼴의 새 이름(글자 `fg`, 배경 `bg`, 선 `stroke`로 시작한다)이 생겼고,
+아래 표의 shadcn 이름은 새 이름을 가리키는 별칭이 됐다. 앱 층은 PR 7에서, 공용 UI는 5단계에서 새 이름으로 옮기고 그때 이 표도
+새 이름으로 바꾼다 — 옮기기 전까지 이 표는 지금 쓰는 옛 이름을 적는다. 옛 이름과 새 이름의 대응은
+[토큰 표](../../../docs/DESIGN-TOKENS.md) "의미 색"의 "옛 이름" 열에 있다. 새 이름은 유틸리티와 종류를 맞춰야 한다(글자
+유틸리티에 `fg`, 배경에 `bg`, 테두리·링·외곽선·구분선에 `stroke`). 어긋나면 `custom-tailwind/semantic-color-kind`가 막는다(구조:
+`docs/DESIGN-SYSTEM.md` §5 "색 이름").
 
 ### 주요 색상 토큰 → Tailwind 클래스
 
