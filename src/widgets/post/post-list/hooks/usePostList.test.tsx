@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, act } from '@testing-library/react';
 import { MemoryRouter, RouterProvider, createMemoryRouter, useLocation } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -209,6 +209,10 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     useAuthStore.getState().setAuth('token');
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('시나리오 A: 로딩 중 다른 필터를 연속 클릭해도 둘 다 누적된다', async () => {
     const { getGate, inOrder } = createGateRegistry();
     mockGatedPostList(getGate);
@@ -268,6 +272,9 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     // (useClickGuard.ts) 도입으로 그 계약이 바뀌었다 - 즉시 재클릭은 의식적으로 인지하고
     // 다시 누른 게 아니라 무의식적 중복 클릭으로 보고 무시한다(docs/DECISIONS.md 참고).
     // "충분한 시간 뒤 재클릭하면 취소된다"는 아래 시나리오 C-2가 검증한다.
+    // 가드가 재는 실제 시계를 멈춰, 두 클릭 사이의 게이트 대기가 무거운 실행에서 400ms를 넘어도 즉시 재클릭으로
+    // 남게 한다(Navbar.test.tsx의 같은 꼴 테스트와 같은 이유, 2026-11-26)
+    vi.useFakeTimers({ toFake: ['Date'] });
     const { getGate, inOrder } = createGateRegistry();
     mockGatedPostList(getGate);
     const user = userEvent.setup();
