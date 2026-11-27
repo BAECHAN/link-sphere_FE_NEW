@@ -1,4 +1,7 @@
 ### 2026-11-27 (FE)
+- 디자인 시스템 UI 토큰 기반 그림자 구현 및 기본 클래스 제거 ([#696](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/696))
+
+### 2026-11-27 (FE)
 - 클릭 가드 테스트 환경 개선을 통해 테스트의 독립성 및 신뢰성 확보 ([#695](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/695))
 
 ### 2026-11-26 (FE)
