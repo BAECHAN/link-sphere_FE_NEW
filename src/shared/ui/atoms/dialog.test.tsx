@@ -235,13 +235,13 @@ describe('DialogContent — 패널 클래스 집합', () => {
 
   it('className이 없으면 흐림·확대 200ms가 붙은 중앙 모달 그대로다', () => {
     expect(panelClassSet()).toBe(
-      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-d4 fixed gap-4 grid left-[50%] max-w-lg p-6 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
+      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-d4 fixed gap-4 grid left-[50%] max-w-lg p-6 shadow-s4 sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
     );
   });
 
   it('LoginDialog의 max-w-md는 기본 폭만 바꾼다', () => {
     expect(panelClassSet('max-w-md')).toBe(
-      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-d4 fixed gap-4 grid left-[50%] max-w-md p-6 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
+      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-d4 fixed gap-4 grid left-[50%] max-w-md p-6 shadow-s4 sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
     );
   });
 

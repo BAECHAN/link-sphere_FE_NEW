@@ -73,7 +73,7 @@ export function PostList({ renderPost, grid }: PostListProps) {
             role="status"
             className="sticky top-[calc(var(--navbar-height)+1rem)] flex justify-center pt-6"
           >
-            <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 shadow-sm">
+            <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 shadow-s2">
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin text-muted-foreground" />
               <span className="text-sm font-medium text-muted-foreground">
                 {TEXTS.post.search.applying}

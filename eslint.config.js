@@ -13,6 +13,7 @@ import { noIndexFileRule, noValueReExportRule } from './scripts/lib/no-barrel-ru
 import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.js';
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
 import { noRawMotionRule } from './scripts/lib/no-raw-motion-rule.js';
+import { noRawShadowRule } from './scripts/lib/no-raw-shadow-rule.js';
 import { noStoryNameRule } from './scripts/lib/no-story-name-rule.js';
 import { scopeMutationAuthEpochRule } from './scripts/lib/scope-mutation-auth-epoch-rule.js';
 import { classNameLastRule, cvaVariantKeysRule } from './scripts/lib/ui-api-rule.js';
@@ -487,6 +488,10 @@ const customTailwindRulesPlugin = {
     // 이유: 같은 시간이 여러 파일에 숫자로, 일부는 JS 타이머에도 따로 적혀 있었다(2026-11-26 게이트 2에서 토큰으로 옮김).
     // 본체는 단위 테스트를 위해 scripts/lib/no-raw-motion-rule.js에 둔다 - 그 파일 머리말 참고
     'no-raw-motion': noRawMotionRule,
+    // [금지] Tailwind 기본 이름·대괄호 값의 그림자 유틸리티 - 토큰 클래스(shadow-s1~shadow-s4)를 쓴다. shadow-none은 허용
+    // 이유: 그림자 단계를 토큰 원본에서 정하게 했다(2026-11-26 게이트 2).
+    // 본체는 단위 테스트를 위해 scripts/lib/no-raw-shadow-rule.js에 둔다 - 그 파일 머리말 참고
+    'no-raw-shadow': noRawShadowRule,
     // [금지] px 단위 임의값(bracket) 폰트 크기 유틸리티
     // 이유: 12곳(h1 5·h2 3·마이크로 라벨 4)이 이런 임의값이거나 서로 다른 크기로
     //       갈려 있었다(2026-09-16 조사). 토큰 CSS(packages/ui/src/styles/tokens.css)에 역할 토큰(screen-title 등)과
@@ -2029,6 +2034,7 @@ export default [
       'custom-tailwind/no-raw-color': 'error',
       'custom-tailwind/no-raw-text-size': 'error',
       'custom-tailwind/no-raw-motion': 'error',
+      'custom-tailwind/no-raw-shadow': 'error',
       'custom-tailwind/no-raw-title': 'error',
       'custom-tailwind/no-classname-template-literal': 'error',
     },

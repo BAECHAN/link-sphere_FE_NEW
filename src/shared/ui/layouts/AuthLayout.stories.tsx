@@ -23,7 +23,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
   render: () => (
     <AuthLayout>
-      <div className="bg-white rounded-lg shadow-sm p-8 space-y-4">
+      <div className="bg-white rounded-lg shadow-s2 p-8 space-y-4">
         <h2 className="text-2xl font-bold text-center">로그인</h2>
         <div className="space-y-2">
           <Label htmlFor="email">이메일</Label>
@@ -42,7 +42,7 @@ export const Default: Story = {
 export const WithCard: Story = {
   render: () => (
     <AuthLayout>
-      <div className="bg-white rounded-lg shadow-sm p-8 text-center space-y-4">
+      <div className="bg-white rounded-lg shadow-s2 p-8 text-center space-y-4">
         <h2 className="text-2xl font-bold">회원가입</h2>
         <p className="text-muted-foreground">계정을 만들어 Link Sphere를 시작하세요.</p>
         <Button className="w-full">Google로 시작하기</Button>

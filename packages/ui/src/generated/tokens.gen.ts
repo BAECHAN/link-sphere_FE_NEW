@@ -12,7 +12,8 @@ export type TokenGroup =
   | 'line-height'
   | 'text'
   | 'duration'
-  | 'timing-function';
+  | 'timing-function'
+  | 'shadow';
 
 export interface DesignToken {
   /** 원본에서의 경로(점으로 이음) */
@@ -81,6 +82,11 @@ export const TOKEN_GROUPS = [
     id: 'timing-function',
     description:
       '가속 곡선. 부품은 ease-<이름> 클래스로 쓴다(Tailwind 기본 이름 ease-in·ease-out·ease-in-out·ease-linear과 대괄호 값은 린트가 막는다). 이름은 당근(SEED)의 easing·enter를 따랐고 값은 지금 화면 값 그대로라 당근 값과 다르다(당근 easing은 0.35, 0, 0.35, 1). 곡선 클래스 없이 transition만 붙인 곳은 Tailwind 기본 곡선이 easing을 가리켜 같은 값을 쓴다. tw-animate-css의 animate-in·animate-out은 곡선 클래스가 없으면 이 토큰이 아니라 CSS 기본 ease를 쓴다.',
+  },
+  {
+    id: 'shadow',
+    description:
+      '그림자 4단계. 부품은 shadow-<이름> 클래스로 쓴다(Tailwind 기본 이름이나 대괄호 값을 쓰면 린트가 막는다. 그림자를 없애는 shadow-none은 그대로 쓴다). 이름은 당근(SEED)처럼 깊이 순서 번호이고(s1이 가장 얕다), 값은 지금 화면에서 쓰던 Tailwind 기본 그림자 네 단계(xs, sm, md, lg)를 그대로 옮겼다(2026-11-26 게이트 2). 한 그림자가 층 여러 개로 이루어질 수 있다. 색은 팔레트를 가리키지 않고 검정에 투명도를 붙여 숫자로 적는다(당근도 그림자 색을 값으로 적는다). 다크 모드 값은 따로 두지 않는다.',
   },
 ] as const satisfies readonly {
   id: TokenGroup;
@@ -1635,6 +1641,62 @@ export const TOKENS = [
       '아래에서 올라오는 시트와 그 딤. vaul이 드로어와 딤에 함께 쓰는 값이다(고른 근거: docs/DECISIONS.md 2026-11-03)',
     darkDescription: null,
   },
+  {
+    id: 'shadow.s1',
+    group: 'shadow',
+    name: 's1',
+    part: null,
+    cssVar: '--shadow-s1',
+    value: '0px 1px 2px 0px oklch(0 0 0 / 5%)',
+    resolved: '0px 1px 2px 0px oklch(0 0 0 / 5%)',
+    darkValue: null,
+    darkResolved: '0px 1px 2px 0px oklch(0 0 0 / 5%)',
+    description:
+      '바탕에 붙은 조작 부품: 입력칸, 여러 줄 입력칸, 선택 상자 버튼, 체크박스, 스위치, 외곽선 버튼',
+    darkDescription: null,
+  },
+  {
+    id: 'shadow.s2',
+    group: 'shadow',
+    name: 's2',
+    part: null,
+    cssVar: '--shadow-s2',
+    value: '0px 1px 3px 0px oklch(0 0 0 / 10%), 0px 1px 2px -1px oklch(0 0 0 / 10%)',
+    resolved: '0px 1px 3px 0px oklch(0 0 0 / 10%), 0px 1px 2px -1px oklch(0 0 0 / 10%)',
+    darkValue: null,
+    darkResolved: '0px 1px 3px 0px oklch(0 0 0 / 10%), 0px 1px 2px -1px oklch(0 0 0 / 10%)',
+    description:
+      '바탕에서 조금 뜬 면: 카드, 선택된 필터 칩, 게시글의 링크 미리보기, 첨부 이미지 미리보기의 삭제 버튼, 목록을 다시 불러올 때의 안내',
+    darkDescription: null,
+  },
+  {
+    id: 'shadow.s3',
+    group: 'shadow',
+    name: 's3',
+    part: null,
+    cssVar: '--shadow-s3',
+    value: '0px 4px 6px -1px oklch(0 0 0 / 10%), 0px 2px 4px -2px oklch(0 0 0 / 10%)',
+    resolved: '0px 4px 6px -1px oklch(0 0 0 / 10%), 0px 2px 4px -2px oklch(0 0 0 / 10%)',
+    darkValue: null,
+    darkResolved: '0px 4px 6px -1px oklch(0 0 0 / 10%), 0px 2px 4px -2px oklch(0 0 0 / 10%)',
+    description:
+      '펼친 목록(드롭다운 하위 메뉴, 선택 상자 목록, 최근 검색어)과 마우스를 올린 카드(검색 필터, 내 댓글, 링크 미리보기)',
+    darkDescription: null,
+  },
+  {
+    id: 'shadow.s4',
+    group: 'shadow',
+    name: 's4',
+    part: null,
+    cssVar: '--shadow-s4',
+    value: '0px 10px 15px -3px oklch(0 0 0 / 10%), 0px 4px 6px -4px oklch(0 0 0 / 10%)',
+    resolved: '0px 10px 15px -3px oklch(0 0 0 / 10%), 0px 4px 6px -4px oklch(0 0 0 / 10%)',
+    darkValue: null,
+    darkResolved: '0px 10px 15px -3px oklch(0 0 0 / 10%), 0px 4px 6px -4px oklch(0 0 0 / 10%)',
+    description:
+      '화면 위에 떠 있는 것: 대화상자, 확인 창, 드롭다운 메뉴, 알림, 맨 위로 버튼, 모바일 댓글 입력, 인증 화면의 카드, 스위치 손잡이. 피드 카드에 마우스를 올리거나 카드 메뉴를 열었을 때',
+    darkDescription: null,
+  },
 ] as const satisfies readonly DesignToken[];
 
 /** 글자 크기를 정하는 토큰 이름. cn()이 이 이름들을 글자 색이 아니라 글자 크기로 알아야 한다(lib/tailwind/utils.ts) */
@@ -1666,6 +1728,9 @@ export const TEXT_SIZE_TOKEN_NAMES = [
 /** 시간·곡선 토큰 이름. cn()이 duration-<이름>, ease-<이름>을 같은 묶음으로 알아야 뒤에 온 클래스가 앞의 것을 덮는다 */
 export const DURATION_TOKEN_NAMES = ['d3', 'd4', 'd6', 'd12', 'color-transition'] as const;
 export const EASE_TOKEN_NAMES = ['easing', 'enter', 'sheet'] as const;
+
+/** 그림자 토큰 이름. cn()이 shadow-<이름>을 그림자 색이 아니라 그림자로 알아야 한다(lib/tailwind/utils.ts) */
+export const SHADOW_TOKEN_NAMES = ['s1', 's2', 's3', 's4'] as const;
 
 /** 시간 토큰의 밀리초 값. CSS 전환이 끝나기를 기다리는 JS 타이머가 읽는다(같은 시간을 숫자로 따로 적지 않으려고) */
 export const DURATION_MS = {

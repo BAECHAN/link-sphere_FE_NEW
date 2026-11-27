@@ -35,7 +35,7 @@ export function MyCommentCard({ comment }: MyCommentCardProps) {
       onMouseEnter={handlePrefetchDetailWithComments}
       onFocus={handlePrefetchDetailWithComments}
     >
-      <Card className="p-3 gap-2 hover:shadow-md transition-shadow">
+      <Card className="p-3 gap-2 hover:shadow-s3 transition-shadow">
         <p
           className={cn(
             'text-sm leading-relaxed line-clamp-3',

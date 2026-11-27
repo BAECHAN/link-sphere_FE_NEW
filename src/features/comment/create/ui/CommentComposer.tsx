@@ -45,7 +45,7 @@ const CommentComposerSession = forwardRef(function CommentComposerSession(
               ? [
                   // md:hidden을 붙이지 않는다 - 넓어진 것을 CSS는 바로 알고 React(useIsMobile)는 한 박자 늦게 알아,
                   // 그사이 시트가 숨으면 브라우저가 입력칸의 포커스를 뺀다. 어느 배치로 그릴지는 isMobile 하나만 정한다
-                  'fixed inset-x-0 bottom-0 z-scrim border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-lg',
+                  'fixed inset-x-0 bottom-0 z-scrim border-t bg-background p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-s4',
                   SHEET_MAX_HEIGHT,
                   SHEET_TEXTAREA_MAX_HEIGHT,
                   isMobileSearchOpen && 'hidden',

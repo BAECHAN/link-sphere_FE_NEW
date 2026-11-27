@@ -13,7 +13,8 @@
         { "$ref": "line-height.tokens.json" },
         { "$ref": "text.tokens.json" },
         { "$ref": "duration.tokens.json" },
-        { "$ref": "timing-function.tokens.json" }
+        { "$ref": "timing-function.tokens.json" },
+        { "$ref": "shadow.tokens.json" }
       ]
     }
   },

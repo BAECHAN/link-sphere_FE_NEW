@@ -33,7 +33,7 @@ describe('SheetDialogContent', () => {
     const { panel, overlay } = renderSheet(false);
 
     expect(panel.sort().join(' ')).toBe(
-      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-d4 fixed flex flex-col gap-0 left-[50%] max-h-[calc(100dvh-2rem)] max-w-sm overflow-hidden p-0 shadow-lg sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
+      'bg-background border data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 duration-d4 fixed flex flex-col gap-0 left-[50%] max-h-[calc(100dvh-2rem)] max-w-sm overflow-hidden p-0 shadow-s4 sm:rounded-lg top-[50%] translate-x-[-50%] translate-y-[-50%] w-full z-modal'
     );
     expect(overlay).toContain('bg-scrim/80');
   });

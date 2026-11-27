@@ -125,6 +125,13 @@
   --default-transition-timing-function: var(--ease-easing);
 }
 
+@theme static {
+  --shadow-s1: 0px 1px 2px 0px oklch(0 0 0 / 5%);
+  --shadow-s2: 0px 1px 3px 0px oklch(0 0 0 / 10%), 0px 1px 2px -1px oklch(0 0 0 / 10%);
+  --shadow-s3: 0px 4px 6px -1px oklch(0 0 0 / 10%), 0px 2px 4px -2px oklch(0 0 0 / 10%);
+  --shadow-s4: 0px 10px 15px -3px oklch(0 0 0 / 10%), 0px 4px 6px -4px oklch(0 0 0 / 10%);
+}
+
 :root {
   --palette-white: oklch(1 0 0);
   --palette-gray-50: oklch(0.985 0 0);

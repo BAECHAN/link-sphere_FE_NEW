@@ -1,0 +1,78 @@
+{
+  "shadow": {
+    "$description": "그림자 4단계. 부품은 shadow-<이름> 클래스로 쓴다(Tailwind 기본 이름이나 대괄호 값을 쓰면 린트가 막는다. 그림자를 없애는 shadow-none은 그대로 쓴다). 이름은 당근(SEED)처럼 깊이 순서 번호이고(s1이 가장 얕다), 값은 지금 화면에서 쓰던 Tailwind 기본 그림자 네 단계(xs, sm, md, lg)를 그대로 옮겼다(2026-11-26 게이트 2). 한 그림자가 층 여러 개로 이루어질 수 있다. 색은 팔레트를 가리키지 않고 검정에 투명도를 붙여 숫자로 적는다(당근도 그림자 색을 값으로 적는다). 다크 모드 값은 따로 두지 않는다.",
+    "s1": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.05 },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 1, "unit": "px" },
+          "blur": { "value": 2, "unit": "px" },
+          "spread": { "value": 0, "unit": "px" }
+        }
+      ],
+      "$description": "바탕에 붙은 조작 부품: 입력칸, 여러 줄 입력칸, 선택 상자 버튼, 체크박스, 스위치, 외곽선 버튼"
+    },
+    "s2": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 1, "unit": "px" },
+          "blur": { "value": 3, "unit": "px" },
+          "spread": { "value": 0, "unit": "px" }
+        },
+        {
+          "color": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 1, "unit": "px" },
+          "blur": { "value": 2, "unit": "px" },
+          "spread": { "value": -1, "unit": "px" }
+        }
+      ],
+      "$description": "바탕에서 조금 뜬 면: 카드, 선택된 필터 칩, 게시글의 링크 미리보기, 첨부 이미지 미리보기의 삭제 버튼, 목록을 다시 불러올 때의 안내"
+    },
+    "s3": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 4, "unit": "px" },
+          "blur": { "value": 6, "unit": "px" },
+          "spread": { "value": -1, "unit": "px" }
+        },
+        {
+          "color": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 2, "unit": "px" },
+          "blur": { "value": 4, "unit": "px" },
+          "spread": { "value": -2, "unit": "px" }
+        }
+      ],
+      "$description": "펼친 목록(드롭다운 하위 메뉴, 선택 상자 목록, 최근 검색어)과 마우스를 올린 카드(검색 필터, 내 댓글, 링크 미리보기)"
+    },
+    "s4": {
+      "$type": "shadow",
+      "$value": [
+        {
+          "color": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 10, "unit": "px" },
+          "blur": { "value": 15, "unit": "px" },
+          "spread": { "value": -3, "unit": "px" }
+        },
+        {
+          "color": { "colorSpace": "oklch", "components": [0, 0, 0], "alpha": 0.1 },
+          "offsetX": { "value": 0, "unit": "px" },
+          "offsetY": { "value": 4, "unit": "px" },
+          "blur": { "value": 6, "unit": "px" },
+          "spread": { "value": -4, "unit": "px" }
+        }
+      ],
+      "$description": "화면 위에 떠 있는 것: 대화상자, 확인 창, 드롭다운 메뉴, 알림, 맨 위로 버튼, 모바일 댓글 입력, 인증 화면의 카드, 스위치 손잡이. 피드 카드에 마우스를 올리거나 카드 메뉴를 열었을 때"
+    }
+  }
+}

@@ -23,7 +23,7 @@ export function PostListFilter() {
   } = usePostListFilter();
 
   return (
-    <Card className="gap-2 md:gap-3 p-4 rounded-2xl hover:shadow-md transition-shadow">
+    <Card className="gap-2 md:gap-3 p-4 rounded-2xl hover:shadow-s3 transition-shadow">
       <div
         role="group"
         aria-label={TEXTS.ariaLabels.postCategoryFilters}

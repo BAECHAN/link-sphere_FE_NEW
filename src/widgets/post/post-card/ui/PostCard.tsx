@@ -92,7 +92,7 @@ export const PostCard = memo(function PostCard({
 
   return (
     <Card
-      className="relative flex flex-col overflow-hidden hover-or-open:shadow-lg hover-or-open:-translate-y-0.5 transition-[translate,box-shadow]"
+      className="relative flex flex-col overflow-hidden hover-or-open:shadow-s4 hover-or-open:-translate-y-0.5 transition-[translate,box-shadow]"
       aria-busy={isUpdating}
     >
       {isUpdating && (
@@ -277,7 +277,7 @@ export const PostCard = memo(function PostCard({
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            'block group rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow mt-1',
+            'block group rounded-lg overflow-hidden shadow-s2 hover:shadow-s3 transition-shadow mt-1',
             raisedClassName
           )}
         >

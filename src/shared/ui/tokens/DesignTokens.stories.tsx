@@ -317,6 +317,29 @@ function MotionCatalog() {
   );
 }
 
+// 그림자 토큰. 값과 쓰임 설명은 원본에서 읽는다. 그림자가 잘 보이도록 카드 색 상자를 바탕 위에 띄운다
+const SHADOW_TOKENS = TOKENS.filter((token) => token.group === 'shadow');
+
+function ShadowCatalog() {
+  return (
+    <div className="flex flex-col gap-6 bg-background p-6">
+      {SHADOW_TOKENS.map(({ name, cssVar, value, description }) => (
+        <div key={name} className="flex items-center gap-6">
+          <div
+            className="h-16 w-24 shrink-0 rounded-lg bg-card"
+            style={{ boxShadow: `var(${cssVar})` }}
+          />
+          <div className="flex flex-col gap-1">
+            <code className="text-xs text-muted-foreground">shadow-{name}</code>
+            <code className="text-xs">{value}</code>
+            <span className="text-sm">{description}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const meta = {
   title: 'Shared/UI/Tokens/DesignTokens',
   tags: ['autodocs'],
@@ -348,4 +371,8 @@ export const RoleTokens: Story = {
 
 export const Motion: Story = {
   render: () => <MotionCatalog />,
+};
+
+export const Shadow: Story = {
+  render: () => <ShadowCatalog />,
 };

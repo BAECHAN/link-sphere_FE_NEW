@@ -68,7 +68,7 @@ export function BackToTopButton() {
       <Button
         size="icon"
         onClick={scrollToTop}
-        className="rounded-full h-12 w-12 shadow-lg bg-primary hover:bg-primary/90 transition-all active:scale-95"
+        className="rounded-full h-12 w-12 shadow-s4 bg-primary hover:bg-primary/90 transition-all active:scale-95"
         aria-label={uiTexts.backToTopButton.label}
       >
         <ArrowUp className="h-6 w-6" />

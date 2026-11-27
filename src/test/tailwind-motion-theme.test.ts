@@ -1,43 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { compile } from 'tailwindcss';
 import { describe, expect, it } from 'vitest';
 import { TOKENS } from '@baechan/ui/tokens';
+import { buildTokenCss as buildCss, ruleBody } from '@/test/tailwind-compile';
 
 // 시간·곡선 토큰은 Tailwind 테마 키(--transition-duration-*, --ease-*)로 내보내 duration-<이름>, ease-<이름> 클래스가 되게 한다.
 // duration이 --transition-duration을 읽는 것은 Tailwind 공식 문서의 테마 이름 표에 없고 설치본 코드(4.3.5 dist/lib.js)에만 있는
 // 동작이라, Tailwind를 올렸을 때 조용히 바뀌면 여기서 실패하게 한다(docs/plans/2026-11-24-design-tokens-stage2.md 결과 블록의
 // PR 1 약속). 생성된 토큰 CSS를 설치된 Tailwind로 실제로 컴파일해 본다
-const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
-const stylesDir = join(repoRoot, 'packages/ui/src/styles');
-const require = createRequire(import.meta.url);
-
-async function buildCss(candidates: string[]) {
-  const input = [
-    "@import 'tailwindcss/theme.css' layer(theme);",
-    "@import 'tailwindcss/utilities.css' layer(utilities);",
-    "@import './tokens.gen.css';",
-  ].join('\n');
-  const compiler = await compile(input, {
-    base: stylesDir,
-    loadStylesheet: async (id, base) => {
-      const path = id.startsWith('.') ? join(base, id) : require.resolve(id);
-
-      return { path, base: dirname(path), content: readFileSync(path, 'utf8') };
-    },
-  });
-
-  return compiler.build(candidates);
-}
-
-/** `.<클래스> { ... }` 규칙의 선언 본문. 규칙이 만들어지지 않았으면 null */
-function ruleBody(css: string, className: string) {
-  const escaped = className.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-  return new RegExp(`\\.${escaped} \\{([^}]*)\\}`).exec(css)?.[1] ?? null;
-}
 
 const durationTokens = TOKENS.filter((token) => token.group === 'duration').map(
   ({ name, cssVar }) => [name, cssVar]
