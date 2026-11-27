@@ -13,7 +13,8 @@ export type TokenGroup =
   | 'text'
   | 'duration'
   | 'timing-function'
-  | 'shadow';
+  | 'shadow'
+  | 'spacing';
 
 export interface DesignToken {
   /** 원본에서의 경로(점으로 이음) */
@@ -87,6 +88,11 @@ export const TOKEN_GROUPS = [
     id: 'shadow',
     description:
       '그림자 4단계. 부품은 shadow-<이름> 클래스로 쓴다(Tailwind 기본 이름이나 대괄호 값을 쓰면 린트가 막는다. 그림자를 없애는 shadow-none은 그대로 쓴다). 이름은 당근(SEED)처럼 깊이 순서 번호이고(s1이 가장 얕다), 값은 지금 화면에서 쓰던 Tailwind 기본 그림자 네 단계(xs, sm, md, lg)를 그대로 옮겼다(2026-11-26 게이트 2). 한 그림자가 층 여러 개로 이루어질 수 있다. 색은 팔레트를 가리키지 않고 검정에 투명도를 붙여 숫자로 적는다(당근도 그림자 색을 값으로 적는다). 다크 모드 값은 따로 두지 않는다.',
+  },
+  {
+    id: 'spacing',
+    description:
+      '역할 간격. 숫자로 고르는 간격은 Tailwind 눈금(--spacing의 배수)을 그대로 쓰고, 같은 뜻으로 여러 곳에 되풀이되는 간격에만 이름을 붙인다(2026-11-26 게이트 2). 이름은 당근(SEED)의 역할 간격(dimension.yaml의 spacing-x, spacing-y 묶음)에서 따 왔다. 부품은 gap 클래스 뒤에 이름을 붙여 쓴다.',
   },
 ] as const satisfies readonly {
   id: TokenGroup;
@@ -1697,6 +1703,20 @@ export const TOKENS = [
       '화면 위에 떠 있는 것: 대화상자, 확인 창, 드롭다운 메뉴, 알림, 맨 위로 버튼, 모바일 댓글 입력, 인증 화면의 카드, 스위치 손잡이. 피드 카드에 마우스를 올리거나 카드 메뉴를 열었을 때',
     darkDescription: null,
   },
+  {
+    id: 'spacing.between-chips',
+    group: 'spacing',
+    name: 'between-chips',
+    part: null,
+    cssVar: '--spacing-between-chips',
+    value: '0.5rem',
+    resolved: '0.5rem',
+    darkValue: null,
+    darkResolved: '0.5rem',
+    description:
+      '칩 사이 간격. 칩이 줄을 바꿔 쌓일 때 위아래 간격도 같다. 쓰는 곳: 피드 카드의 카테고리 칩 줄과 태그 줄, 그 카드를 불러오는 동안 보이는 골격의 칩 자리, 피드 위 필터의 카테고리 칩 줄과 범위 칩 줄. 값은 옮기기 전에 쓰던 숫자 간격(눈금 2칸, 0.5rem)과 같다. 당근은 가로 간격(spacing-x)으로만 8px을 두지만 우리 칩 줄은 줄바꿈이 있어 가로세로를 함께 쓰고 이름에서 x를 뺐다.',
+    darkDescription: null,
+  },
 ] as const satisfies readonly DesignToken[];
 
 /** 글자 크기를 정하는 토큰 이름. cn()이 이 이름들을 글자 색이 아니라 글자 크기로 알아야 한다(lib/tailwind/utils.ts) */
@@ -1731,6 +1751,9 @@ export const EASE_TOKEN_NAMES = ['easing', 'enter', 'sheet'] as const;
 
 /** 그림자 토큰 이름. cn()이 shadow-<이름>을 그림자 색이 아니라 그림자로 알아야 한다(lib/tailwind/utils.ts) */
 export const SHADOW_TOKEN_NAMES = ['s1', 's2', 's3', 's4'] as const;
+
+/** 역할 간격 토큰 이름. cn()이 gap-<이름>을 간격으로 알아야 앞의 숫자 간격을 덮는다(lib/tailwind/utils.ts) */
+export const SPACING_TOKEN_NAMES = ['between-chips'] as const;
 
 /** 시간 토큰의 밀리초 값. CSS 전환이 끝나기를 기다리는 JS 타이머가 읽는다(같은 시간을 숫자로 따로 적지 않으려고) */
 export const DURATION_MS = {

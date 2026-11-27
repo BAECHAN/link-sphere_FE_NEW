@@ -40,7 +40,7 @@ export const Active: Story = {
 
 export const ActiveVariants: Story = {
   render: () => (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap gap-between-chips">
       <FilterChip
         label="카테고리"
         isActive

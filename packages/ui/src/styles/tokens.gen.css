@@ -132,6 +132,10 @@
   --shadow-s4: 0px 10px 15px -3px oklch(0 0 0 / 10%), 0px 4px 6px -4px oklch(0 0 0 / 10%);
 }
 
+@theme static {
+  --spacing-between-chips: 0.5rem;
+}
+
 :root {
   --palette-white: oklch(1 0 0);
   --palette-gray-50: oklch(0.985 0 0);

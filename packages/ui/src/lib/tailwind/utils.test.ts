@@ -94,3 +94,22 @@ describe('cn()의 그림자 토큰 병합', () => {
     expect(cn('shadow-none', `shadow-${token}`)).toBe(`shadow-${token}`);
   });
 });
+
+// 위와 같은 이유로 cn()이 읽는 목록(SPACING_TOKEN_NAMES)이 아니라 전체 목록에서 고른다
+const spacingTokens = TOKENS.filter((token) => token.group === 'spacing').map(
+  (token) => token.name
+);
+// 숫자 간격 클래스는 조각을 이어 만든다. 글자 그대로 적으면 예제 앱의 Tailwind가 이 파일에서 찾아 쓰지 않는 규칙을 만든다
+const numericGap = (step: number) => ['gap', step].join('-');
+
+describe('cn()의 역할 간격 토큰 병합', () => {
+  it('토큰 목록에서 역할 간격 토큰을 읽어 온다', () => {
+    expect(spacingTokens).toEqual(['between-chips']);
+  });
+
+  // 등록을 빠뜨리면 tailwind-merge 3.7.0은 간격을 px과 숫자로만 알아 gap-<이름>을 간격으로 보지 않고, 앞의 숫자 간격과 둘 다 남긴다
+  it.each(spacingTokens)('gap-%s와 숫자 간격은 뒤에 온 쪽만 남는다', (token) => {
+    expect(cn(numericGap(2), `gap-${token}`)).toBe(`gap-${token}`);
+    expect(cn(`gap-${token}`, numericGap(3))).toBe(numericGap(3));
+  });
+});

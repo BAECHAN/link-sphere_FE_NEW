@@ -15,7 +15,7 @@ paths: src/**/*.tsx
 
 Tailwind v4 CSS 변수 기반 테마. **하드코딩 색상 클래스 사용 금지** — 아래 의미론적 클래스를 사용한다.
 
-토큰은 두 파일에 나뉜다. 색·반경·z-index·글자 크기·시간·곡선·다크 변형·기본 커서·동작 줄이기처럼 어느 앱에서나 쓰는 것은 공용
+토큰은 두 파일에 나뉜다. 색·반경·z-index·글자 크기·시간·곡선·그림자·역할 간격·다크 변형·기본 커서·동작 줄이기처럼 어느 앱에서나 쓰는 것은 공용
 UI 패키지의 토큰 CSS(`packages/ui/src/styles/tokens.css`)에 있고, 카테고리·사이드바·차트 색과 `hover-or-open`·
 `--navbar-height`처럼 이 앱에 묶인 것은 `src/app/globals.css`에 있다. 새 토큰도 같은 기준으로 둔다(기준:
 `docs/DESIGN-SYSTEM-PRINCIPLES.md` §1.5).
@@ -99,6 +99,17 @@ skill에 있다.
 전체 목록과 값은 [토큰 표 "그림자"](../../../docs/DESIGN-TOKENS.md#그림자)에, Storybook `Shared/UI/Tokens/DesignTokens`
 스토리의 `Shadow`에서 네 단계를 나란히 볼 수 있다. 다크 모드 값은 따로 없다(라이트와 같은 값). 부품이 그림자를 갖고 쓰는 쪽이
 `shadow-none`을 넘겨 지우는 것은 `cn()`이 처리한다. 새 단계가 필요하면 `docs/DESIGN-SYSTEM.md` §8 "그림자 단계 더하기"를 따른다.
+
+### 역할 간격 토큰
+
+간격은 대부분 Tailwind 숫자 눈금(`gap-2`·`p-4`처럼 `--spacing`의 배수)을 그대로 쓴다. 같은 뜻으로 여러 곳에 되풀이되는
+간격에만 이름이 있고, 지금은 칩 사이 간격 `gap-between-chips` 하나다(2026-11-27). 칩(필터 칩, 동작 칩, 태그 배지)을
+한 줄에 늘어놓는 상자에는 숫자 대신 이 클래스를 쓴다. 칩이 줄을 바꿔 쌓일 때 위아래 간격도 같은 값이다.
+
+간격은 린트로 막지 않는다 — 칩 줄에 숫자 간격을 써도 검사가 잡지 못하니 고를 때 직접 본다. 값과 쓰는 곳은
+[토큰 표 "역할 간격"](../../../docs/DESIGN-TOKENS.md#역할-간격)에, Storybook `Shared/UI/Tokens/DesignTokens` 스토리의
+`Spacing`에서 견본을 볼 수 있다. 쓰는 쪽이 넘긴 숫자 간격이 이 클래스를 덮는 것은 `cn()`이 처리한다. 새 역할 간격이 필요하면
+`docs/DESIGN-SYSTEM.md` §8 "역할 간격 더하기"를 따른다.
 
 ### 타이포그래피 토큰
 

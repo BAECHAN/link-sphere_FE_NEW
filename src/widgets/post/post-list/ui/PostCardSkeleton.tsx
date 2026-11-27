@@ -32,7 +32,7 @@ function PostCardSkeleton() {
           </div>
         </div>
 
-        <div className="flex gap-2 flex-wrap mt-3">
+        <div className="flex gap-between-chips flex-wrap mt-3">
           <Skeleton className="h-5 w-14 rounded-full" />
           <Skeleton className="h-5 w-10 rounded-full" />
         </div>
