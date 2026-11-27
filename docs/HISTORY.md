@@ -1,4 +1,7 @@
 ### 2026-11-27 (FE)
+- 이슈 답변 내 다중 라인 텍스트 파싱 로직 개선 ([#700](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/700))
+
+### 2026-11-27 (FE)
 - UI 레이아웃 일관성 강화를 위해 칩 사이 간격을 역할 간격 토큰 기반으로 리팩터링 ([#699](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/699))
 
 ### 2026-11-27 (FE)
