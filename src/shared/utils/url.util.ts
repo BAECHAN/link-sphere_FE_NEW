@@ -33,6 +33,28 @@ export class UrlUtil {
   }
 
   /**
+   * 앱의 "링크 복사"가 URL 앞에 글자를 붙여 준 공유 문구(예: 네이버 지도 `알배기 독막로3길 35 2층 https://naver.me/…`)에서
+   * 첫 http(s) URL과 나머지 글자를 나눈다. 나머지 글자는 공백을 한 칸으로 줄인다.
+   * http(s)://로 시작하는 값은 나누지 않고 null을 준다 - 공백 낀 URL은 지금처럼 normalizeUrl이 `%20`으로 바꾼다.
+   * 대소문자는 post.schema.ts의 URL 검증(`/^https?:\/\//`)과 같게 소문자만 본다.
+   */
+  static splitSharedText(input: string): { url: string; text: string } | null {
+    if (/^https?:\/\//.test(input.trim())) {
+      return null;
+    }
+
+    const match = /https?:\/\/\S+/.exec(input);
+
+    if (!match) {
+      return null;
+    }
+
+    const rest = input.slice(0, match.index) + ' ' + input.slice(match.index + match[0].length);
+
+    return { url: match[0], text: rest.replace(/\s+/g, ' ').trim() };
+  }
+
+  /**
    * 사용자가 붙여넣은 URL의 공백을 서버가 받을 수 있는 형태로 정리한다.
    * BE SafeUrlValidator의 java.net.URI는 RFC 2396 엄격 파서라 생 공백을 거부하는 반면
    * FE zod .url() (WHATWG)은 통과시켜, 검증을 통과한 URL이 400으로 떨어지는 불일치가 있었다.

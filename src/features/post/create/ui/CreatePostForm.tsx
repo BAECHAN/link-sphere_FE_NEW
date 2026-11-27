@@ -31,8 +31,16 @@ interface CreatePostFormProps {
 }
 
 export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
-  const { form, onSubmit, isCreating, submitError, linkPreview, titleValue, submitButtonRef } =
-    useCreatePost();
+  const {
+    form,
+    onSubmit,
+    isCreating,
+    submitError,
+    linkPreview,
+    titleValue,
+    urlSplitNotice,
+    submitButtonRef,
+  } = useCreatePost();
   const { categoryOptionList } = useCategoryOptions();
   const barRef = useRef<HTMLDivElement>(null);
 
@@ -110,6 +118,7 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
                 name="url"
                 label="URL"
                 placeholder={TEXTS.post.form.create.urlPlaceholder}
+                description={urlSplitNotice}
                 autoComplete="off"
                 inputMode="url"
                 autoFocus

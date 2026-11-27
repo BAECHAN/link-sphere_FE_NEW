@@ -29,6 +29,7 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
     titleValue,
     showUrlChangedNotice,
     showTitleClearedNotice,
+    urlSplitNotice,
     submitButtonRef,
   } = useUpdatePost(postId);
   const { categoryOptionList } = useCategoryOptions();
@@ -57,8 +58,10 @@ export function UpdatePostForm({ postId }: UpdatePostFormProps) {
                 name="url"
                 label={TEXTS.post.form.update.urlLabel}
                 placeholder={TEXTS.post.form.update.urlPlaceholder}
+                // 공유 문구를 나눴으면 그 안내가 먼저다 - 제목을 앞 글자로 채우면 "제목을 다시 가져와요"가 맞지 않는다
                 description={
-                  showUrlChangedNotice ? TEXTS.post.form.update.urlChangedNotice : undefined
+                  urlSplitNotice ??
+                  (showUrlChangedNotice ? TEXTS.post.form.update.urlChangedNotice : undefined)
                 }
                 autoComplete="off"
                 inputMode="url"
