@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Badge } from '@/shared/ui/atoms/badge';
 import { Button } from '@baechan/ui/atoms/button';
 import { cn } from '@baechan/ui/lib/tailwind/utils';
-import { TOKENS } from '@baechan/ui/tokens';
+import { COMPONENT_TOKEN_GROUPS, TOKEN_GROUPS, TOKENS } from '@baechan/ui/tokens';
 
 // 이 파일은 단일 컴포넌트가 아니라 디자인 토큰(범용 토큰은 공용 UI 패키지의 packages/ui/tokens/ 원본,
 // 앱 전용 토큰은 src/app/globals.css)을 한눈에 보여주는 카탈로그다. 값을 복제하지 않고 CSS 커스텀 프로퍼티 원본 이름(var(--primary) 등, `var(--${token})`)을
@@ -437,6 +437,64 @@ function SpacingCatalog() {
   );
 }
 
+// 부품 토큰. 부품마다 원본에서 만든 목록을 표로 보인다. 부품 토큰은 CSS 변수로 나가지 않고 레시피의 클래스로 굳으므로
+// 견본은 그 토큰이 가리키는 CSS 값(value)으로 칠한다. 지금 테마의 값이고, 라이트·다크 칸은 끝까지 푼 값이다
+function isColorValue(token: DesignToken) {
+  return token.resolved.startsWith('oklch');
+}
+
+function ComponentTokensCatalog() {
+  return (
+    <div className="flex flex-col gap-8 bg-bg-layer-basement p-4">
+      {COMPONENT_TOKEN_GROUPS.map((group) => (
+        <section key={group} className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold">{group}</h3>
+          <p className="text-xs text-fg-neutral-muted">
+            {TOKEN_GROUPS.find((candidate) => candidate.id === group)?.description}
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-fg-neutral-muted">
+                <tr>
+                  <th className="py-1 pr-4 font-medium">토큰</th>
+                  <th className="py-1 pr-4 font-medium">견본</th>
+                  <th className="py-1 pr-4 font-medium">라이트</th>
+                  <th className="py-1 pr-4 font-medium">다크</th>
+                  <th className="py-1 font-medium">설명</th>
+                </tr>
+              </thead>
+              <tbody>
+                {TOKENS.filter((token) => token.group === group).map((token) => (
+                  <tr key={token.id} className="border-t border-stroke-neutral-weak align-top">
+                    <td className="py-1 pr-4">
+                      <code>{token.id.slice(group.length + 1)}</code>
+                    </td>
+                    <td className="py-1 pr-4">
+                      {isColorValue(token) && (
+                        <div
+                          className="size-6 rounded-sm border border-stroke-neutral-weak"
+                          style={{ background: token.value }}
+                        />
+                      )}
+                    </td>
+                    <td className="py-1 pr-4">
+                      <code>{token.resolved}</code>
+                    </td>
+                    <td className="py-1 pr-4">
+                      <code>{token.darkResolved}</code>
+                    </td>
+                    <td className="py-1">{token.description ?? token.darkDescription}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 const meta = {
   title: 'Shared/UI/Tokens/DesignTokens',
   tags: ['autodocs'],
@@ -476,4 +534,8 @@ export const Shadow: Story = {
 
 export const Spacing: Story = {
   render: () => <SpacingCatalog />,
+};
+
+export const ComponentTokens: Story = {
+  render: () => <ComponentTokensCatalog />,
 };

@@ -25,7 +25,7 @@
 //     값이 다른 옛 이름 포함)을 가리킨다(2026-11-28 게이트 4, assertComponentsUseSemantic).
 //   - 다크의 별칭: 다크 파일에 없는 별칭도 가리키는 토큰이 다크에서 바뀌면 .dark에 같은 값을 한 번 더 적는다. CSS 변수 안의
 //     var()는 그 변수를 적은 요소에서 풀려, :root에만 적으면 안쪽 요소에 붙은 .dark를 따르지 못한다.
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -47,11 +47,17 @@ const TAILWIND_DEFAULTS = [
   { cssVar: '--default-transition-duration', token: 'duration.color-transition' },
   { cssVar: '--default-transition-timing-function', token: 'timing-function.easing' },
 ];
-// 부품 토큰 축(tokens/components/<이름>.tokens.json의 맨 위 그룹). CSS 변수를 만들지 않고 src/recipes/<이름>.recipe.gen.ts에
-// Tailwind 클래스로 굳힌다(당근식, 2026-11-28 게이트 4). 레시피는 Tailwind가 훑는 곳이어야 해서 src/generated에 두지 않는다
-const COMPONENTS = ['button'];
+// 부품 토큰 축. 모드 파일에 등록한 components/<이름>.tokens.json마다 하나이고, 맨 위 그룹 이름이 파일 이름과 같다
+// (assertComponentFiles). CSS 변수를 만들지 않고 src/recipes/<부품 파일 이름>.recipe.gen.ts에 Tailwind 클래스로 굳힌다
+// (당근식, 2026-11-28 게이트 4). 레시피는 Tailwind가 훑는 곳이어야 해서 src/generated에 두지 않는다
+const COMPONENT_DIR = 'components';
+const COMPONENTS = readFileLists()
+  .base.filter((file) => file.startsWith(`${COMPONENT_DIR}/`))
+  .map((file) => basename(file, '.tokens.json'));
 const RECIPE_DIR = join(PACKAGE_ROOT, 'src/recipes');
-// 별칭에 투명도를 붙이는 확장. DTCG 2025.10에는 "별칭 + 투명도" 꼴이 없다
+// 부품 토큰의 한 부위 아래 칸. 부위가 여럿인 부품은 <부품>.<부위>.<칸>, 하나뿐인 부품은 <부품>.<칸>이다(2026-11-28 Phase 5b)
+const RECIPE_SECTIONS = ['base', 'variant', 'size'];
+// 이 패키지의 확장. 별칭에 붙이는 투명도(DTCG 2025.10에는 "별칭 + 투명도" 꼴이 없다)와 부품 그룹의 레시피 파일 이름을 적는다
 const ALPHA_EXTENSION = 'baechan.ui';
 // 토큰 모델에서 부품 레시피만 읽고 TS 생성물에는 싣지 않는 칸
 const RECIPE_ONLY_FIELDS = ['raw', 'reference', 'alpha', 'dark', 'type'];
@@ -369,6 +375,31 @@ function assertShadcnUsesColor(tree) {
   }
 }
 
+/**
+ * 부품 토큰 파일이 모드 파일에 모두 등록됐는지, 파일마다 맨 위 그룹이 파일 이름 하나뿐인지 본다. 등록을 빠뜨린 파일은
+ * 레시피가 만들어지지 않고, 다크 파일만 빠뜨리면 다크 값이 조용히 라이트 값이 된다.
+ */
+function assertComponentFiles(files) {
+  const registered = new Set([...files.base, ...files.dark]);
+
+  for (const name of readdirSync(join(TOKENS_DIR, COMPONENT_DIR))) {
+    const file = `${COMPONENT_DIR}/${name}`;
+
+    if (name.endsWith('.tokens.json') && !registered.has(file)) {
+      fail(file, 'tokens.resolver.json에 등록되지 않은 부품 토큰 파일이다');
+    }
+  }
+
+  for (const file of files.base.filter((candidate) => candidate.startsWith(`${COMPONENT_DIR}/`))) {
+    const groups = Object.keys(readJson(file)).filter((key) => !key.startsWith('$'));
+    const name = basename(file, '.tokens.json');
+
+    if (groups.length !== 1 || groups[0] !== name) {
+      fail(file, `맨 위 그룹은 파일 이름과 같은 ${name} 하나다(받은 그룹: ${groups.join(', ')})`);
+    }
+  }
+}
+
 /** 부품 토큰의 색이 의미 색이나 옛 shadcn 이름을 가리키는지 본다. 팔레트를 바로 가리키거나 값을 직접 적으면 멈춘다. */
 function assertComponentsUseSemantic(tree) {
   for (const [id, token] of listTokens(tree)) {
@@ -460,6 +491,8 @@ async function buildModel() {
   const files = readFileLists();
   const lightTree = {};
 
+  assertComponentFiles(files);
+
   for (const file of files.base) {
     addToTree(lightTree, readJson(file), { override: false, file });
   }
@@ -514,8 +547,13 @@ async function buildModel() {
     id,
     description: group.$description ?? null,
   }));
+  // 레시피 파일 이름은 부품 파일 이름과 같다. 부품 파일이 PascalCase(FormField.tsx)면 그룹의 확장에 적는다
+  // (의존성 규칙이 파일 이름으로 짝을 짓는다, .dependency-cruiser.cjs). 적지 않으면 그룹 이름이다
+  const recipeFiles = Object.fromEntries(
+    COMPONENTS.map((id) => [id, lightTree[id].$extensions?.[ALPHA_EXTENSION]?.file ?? id])
+  );
 
-  return { tokens, groups };
+  return { tokens, groups, recipeFiles };
 }
 
 function renderCss({ tokens }) {
@@ -672,6 +710,9 @@ export const SPACING_TOKEN_NAMES = ${json(spacingNames)} as const;
 
 /** 시간 토큰의 밀리초 값. CSS 전환이 끝나기를 기다리는 JS 타이머가 읽는다(같은 시간을 숫자로 따로 적지 않으려고) */
 export const DURATION_MS = ${json(durationMs)} as const;
+
+/** 부품 토큰 축(tokens/components/). 카탈로그 스토리와 토큰 표 문서가 부품마다 표를 만든다 */
+export const COMPONENT_TOKEN_GROUPS = ${json(COMPONENTS)} as const satisfies readonly TokenGroup[];
 `;
 }
 
@@ -738,24 +779,52 @@ function toStaticClass(token, { dark }) {
   return `${prefixes}${rule.utility}${suffix === null ? '' : `-${suffix}`}`;
 }
 
-/** 부품 레시피 파일. base는 문자열, variant·size는 이름별 문자열이다. */
+/** 부위 하나의 칸(base, variant, size)에 토큰 하나의 클래스를 더한다. base는 목록, variant·size는 이름별 목록이다. */
+function addToSection(slot, token, [section, ...rest]) {
+  if (!RECIPE_SECTIONS.includes(section)) {
+    fail(
+      token.id,
+      `부위 아래 칸은 ${RECIPE_SECTIONS.join(', ')} 가운데 하나다(받은 칸: ${section})`
+    );
+  }
+
+  const classes = [toStaticClass(token, { dark: false })];
+
+  if (token.dark !== null) {
+    classes.push(toStaticClass(token, { dark: true }));
+  }
+
+  if (section === 'base') {
+    slot[section] = [...(slot[section] ?? []), ...classes];
+  } else {
+    const key = rest[0];
+
+    slot[section] ??= {};
+    slot[section][key] = [...(slot[section][key] ?? []), ...classes];
+  }
+}
+
+/**
+ * 부품 레시피 파일. 부위가 하나뿐인 부품은 { base, variant, size }, 부위가 여럿인 부품은 부위마다 그 묶음이다
+ * (당근 부품 명세의 slots와 같은 단위, 2026-11-28 Phase 5b). base는 문자열, variant·size는 이름별 문자열이다.
+ */
 function renderRecipe(component, tokens) {
+  const own = tokens.filter((candidate) => candidate.group === component);
+  const isSlotted = !RECIPE_SECTIONS.includes(own[0].id.split('.')[1]);
   const recipe = {};
 
-  for (const token of tokens.filter((candidate) => candidate.group === component)) {
-    const [, section, ...rest] = token.id.split('.');
-    const key = section === 'base' ? null : rest[0];
-    const classes = [toStaticClass(token, { dark: false })];
+  for (const token of own) {
+    const [, first, ...rest] = token.id.split('.');
 
-    if (token.dark !== null) {
-      classes.push(toStaticClass(token, { dark: true }));
+    if (RECIPE_SECTIONS.includes(first) === isSlotted) {
+      fail(token.id, '한 부품의 토큰은 모두 부위 아래에 있거나 모두 부위 없이 있다');
     }
 
-    if (key === null) {
-      recipe[section] = [...(recipe[section] ?? []), ...classes];
+    if (isSlotted) {
+      recipe[first] ??= {};
+      addToSection(recipe[first], token, rest);
     } else {
-      recipe[section] ??= {};
-      recipe[section][key] = [...(recipe[section][key] ?? []), ...classes];
+      addToSection(recipe, token, [first, ...rest]);
     }
   }
 
@@ -763,7 +832,11 @@ function renderRecipe(component, tokens) {
     Array.isArray(value)
       ? value.join(' ')
       : Object.fromEntries(Object.entries(value).map(([key, list]) => [key, list.join(' ')]));
-  const body = Object.fromEntries(Object.entries(recipe).map(([key, value]) => [key, join(value)]));
+  const joinSlot = (slot) =>
+    Object.fromEntries(Object.entries(slot).map(([key, value]) => [key, join(value)]));
+  const body = isSlotted
+    ? Object.fromEntries(Object.entries(recipe).map(([name, slot]) => [name, joinSlot(slot)]))
+    : joinSlot(recipe);
   const constName = `${component.toUpperCase().replaceAll('-', '_')}_RECIPE`;
 
   return `${GENERATED_NOTICE.map((text) => `// ${text}`).join('\n')}
@@ -783,7 +856,7 @@ writeFileSync(TS_OUT, renderTs(model));
 
 for (const component of COMPONENTS) {
   writeFileSync(
-    join(RECIPE_DIR, `${component}.recipe.gen.ts`),
+    join(RECIPE_DIR, `${model.recipeFiles[component]}.recipe.gen.ts`),
     renderRecipe(component, model.tokens)
   );
 }

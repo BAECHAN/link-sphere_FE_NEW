@@ -31,7 +31,8 @@ import { Tooltip, TooltipProvider, TooltipTrigger } from '@baechan/ui/atoms/tool
 // 공용 UI 부품이 ref·className·나머지 속성을 어디로 넘기는지 고정한다(docs/DESIGN-SYSTEM-PRINCIPLES.md §1.4).
 // - atoms: 폴더를 훑어 내보낸 부품을 모두 그린다. 표에 적지 않은 새 부품도 단독으로 그려 검사한다.
 // - elements·layouts: 부품마다 약속을 표에 적는다. 표에 없는 부품이 생기면 실패한다.
-// 이 파일의 두 표가 부품별 계약의 정본이다 - 문서에는 옮겨 적지 않는다.
+// - 부품 토큰: 부품 파일마다 자기 레시피를 읽거나, 읽지 않는 이유를 표에 적는다.
+// 이 파일의 표들이 부품별 계약의 정본이다 - 문서에는 옮겨 적지 않는다.
 
 const MARKER_CLASS = 'api-contract-class';
 const MARKER_ATTRIBUTE = 'data-api-contract';
@@ -472,4 +473,130 @@ describe('elements·layouts의 API 계약', () => {
       expect(actual).toEqual(fixed);
     }
   );
+});
+
+// ───────────────────────────── 부품 토큰 ─────────────────────────────
+
+const PENDING_PHASE_5B = 'Phase 5b에서 옮긴다(docs/plans/2026-11-28-design-tokens-phase5b.md)';
+
+/**
+ * 자기 레시피(packages/ui/src/recipes/<파일 이름>.recipe.gen.ts)를 읽지 않는 부품 파일과 그 이유. 키는 확장자를 뺀
+ * 파일 이름이다. 다른 공용 부품을 감싸 덧칠만 하거나 배치만 하는 부품은 토큰 파일 없이 여기에 이유를 적는다
+ * (docs/DESIGN-SYSTEM.md §5 "부품 토큰"). 레시피를 읽게 되면 줄을 지운다 - 남겨 두면 실패한다.
+ */
+const COMPONENT_TOKENS_OUTSIDE: Record<string, string> = {
+  // atoms
+  'alert-dialog': PENDING_PHASE_5B,
+  avatar: PENDING_PHASE_5B,
+  badge: PENDING_PHASE_5B,
+  card: PENDING_PHASE_5B,
+  checkbox: PENDING_PHASE_5B,
+  dialog: PENDING_PHASE_5B,
+  divider: PENDING_PHASE_5B,
+  'dropdown-menu': PENDING_PHASE_5B,
+  'featured-icon': PENDING_PHASE_5B,
+  input: PENDING_PHASE_5B,
+  kbd: PENDING_PHASE_5B,
+  label: PENDING_PHASE_5B,
+  'labeled-divider': PENDING_PHASE_5B,
+  'link-thumbnail': PENDING_PHASE_5B,
+  'required-mark': PENDING_PHASE_5B,
+  select: PENDING_PHASE_5B,
+  skeleton: PENDING_PHASE_5B,
+  sonner: PENDING_PHASE_5B,
+  spinner: PENDING_PHASE_5B,
+  switch: PENDING_PHASE_5B,
+  textarea: PENDING_PHASE_5B,
+  tooltip: PENDING_PHASE_5B,
+  // elements·layouts
+  ActionButton: PENDING_PHASE_5B,
+  ActionChip: PENDING_PHASE_5B,
+  AppErrorFallback: PENDING_PHASE_5B,
+  AsyncBoundary: PENDING_PHASE_5B,
+  AuthLayout: PENDING_PHASE_5B,
+  BackToTopButton: PENDING_PHASE_5B,
+  CenteredSpinner: PENDING_PHASE_5B,
+  CharacterCount: PENDING_PHASE_5B,
+  DelayedFallback: PENDING_PHASE_5B,
+  DropTargetOverlay: PENDING_PHASE_5B,
+  EditButton: PENDING_PHASE_5B,
+  EmptyState: PENDING_PHASE_5B,
+  ErrorLayout: PENDING_PHASE_5B,
+  ErrorState: PENDING_PHASE_5B,
+  FilterChip: PENDING_PHASE_5B,
+  FormAlert: PENDING_PHASE_5B,
+  FormCheckbox: PENDING_PHASE_5B,
+  FormCheckboxGroup: PENDING_PHASE_5B,
+  FormField: PENDING_PHASE_5B,
+  FormInput: PENDING_PHASE_5B,
+  FormInputPassword: PENDING_PHASE_5B,
+  GlobalAlertDialogs: PENDING_PHASE_5B,
+  GlobalImageViewer: PENDING_PHASE_5B,
+  ImageAttachmentButton: PENDING_PHASE_5B,
+  ImageAttachmentPreviews: PENDING_PHASE_5B,
+  ImageViewer: PENDING_PHASE_5B,
+  KebabMenu: PENDING_PHASE_5B,
+  LoadMoreError: PENDING_PHASE_5B,
+  MarkdownContent: PENDING_PHASE_5B,
+  PasswordInput: PENDING_PHASE_5B,
+  RelativeTime: PENDING_PHASE_5B,
+  RouteAlertDialogs: PENDING_PHASE_5B,
+  SearchInput: PENDING_PHASE_5B,
+  SheetDialogContent: PENDING_PHASE_5B,
+  ToggleButton: PENDING_PHASE_5B,
+  TooltipWrapper: PENDING_PHASE_5B,
+};
+
+const COMPONENT_FILES = import.meta.glob<string>(
+  [
+    './atoms/*.tsx',
+    './elements/**/*.tsx',
+    './layouts/**/*.tsx',
+    '../../../packages/ui/src/atoms/*.tsx',
+    '../../../packages/ui/src/elements/**/*.tsx',
+    '!./**/*.stories.tsx',
+    '!./**/*.test.tsx',
+    '!../../../packages/ui/src/**/*.stories.tsx',
+    '!../../../packages/ui/src/**/*.test.tsx',
+  ],
+  { eager: true, query: '?raw', import: 'default' }
+);
+
+/** 부품 파일의 소스. 키는 확장자를 뺀 파일 이름이다(겹치지 않는지 아래 테스트가 본다) */
+const COMPONENT_SOURCES = new Map(
+  Object.entries(COMPONENT_FILES).map(([path, source]) => [
+    path
+      .split('/')
+      .at(-1)
+      ?.replace(/[.]tsx$/, '') ?? path,
+    source,
+  ])
+);
+
+function readsOwnRecipe(name: string, source: string) {
+  return source.includes(`/recipes/${name}.recipe.gen'`);
+}
+
+describe('부품 토큰', () => {
+  it('부품 파일 이름이 겹치지 않는다', () => {
+    expect(COMPONENT_SOURCES.size).toBe(Object.keys(COMPONENT_FILES).length);
+  });
+
+  it('부품 파일마다 자기 레시피를 읽거나 이유 표에 이유가 있다', () => {
+    const missing = [...COMPONENT_SOURCES].filter(
+      ([name, source]) => !readsOwnRecipe(name, source) && !(name in COMPONENT_TOKENS_OUTSIDE)
+    );
+
+    expect(missing.map(([name]) => name)).toEqual([]);
+  });
+
+  it('이유 표에는 레시피를 읽지 않는 실제 부품 파일만 있다', () => {
+    const stale = Object.keys(COMPONENT_TOKENS_OUTSIDE).filter((name) => {
+      const source = COMPONENT_SOURCES.get(name);
+
+      return source === undefined || readsOwnRecipe(name, source);
+    });
+
+    expect(stale).toEqual([]);
+  });
 });

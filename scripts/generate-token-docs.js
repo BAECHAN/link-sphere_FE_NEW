@@ -12,7 +12,11 @@ import { fileURLToPath } from 'url';
 
 import * as prettier from 'prettier';
 
-import { TOKEN_GROUPS, TOKENS } from '../packages/ui/src/generated/tokens.gen.ts';
+import {
+  COMPONENT_TOKEN_GROUPS,
+  TOKEN_GROUPS,
+  TOKENS,
+} from '../packages/ui/src/generated/tokens.gen.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
@@ -23,7 +27,10 @@ const SAME_AS_LIGHT = '라이트와 같음';
 // 의미 색 이름의 첫 마디(종류)마다 대표 클래스 접두사. 종류는 2026-11-27 게이트 3의 fg·bg·stroke다
 const CLASS_PREFIX_BY_KIND = { fg: 'text-', bg: 'bg-', stroke: 'border-' };
 
-/** 문서의 절. 축(원본의 맨 위 그룹)이 여기 없으면 실패한다 - 축을 더하면 어떤 표로 보일지 정해야 한다. */
+/**
+ * 문서의 절. 축(원본의 맨 위 그룹)이 여기 없으면 실패한다 - 축을 더하면 어떤 표로 보일지 정해야 한다.
+ * 부품 토큰은 부품마다 절 하나를 생성 목록(COMPONENT_TOKEN_GROUPS)에서 만든다.
+ */
 const SECTIONS = [
   { title: '팔레트', groups: ['palette'], render: renderPaletteTable },
   { title: '의미 색', groups: ['color'], render: renderSemanticColorTable },
@@ -60,7 +67,11 @@ const SECTIONS = [
     groups: ['spacing'],
     render: (tokens) => renderSingleValueTable(tokens, 'gap-'),
   },
-  { title: '부품 토큰: Button', groups: ['button'], render: renderComponentTable },
+  ...COMPONENT_TOKEN_GROUPS.map((group) => ({
+    title: `부품 토큰: ${group}`,
+    groups: [group],
+    render: renderComponentTable,
+  })),
 ];
 
 function code(text) {
