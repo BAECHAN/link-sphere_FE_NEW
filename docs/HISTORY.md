@@ -1,3 +1,6 @@
+### 2026-11-28 (FE)
+- 버튼 컴포넌트의 색상 및 크기 스타일을 부품 토큰화하고 클래스 기반으로 구조화하여 스타일 관리의 일관성과 유지보수성 향상 ([#705](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/705))
+
 ### 2026-11-27 (FE)
 - UI 디자인 시스템 내 의미 색상 체계 재구성 및 명칭 변경
   - 당근 색상 명칭을 정식 도입하고, 기존 shadcn 기반의 명칭을 별칭으로 전환하여 네이밍 일관성 확보 ([#702](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/702))
