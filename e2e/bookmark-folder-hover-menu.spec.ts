@@ -54,7 +54,7 @@ test.describe('북마크 폴더 행 hover 유지 — 드롭다운이 열려 있�
     await menuItem.hover();
 
     // 커서가 행 DOM 밖(Portal)에 있어도 hover-or-open이 aria-expanded=true를 보고
-    // hover:bg-accent를 유지해야 한다 — base(hover 전) 배경과 달라야 한다.
+    // hover:bg-bg-transparent-pressed를 유지해야 한다 — base(hover 전) 배경과 달라야 한다.
     const hoveredColor = await row.evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(hoveredColor).not.toBe(baseColor);
   });

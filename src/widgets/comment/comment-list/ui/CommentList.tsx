@@ -96,11 +96,18 @@ function CommentListContent({ postId, postAuthorId, commentCount }: CommentListP
         'transition-[background-color,box-shadow]',
         'ease-enter',
       ];
-      target.classList.add(...highlightClasses, 'duration-d4', 'bg-accent', 'ring-accent');
+      target.classList.add(
+        ...highlightClasses,
+        'duration-d4',
+        'bg-bg-transparent-pressed',
+        // eslint-disable-next-line custom-tailwind/semantic-color-kind -- 링은 선이 아니라 배경을 8px 넓혀 칠하는 용도라 배경 색과 같아야 한다
+        'ring-bg-transparent-pressed'
+      );
       setTimeout(() => {
         target.classList.replace('duration-d4', 'duration-d12');
-        target.classList.replace('ring-accent', 'ring-transparent');
-        target.classList.remove('bg-accent');
+        // eslint-disable-next-line custom-tailwind/semantic-color-kind -- 위와 같은 링(배경을 넓혀 칠함)
+        target.classList.replace('ring-bg-transparent-pressed', 'ring-transparent');
+        target.classList.remove('bg-bg-transparent-pressed');
         setTimeout(() => {
           target.classList.remove(...highlightClasses, 'duration-d12', 'ring-transparent');
         }, DURATION_MS.d12);
@@ -139,7 +146,7 @@ function CommentListContent({ postId, postAuthorId, commentCount }: CommentListP
         <div className="scroll-mt-(--navbar-height)" ref={formContainerRef}>
           <h2 className="text-section-title">
             {TEXTS.comment.list.heading}
-            <span className="ml-1.5 text-muted-foreground">{headingCount}</span>
+            <span className="ml-1.5 text-fg-neutral-muted">{headingCount}</span>
           </h2>
           {/*
            * 폭과 상관없이 이 한 자리에 그린다 - 넓으면 인라인 폼, 좁으면 화면 아래에 뜨는 바·시트다. 폭마다 다른

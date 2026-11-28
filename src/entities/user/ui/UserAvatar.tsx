@@ -65,7 +65,7 @@ export function UserAvatar({
   const transformedSrc = getTransformedImageUrl(image, { width: transformSizes[size] });
 
   const avatar = (
-    <Avatar className={cn('bg-muted', sizeClasses[size], className)}>
+    <Avatar className={cn('bg-bg-neutral-muted', sizeClasses[size], className)}>
       {image && !hasError && (
         <AvatarImage
           src={isTransformFailed ? image : transformedSrc}

@@ -38,7 +38,7 @@ export function PostListFilter() {
               name={category.value}
               label={`@${category.label}`}
               isActive={isSelected}
-              activeClassName="bg-primary text-primary-foreground"
+              activeClassName="bg-bg-brand-solid text-fg-on-brand-solid"
               onClick={() => toggleCategoryTagInSearch(category)}
             />
           );
@@ -53,21 +53,21 @@ export function PostListFilter() {
         <FilterChip
           label={TEXTS.buttons.bookmarkOnly}
           isActive={isClickedBookmark}
-          activeClassName="bg-warning text-warning-foreground"
+          activeClassName="bg-bg-warning-solid text-fg-on-warning-solid"
           onClick={() => handleToggleFilter('isBookmarked')}
         />
 
         <FilterChip
           label={TEXTS.buttons.likedOnly}
           isActive={isClickedLiked}
-          activeClassName="bg-destructive text-destructive-foreground"
+          activeClassName="bg-bg-critical-solid text-fg-on-critical-solid"
           onClick={() => handleToggleFilter('isLiked')}
         />
 
         <FilterChip
           label={TEXTS.buttons.myPosts}
           isActive={isClickedMyPosts}
-          activeClassName="bg-info text-info-foreground"
+          activeClassName="bg-bg-informative-solid text-fg-on-informative-solid"
           onClick={() => handleToggleFilter('isMyPosts')}
         />
 
@@ -88,14 +88,14 @@ export function PostListFilter() {
             맞춰 text-xs로 통일(기존 text-sm은 이 카드에서 유일하게 튀어 보였음). */}
         <label
           htmlFor="hide-bots-switch"
-          className="inline-flex items-center gap-2 min-h-7 cursor-pointer select-none text-xs text-muted-foreground"
+          className="inline-flex items-center gap-2 min-h-7 cursor-pointer select-none text-xs text-fg-neutral-muted"
         >
           <span>{TEXTS.buttons.hideBots}</span>
           <Switch id="hide-bots-switch" checked={hideBots} onCheckedChange={handleToggleHideBots} />
         </label>
 
         <div className="flex items-center gap-2">
-          <span aria-live="polite" className="text-xs text-muted-foreground">
+          <span aria-live="polite" className="text-xs text-fg-neutral-muted">
             {appliedCount > 0 ? TEXTS.post.search.appliedCount(appliedCount) : ''}
           </span>
           <Button
@@ -103,7 +103,7 @@ export function PostListFilter() {
             variant="ghost"
             size="sm"
             onClick={handleClearSearch}
-            className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive gap-1"
+            className="h-8 px-2 text-xs text-fg-neutral-muted hover:text-fg-critical gap-1"
           >
             <RotateCcw className="h-3 w-3" />
             {TEXTS.buttons.reset}

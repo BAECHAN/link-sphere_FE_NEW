@@ -180,11 +180,11 @@ describe('PostListFilter — 외부 변경 동기화', () => {
     renderSearch('/?filter=isBookmarked', '/');
 
     const chip = screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly });
-    expect(chip).not.toHaveClass('bg-warning');
+    expect(chip).not.toHaveClass('bg-bg-warning-solid');
 
     await user.click(screen.getByRole('button', { name: 'test-back' }));
 
-    await waitFor(() => expect(chip).toHaveClass('bg-warning'));
+    await waitFor(() => expect(chip).toHaveClass('bg-bg-warning-solid'));
   });
 
   it('뒤로가기로 URL의 @카테고리가 바뀌면 카테고리 칩도 따라간다', async () => {
@@ -192,11 +192,11 @@ describe('PostListFilter — 외부 변경 동기화', () => {
     renderSearch('/?q=%40%EB%B0%B1%EC%97%94%EB%93%9C', '/');
 
     const chip = await screen.findByRole('button', { name: '@백엔드' });
-    expect(chip).not.toHaveClass('bg-primary');
+    expect(chip).not.toHaveClass('bg-bg-brand-solid');
 
     await user.click(screen.getByRole('button', { name: 'test-back' }));
 
-    await waitFor(() => expect(chip).toHaveClass('bg-primary'));
+    await waitFor(() => expect(chip).toHaveClass('bg-bg-brand-solid'));
   });
 
   it('봇 글 숨기기 설정이 바깥에서 바뀌면 스위치도 따라간다', async () => {

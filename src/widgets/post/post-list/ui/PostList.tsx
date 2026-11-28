@@ -68,14 +68,14 @@ export function PostList({ renderPost, grid }: PostListProps) {
           형태. 문구는 카드 글자 위에 겹치지 않게 알약에 담고, 긴 목록을 내려 보고 있어도 보이도록
           navbar 바로 아래에 붙여 따라오게 한다(BookmarkPage 폴더 패널과 같은 top, docs/SEARCH.md §5) */}
       {isApplying && (
-        <div className="z-raised bg-background/60 animate-in fade-in duration-d4 [grid-area:1/1]">
+        <div className="z-raised bg-bg-layer-basement/60 animate-in fade-in duration-d4 [grid-area:1/1]">
           <div
             role="status"
             className="sticky top-[calc(var(--navbar-height)+1rem)] flex justify-center pt-6"
           >
-            <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 shadow-s2">
-              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin text-muted-foreground" />
-              <span className="text-sm font-medium text-muted-foreground">
+            <span className="inline-flex items-center gap-2 rounded-full border bg-bg-layer-default px-3 py-1.5 shadow-s2">
+              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin text-fg-neutral-muted" />
+              <span className="text-sm font-medium text-fg-neutral-muted">
                 {TEXTS.post.search.applying}
               </span>
             </span>
@@ -92,14 +92,14 @@ interface PostListLoginNoticeProps {
 
 function PostListLoginNotice({ onSignIn }: PostListLoginNoticeProps) {
   return (
-    <EmptyState className="border rounded-lg bg-muted/10 px-4">
+    <EmptyState className="border rounded-lg bg-bg-neutral-muted/10 px-4">
       <div className="flex flex-col items-center gap-4">
-        <span className="inline-flex items-center justify-center rounded-full bg-muted p-3">
+        <span className="inline-flex items-center justify-center rounded-full bg-bg-neutral-muted p-3">
           <Lock aria-hidden="true" className="size-6" />
         </span>
 
         <div className="flex flex-col items-center gap-1">
-          <h2 className="text-section-title text-foreground">
+          <h2 className="text-section-title text-fg-neutral">
             {TEXTS.post.list.loginRequired.title}
           </h2>
           <p className="text-sm">{TEXTS.post.list.loginRequired.description}</p>
@@ -132,7 +132,7 @@ function PostListContent({ renderPost, grid }: PostListProps) {
 
   // 좋아요가 많아 서버가 최근 것만 보고 걸렀을 때의 안내. 결과가 없을 때도 "왜 없는지"의 단서라 빈 목록 위에 함께 둔다
   const likedFilterNotice = likedFilterLimit !== null && (
-    <div className="text-sm text-muted-foreground text-center mb-6">
+    <div className="text-sm text-fg-neutral-muted text-center mb-6">
       {TEXTS.post.search.likedFilterLimited(likedFilterLimit)}
     </div>
   );
@@ -142,7 +142,7 @@ function PostListContent({ renderPost, grid }: PostListProps) {
       <>
         {likedFilterNotice}
 
-        <EmptyState className="border rounded-lg bg-muted/10">
+        <EmptyState className="border rounded-lg bg-bg-neutral-muted/10">
           {TEXTS.messages.info.noPosts}
         </EmptyState>
       </>
@@ -157,7 +157,7 @@ function PostListContent({ renderPost, grid }: PostListProps) {
       {likedFilterNotice}
 
       {correctedSearch && (
-        <div className="text-sm text-muted-foreground text-center mb-6">
+        <div className="text-sm text-fg-neutral-muted text-center mb-6">
           {TEXTS.post.search.corrected(correctedSearch)}
         </div>
       )}
@@ -172,7 +172,7 @@ function PostListContent({ renderPost, grid }: PostListProps) {
       >
         {(pullDistance > 0 || isRefetching) && (
           <Spinner
-            className={cn('size-6 text-primary', isRefetching ? 'animate-spin' : 'animate-none')}
+            className={cn('size-6 text-fg-brand', isRefetching ? 'animate-spin' : 'animate-none')}
             style={
               isRefetching
                 ? { marginBottom: 10 }
@@ -221,7 +221,7 @@ function PostListContent({ renderPost, grid }: PostListProps) {
 
       {isFetchingNextPage && (
         <div className="flex justify-center p-4 mt-6">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <Loader2 className="size-6 animate-spin text-fg-neutral-muted" />
         </div>
       )}
       {isNextPageFailed && <LoadMoreError className="mt-6" onRetry={retryNextPage} />}

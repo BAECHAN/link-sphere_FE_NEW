@@ -25,10 +25,10 @@ export function RecentSearchPanel({
     // as={Slot}이라 별도 wrapper DOM이 안 생기고, 이 div 자신이 스크롤 영역이자 잠금
     // 경계라 shards는 필요 없다.
     <RemoveScroll as={Slot} allowPinchZoom>
-      <div className="md:hidden fixed inset-x-0 top-16 bottom-0 z-panel bg-background overflow-y-auto">
+      <div className="md:hidden fixed inset-x-0 top-16 bottom-0 z-panel bg-bg-layer-basement overflow-y-auto">
         <div className="flex flex-col pb-16">
           <div className="flex items-center justify-between px-4 py-3">
-            <span className="text-group-label text-muted-foreground">
+            <span className="text-group-label text-fg-neutral-muted">
               {TEXTS.recentSearch.title}
             </span>
             {recentSearches.length > 0 && (
@@ -36,7 +36,7 @@ export function RecentSearchPanel({
                 variant="ghost"
                 size="sm"
                 onClick={onClearAll}
-                className="h-8 px-2 text-xs text-muted-foreground"
+                className="h-8 px-2 text-xs text-fg-neutral-muted"
               >
                 {TEXTS.recentSearch.clearAll}
               </Button>
@@ -48,7 +48,10 @@ export function RecentSearchPanel({
           ) : (
             <ul>
               {recentSearches.map((query) => (
-                <li key={query} className="flex items-center gap-2 px-4 py-3 hover:bg-accent">
+                <li
+                  key={query}
+                  className="flex items-center gap-2 px-4 py-3 hover:bg-bg-transparent-pressed"
+                >
                   <Button
                     type="button"
                     variant="none"
@@ -61,7 +64,7 @@ export function RecentSearchPanel({
                     type="button"
                     variant="ghost"
                     onClick={() => onRemove(query)}
-                    className="h-auto w-auto shrink-0 p-1 text-muted-foreground"
+                    className="h-auto w-auto shrink-0 p-1 text-fg-neutral-muted"
                   >
                     <XIcon className="size-4" />
                     <span className="sr-only">{TEXTS.recentSearch.removeItem}</span>

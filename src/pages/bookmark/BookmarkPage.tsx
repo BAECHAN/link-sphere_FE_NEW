@@ -122,11 +122,11 @@ export function BookmarkPage() {
                   className="relative w-11 min-h-11 -mr-1.5 shrink-0 justify-center border-transparent bg-transparent px-0 shadow-none group-has-[[data-renaming]]/header:hidden dark:bg-transparent"
                   aria-label={TEXTS.ariaLabels.bookmarkSortSelectCurrent(SORT_LABELS[sort])}
                 >
-                  <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+                  <ArrowUpDown className="h-4 w-4 text-fg-neutral-muted" />
                   {sort !== 'latest' && (
                     <span
                       aria-hidden="true"
-                      className="absolute top-[9px] right-[11px] size-[7px] rounded-full bg-primary"
+                      className="absolute top-[9px] right-[11px] size-[7px] rounded-full bg-bg-brand-solid"
                     />
                   )}
                 </SelectTrigger>

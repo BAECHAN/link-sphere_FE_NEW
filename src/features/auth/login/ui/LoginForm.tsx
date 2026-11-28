@@ -41,7 +41,7 @@ export const LoginForm = ({ onInputDirtyChange }: LoginFormProps = {}) => {
           <FormCheckbox name="saveEmail" label={TEXTS.ariaLabels.saveEmail} disabled={isPending} />
           <Link
             to={ROUTES_PATHS.AUTH.FORGOT_PASSWORD}
-            className="text-sm text-primary hover:underline"
+            className="text-sm text-fg-brand hover:underline"
           >
             {TEXTS.auth.login.forgotPassword}
           </Link>
@@ -50,9 +50,9 @@ export const LoginForm = ({ onInputDirtyChange }: LoginFormProps = {}) => {
           {isPending ? TEXTS.auth.login.signingIn : TEXTS.auth.login.signIn}
         </Button>
       </form>
-      <div className="mt-4 text-center text-sm text-muted-foreground">
+      <div className="mt-4 text-center text-sm text-fg-neutral-muted">
         {`${TEXTS.auth.login.noAccount} `}
-        <Link to={ROUTES_PATHS.AUTH.SIGNUP} className="text-primary hover:underline font-medium">
+        <Link to={ROUTES_PATHS.AUTH.SIGNUP} className="text-fg-brand hover:underline font-medium">
           {TEXTS.auth.login.signUp}
         </Link>
       </div>

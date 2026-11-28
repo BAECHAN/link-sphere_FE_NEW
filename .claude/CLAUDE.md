@@ -118,8 +118,9 @@
   실패한다(`pnpm test`). 버튼을 감싼 부품은 `{...props}`를 먼저 펼치고 스스로 정하는 속성을 그 뒤에 적는다. 정한 이유와
   테스트가 못 보는 것은 같은 문서 §1.4
 - **Never** 하드코딩 색상 (`text-red-500`, `bg-green-500` 등) → 항상 토큰 CSS(`packages/ui/src/styles/tokens.css`)·`globals.css` 디자인 토큰 기반 Tailwind 클래스 사용
-  (`text-destructive`, `bg-success`, `text-warning` 등). ESLint `custom-tailwind/no-raw-color`가 black/white/gray/zinc 등 명명 팔레트
-  리터럴 클래스를 pre-commit과 `pnpm check`에서 막는다(도입 경위: `docs/DESIGN-SYSTEM.md`)
+  (`text-fg-critical`, `bg-bg-positive-solid`, `text-fg-warning` 등). ESLint `custom-tailwind/no-raw-color`가 black/white/gray/zinc 등 명명 팔레트
+  리터럴 클래스를 pre-commit과 `pnpm check`에서 막는다(도입 경위: `docs/DESIGN-SYSTEM.md`). 앱 층(`src/shared` 밖)에서는 옛 shadcn
+  색 이름도 `custom-tailwind/no-legacy-color`가 막는다(2026-11-27, `design-tokens` skill)
 - **Never** 문자열을 이어 붙인 API 경로·손으로 적은 응답 타입(``apiClient.get<Post>(`${API_ENDPOINTS.post.base}/${id}`)``)
   → `*.api.ts`는 항상 `specClient`에 스펙 경로 템플릿을 쓴다(`specClient.get('/post/{id}', { path: { id } })`).
   없는 경로·메서드, 빠뜨린 경로 변수, 스펙과 다른 본문·응답 타입을 생성 스펙(`openapi.gen.ts`)이 컴파일 단계에서 막아
@@ -408,7 +409,7 @@ CLAUDE.md가 984줄까지 길어진 것을 계기로 이 절을 분리했다 —
 
 Tailwind v4 CSS 변수 기반 테마. 범용 토큰은 공용 UI 패키지의 토큰 CSS, 앱 전용 토큰(카테고리·사이드바 등)은 `globals.css`에
 있다. **하드코딩 색상 클래스 사용 금지** — 두 파일의 색 토큰
-기반 Tailwind 클래스(`text-destructive`, `bg-success` 등)를 쓴다. 토큰을 고르는 법,
+기반 Tailwind 클래스(`text-fg-critical`, `bg-bg-positive-solid` 등)를 쓴다. 토큰을 고르는 법,
 클릭 가능 요소의 전역 커서 규칙, 다크모드·폰트는 `design-tokens` skill
 (`.claude/skills/design-tokens/SKILL.md`)에 있다 — 컴포넌트를 스타일링할 때 그 skill을
 먼저 읽는다(2026-09-09, CLAUDE.md 길이 감사 후 이 절을 분리했다).

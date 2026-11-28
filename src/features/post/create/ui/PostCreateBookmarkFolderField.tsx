@@ -63,11 +63,11 @@ export function PostCreateBookmarkFolderField({
         className="w-full min-h-11 md:pointer-fine:min-h-0 justify-between font-normal"
       >
         <span
-          className={cn('truncate', !bookmark && folderIds.length === 0 && 'text-muted-foreground')}
+          className={cn('truncate', !bookmark && folderIds.length === 0 && 'text-fg-neutral-muted')}
         >
           {triggerText}
         </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <ChevronRight className="h-4 w-4 shrink-0 text-fg-neutral-muted" />
       </Button>
 
       {renderFolderSelect({

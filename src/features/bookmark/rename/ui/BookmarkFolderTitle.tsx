@@ -80,7 +80,7 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
             type="button"
             variant="ghost"
             size="sm"
-            className="size-11 shrink-0 px-0 text-muted-foreground md:w-auto md:px-3 md:text-foreground md:pointer-fine:h-9"
+            className="size-11 shrink-0 px-0 text-fg-neutral-muted md:w-auto md:px-3 md:text-fg-neutral md:pointer-fine:h-9"
             aria-label={TEXTS.buttons.cancel}
             // 누르는 순간 입력에서 포커스가 빠지면 blur 저장(submitRename)이 취소보다 먼저 나간다 —
             // 포커스 이동을 막는다(docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼")
@@ -112,7 +112,7 @@ function RenameableTitle({ folder, className, titleClassName }: RenameableTitleP
         {/* 글자 수는 입력 아래 줄 오른쪽 — 같은 줄은 14자 이름이 가려져 자리가 없다. 편집하는 동안 헤더가 한 줄
             커진다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "폴더 이름 글자 수"). 넘친 이유는 왼쪽에 둔다 */}
         <div className="flex items-start gap-2">
-          {nameError && <p className="min-w-0 flex-1 text-xs text-destructive">{nameError}</p>}
+          {nameError && <p className="min-w-0 flex-1 text-xs text-fg-critical">{nameError}</p>}
           <CharacterCount
             id={nameCountId}
             current={nameLength}

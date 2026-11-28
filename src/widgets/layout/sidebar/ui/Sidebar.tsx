@@ -71,17 +71,19 @@ function NavItem({
       replace={replace}
       onClick={handleClick}
       className={cn(
-        'flex items-center rounded-xl w-full select-none hover:bg-accent',
+        'flex items-center rounded-xl w-full select-none hover:bg-bg-transparent-pressed',
         expanded ? 'flex-row gap-3 px-4 py-3' : 'flex-col gap-1 justify-center py-3 px-2',
-        active && 'bg-accent'
+        active && 'bg-bg-transparent-pressed'
       )}
     >
-      <Icon className={cn('h-5 w-5 shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
+      <Icon
+        className={cn('h-5 w-5 shrink-0', active ? 'text-fg-brand' : 'text-fg-neutral-muted')}
+      />
       <span
         className={cn(
           'font-medium',
           expanded ? 'text-sm' : 'text-xs text-center leading-tight',
-          active ? 'text-primary' : 'text-muted-foreground'
+          active ? 'text-fg-brand' : 'text-fg-neutral-muted'
         )}
       >
         {label}
@@ -233,7 +235,7 @@ export function Sidebar() {
       {/* 데스크탑: 좌측 사이드바 */}
       <aside
         className={cn(
-          'hidden md:flex flex-col border-r bg-background shrink-0 sticky top-0 h-screen overflow-hidden',
+          'hidden md:flex flex-col border-r bg-bg-layer-basement shrink-0 sticky top-0 h-screen overflow-hidden',
           isOpen ? 'w-60' : 'w-20'
         )}
       >
@@ -249,7 +251,7 @@ export function Sidebar() {
       {isMobileOpen && (
         <RemoveScroll as={Slot} allowPinchZoom shards={[drawerRef]}>
           <div
-            className="md:hidden fixed inset-0 z-scrim bg-scrim/50"
+            className="md:hidden fixed inset-0 z-scrim bg-bg-overlay/50"
             onClick={close}
             aria-hidden="true"
           />
@@ -260,7 +262,7 @@ export function Sidebar() {
       <aside
         ref={drawerRef}
         className={cn(
-          'md:hidden fixed top-0 left-0 z-drawer h-full w-64 bg-background border-r flex flex-col',
+          'md:hidden fixed top-0 left-0 z-drawer h-full w-64 bg-bg-layer-basement border-r flex flex-col',
           'duration-d4',
           // invisible이라야 닫힌 메뉴가 키보드 이동·읽기 순서에서 빠진다. visibility를 트랜지션에 넣으면 닫는
           // 동안은 보이다 끝에 숨는다. 열 때는 트랜지션에서 빼야 바로 보여 위의 focus()가 통한다

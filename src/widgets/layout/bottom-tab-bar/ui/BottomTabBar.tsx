@@ -8,7 +8,7 @@ export function BottomTabBar() {
   const protectedNavigate = useProtectedNavigate();
 
   return (
-    <nav className="md:hidden fixed bottom-0 inset-x-0 z-nav border-t bg-background pb-[env(safe-area-inset-bottom)]">
+    <nav className="md:hidden fixed bottom-0 inset-x-0 z-nav border-t bg-bg-layer-basement pb-[env(safe-area-inset-bottom)]">
       <div className="flex h-16">
         {NAV_ITEMS.map(({ to, icon: Icon, label, isActive, requiresAuth }) => {
           const active = isActive(pathname);
@@ -26,14 +26,14 @@ export function BottomTabBar() {
               }
               className={cn(
                 'flex flex-1 flex-col items-center justify-center gap-1 select-none',
-                active && 'bg-accent'
+                active && 'bg-bg-transparent-pressed'
               )}
             >
-              <Icon className={cn('h-5 w-5', active ? 'text-primary' : 'text-muted-foreground')} />
+              <Icon className={cn('h-5 w-5', active ? 'text-fg-brand' : 'text-fg-neutral-muted')} />
               <span
                 className={cn(
                   'text-xs font-medium leading-tight',
-                  active ? 'text-primary' : 'text-muted-foreground'
+                  active ? 'text-fg-brand' : 'text-fg-neutral-muted'
                 )}
               >
                 {label}

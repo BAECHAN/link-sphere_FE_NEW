@@ -71,7 +71,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
         ref={containerRef}
         className={cn(
           'relative rounded-md transition-shadow duration-d6',
-          isDraggingOver && 'ring-2 ring-primary ring-offset-2'
+          isDraggingOver && 'ring-2 ring-stroke-brand-solid ring-offset-2'
         )}
       >
         {isDraggingOver && (
@@ -103,7 +103,7 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
       </div>
       <div className="flex items-start gap-2">
         {isOverLimit && (
-          <p className="min-w-0 flex-1 text-xs text-destructive">
+          <p className="min-w-0 flex-1 text-xs text-fg-critical">
             {TEXTS.validation.commentContentTooLong}
           </p>
         )}
@@ -116,27 +116,27 @@ export function CommentEditForm({ comment, postId, onCancel, onSuccess }: Commen
         />
       </div>
       {contentValue && (
-        <div className="rounded-md border bg-muted/30 p-3 text-sm">
-          <p className="text-xs text-muted-foreground mb-1.5">{TEXTS.comment.form.preview}</p>
+        <div className="rounded-md border bg-bg-neutral-muted/30 p-3 text-sm">
+          <p className="text-xs text-fg-neutral-muted mb-1.5">{TEXTS.comment.form.preview}</p>
           <MarkdownContent content={contentValue} isMobile={isMobile} />
           {linkMetadata && contentValue.includes(linkMetadata.url) && (
             <a
               href={linkMetadata.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors"
+              className="block mt-2 border rounded-lg overflow-hidden hover:border-stroke-brand-solid/50 transition-colors"
               style={{ maxWidth: '400px' }}
             >
               <LinkThumbnail src={linkMetadata.ogImage} alt={linkMetadata.title} />
-              <div className="p-2 bg-muted/30">
+              <div className="p-2 bg-bg-neutral-muted/30">
                 {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 외부 링크 메타데이터 제목, UI 제목 아님 */}
                 <p className="text-xs font-semibold truncate">{linkMetadata.title}</p>
                 {linkMetadata.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                  <p className="text-xs text-fg-neutral-muted line-clamp-2 mt-0.5">
                     {linkMetadata.description}
                   </p>
                 )}
-                <p className="text-xs text-muted-foreground truncate mt-1">{linkMetadata.url}</p>
+                <p className="text-xs text-fg-neutral-muted truncate mt-1">{linkMetadata.url}</p>
               </div>
             </a>
           )}

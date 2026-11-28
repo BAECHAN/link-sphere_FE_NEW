@@ -58,12 +58,12 @@ export function RecentSearchDropdown({
       // 마우스로 셀을 클릭할 때 입력창의 focus가 빠지지 않게 한다. 빠지면 클릭이
       // 완료되기 전에 input onBlur가 먼저 발생해 드롭다운이 닫히며 클릭이 유실된다.
       onMouseDown={(e) => e.preventDefault()}
-      className="absolute left-0 right-0 top-full z-popover mt-1 flex flex-col overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-s3"
+      className="absolute left-0 right-0 top-full z-popover mt-1 flex flex-col overflow-hidden rounded-md border bg-bg-layer-floating text-fg-neutral shadow-s3"
     >
       {/* 헤더(모두 지우기)는 별도 스크롤 영역 밖에 있어 아래 목록을 스크롤해도 그대로 있다. */}
       <div role="rowgroup" className="shrink-0 border-b">
         <div role="row" className="flex items-center justify-between px-3 py-2">
-          <span className="text-group-label text-muted-foreground">{TEXTS.recentSearch.title}</span>
+          <span className="text-group-label text-fg-neutral-muted">{TEXTS.recentSearch.title}</span>
           <div role="gridcell" id={getRecentSearchCellId(clearRow, 0)}>
             <Button
               type="button"
@@ -74,8 +74,8 @@ export function RecentSearchDropdown({
               tabIndex={-1}
               onClick={onClearAll}
               className={cn(
-                'h-8 px-2 text-xs text-muted-foreground',
-                activeRow === clearRow && 'bg-accent text-accent-foreground'
+                'h-8 px-2 text-xs text-fg-neutral-muted',
+                activeRow === clearRow && 'bg-bg-transparent-pressed text-fg-neutral'
               )}
             >
               {TEXTS.recentSearch.clearAll}
@@ -94,8 +94,10 @@ export function RecentSearchDropdown({
                 tabIndex={-1}
                 onClick={() => onSelect(query)}
                 className={cn(
-                  'h-auto w-full justify-start truncate rounded-none px-3 py-2 text-left text-sm font-normal hover:bg-accent hover:text-accent-foreground',
-                  activeRow === row && activeCol === 0 && 'bg-accent text-accent-foreground'
+                  'h-auto w-full justify-start truncate rounded-none px-3 py-2 text-left text-sm font-normal hover:bg-bg-transparent-pressed hover:text-fg-neutral',
+                  activeRow === row &&
+                    activeCol === 0 &&
+                    'bg-bg-transparent-pressed text-fg-neutral'
                 )}
               >
                 <span className="truncate">{query}</span>
@@ -110,8 +112,10 @@ export function RecentSearchDropdown({
                 onClick={() => onRemove(query)}
                 aria-label={TEXTS.recentSearch.removeItem}
                 className={cn(
-                  'text-muted-foreground',
-                  activeRow === row && activeCol === 1 && 'bg-accent text-foreground'
+                  'text-fg-neutral-muted',
+                  activeRow === row &&
+                    activeCol === 1 &&
+                    'bg-bg-transparent-pressed text-fg-neutral'
                 )}
               >
                 <XIcon className="size-4" />

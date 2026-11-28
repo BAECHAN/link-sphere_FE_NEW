@@ -262,13 +262,13 @@ test.describe('카드 댓글 아이콘 — 상세의 댓글 작성 폼으로 스
 
     const comment = page.locator(`#comment-${target}`);
     await expect(comment).toBeInViewport();
-    await expect(comment).toHaveClass(/\bbg-accent\b/);
+    await expect(comment).toHaveClass(/\bbg-bg-transparent-pressed\b/);
     await expect(page.getByPlaceholder(TEXTS.comment.form.commentPlaceholder)).not.toBeFocused();
 
     // e2e는 dev 서버(StrictMode)라 effect가 두 번 돈다 - 두 번째는 엔트리 가드가 건너뛰므로 첫
     // 실행의 해제 타이머가 cleanup에 취소되면 강조가 계속 남는다(CommentList.tsx 주석). 배경은
     // 1.6초에 빠지고, 페이드용 클래스(ring-8)는 600ms 더 지나 정리 타이머가 뗀다.
-    await expect(comment).not.toHaveClass(/\bbg-accent\b/, { timeout: 3000 });
+    await expect(comment).not.toHaveClass(/\bbg-bg-transparent-pressed\b/, { timeout: 3000 });
     await expect(comment).not.toHaveClass(/\bring-8\b/, { timeout: 3000 });
   });
 

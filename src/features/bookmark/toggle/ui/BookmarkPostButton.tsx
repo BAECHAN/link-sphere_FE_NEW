@@ -35,7 +35,7 @@ export function BookmarkPostButton({
       size="icon"
       className={cn(
         'h-8 w-8 md:h-9 md:w-9 rounded-full',
-        isBookmarked ? 'text-warning hover:text-warning/80' : 'text-muted-foreground'
+        isBookmarked ? 'text-fg-warning hover:text-fg-warning/80' : 'text-fg-neutral-muted'
       )}
       onClick={handleClick}
       onMouseEnter={handlePrefetch}

@@ -143,7 +143,7 @@ export const CommentFormView = forwardRef(function CommentFormView(
         ref={containerRef}
         className={cn(
           'relative rounded-md transition-shadow duration-d6',
-          isDraggingOver && 'ring-2 ring-primary ring-offset-2'
+          isDraggingOver && 'ring-2 ring-stroke-brand-solid ring-offset-2'
         )}
         onBlur={handleSuggestionAreaBlur}
       >
@@ -201,7 +201,7 @@ export const CommentFormView = forwardRef(function CommentFormView(
               type="button"
               variant="outline"
               size="sm"
-              className="pointer-events-auto h-7 min-w-0 max-w-full shrink gap-1 border-info/60 px-2 text-xs text-info hover:bg-info/10 hover:text-info has-[>svg]:px-2 dark:border-info/60 dark:hover:bg-info/15"
+              className="pointer-events-auto h-7 min-w-0 max-w-full shrink gap-1 border-stroke-informative-solid/60 px-2 text-xs text-fg-informative hover:bg-bg-informative-solid/10 hover:text-fg-informative has-[>svg]:px-2 dark:border-stroke-informative-solid/60 dark:hover:bg-bg-informative-solid/15"
               // 누르는 순간 입력칸 포커스가 빠지지 않게 한다 - 빠지면 포커스가 영역 밖으로 나간 것으로 보고 클릭 전에
               // 제안을 내린다. Safari는 클릭한 버튼에 포커스를 주지 않아 옮겨 간 곳도 알 수 없다
               // (https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Elements/button#clicking_and_focus).
@@ -222,7 +222,7 @@ export const CommentFormView = forwardRef(function CommentFormView(
 
       <div className="flex items-start gap-2">
         {isOverLimit && (
-          <p className="min-w-0 flex-1 text-xs text-destructive">
+          <p className="min-w-0 flex-1 text-xs text-fg-critical">
             {TEXTS.validation.commentContentTooLong}
           </p>
         )}
@@ -236,12 +236,12 @@ export const CommentFormView = forwardRef(function CommentFormView(
       </div>
 
       {contentValue && (
-        <div className="rounded-md border bg-muted/30 p-3 text-sm">
+        <div className="rounded-md border bg-bg-neutral-muted/30 p-3 text-sm">
           <ToggleButton
             type="button"
             variant="none"
             size="sm"
-            className="h-auto min-h-0 w-full justify-between gap-1 p-0 text-xs text-muted-foreground mb-1.5 hover:text-foreground"
+            className="h-auto min-h-0 w-full justify-between gap-1 p-0 text-xs text-fg-neutral-muted mb-1.5 hover:text-fg-neutral"
             aria-label={
               showPreview ? TEXTS.comment.form.hidePreview : TEXTS.comment.form.showPreview
             }

@@ -50,7 +50,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
   return (
     <div className={cn('space-y-6', className)}>
       {/* 고정 항목 */}
-      <section className="rounded-lg border bg-card">
+      <section className="rounded-lg border bg-bg-layer-default">
         <FixedRow
           icon={<FolderIcon className="h-5 w-5" />}
           label={TEXTS.bookmark.folder.all}
@@ -68,7 +68,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
       {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 그리드에서 빼지 않고 그대로 중복 표시한다 */}
       {recentFolderList.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-subsection-title text-muted-foreground px-1 select-none">
+          <h2 className="text-subsection-title text-fg-neutral-muted px-1 select-none">
             {TEXTS.bookmark.folder.recentSection}
           </h2>
           <div className="grid grid-cols-2 gap-3">
@@ -81,7 +81,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
 
       {/* 내 폴더 그리드 */}
       <section className="space-y-3">
-        <h2 className="text-subsection-title text-muted-foreground px-1 select-none">
+        <h2 className="text-subsection-title text-fg-neutral-muted px-1 select-none">
           {TEXTS.bookmark.folder.myFolders}
         </h2>
         {isPending ? (
@@ -95,7 +95,7 @@ export function MobileFolderList({ onSelect, className }: MobileFolderListProps)
                 받지 못했을 때") */}
             {isFolderListFailed && (
               <div className="flex flex-col items-center gap-2 py-4 text-center">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-fg-neutral-muted">
                   {TEXTS.bookmark.folder.listLoadFailed}
                 </p>
                 <Button type="button" variant="outline" size="sm" onClick={retryFolderList}>
@@ -133,12 +133,12 @@ function FixedRow({ icon, label, count, onClick }: FixedRowProps) {
       type="button"
       variant="ghost"
       onClick={onClick}
-      className="h-auto w-full justify-start gap-3 rounded-none px-4 py-3.5 active:bg-accent"
+      className="h-auto w-full justify-start gap-3 rounded-none px-4 py-3.5 active:bg-bg-transparent-pressed"
     >
-      <span className="text-primary">{icon}</span>
+      <span className="text-fg-brand">{icon}</span>
       <span className="flex-1 text-left font-medium">{label}</span>
-      {typeof count === 'number' && <span className="text-sm text-muted-foreground">{count}</span>}
-      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      {typeof count === 'number' && <span className="text-sm text-fg-neutral-muted">{count}</span>}
+      <ChevronRight className="h-4 w-4 text-fg-neutral-muted" />
     </Button>
   );
 }
@@ -173,14 +173,14 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
 
   if (renaming) {
     return (
-      <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
+      <div className="rounded-lg border bg-bg-layer-default p-3 flex flex-col gap-2">
         {/* 글자 수는 아이콘 줄 오른쪽 — 아래 줄에 두면 좁은 카드에서 넘침 이유가 숫자 옆으로 밀려 4줄로 접히고,
             2열 격자라 옆 카드까지 커진다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "폴더 이름 글자 수") */}
         <div className="flex items-center justify-between gap-2">
           {isPinned ? (
-            <Pin className="h-5 w-5 text-muted-foreground" />
+            <Pin className="h-5 w-5 text-fg-neutral-muted" />
           ) : (
-            <Bookmark className="h-5 w-5 text-muted-foreground" />
+            <Bookmark className="h-5 w-5 text-fg-neutral-muted" />
           )}
           <CharacterCount
             id={nameCountId}
@@ -201,7 +201,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           aria-describedby={nameCountId}
           className="h-8"
         />
-        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+        {nameError && <p className="text-xs text-fg-critical">{nameError}</p>}
         <div className="flex gap-2">
           <Button
             type="button"
@@ -235,29 +235,29 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
 
   // scroll-mt — 고정·해제로 옮겨 간 카드를 화면이 따라갈 때 상단바 뒤에 숨지 않게 한다(CommentList.tsx와 같은 방식)
   return (
-    <div className="relative rounded-lg border bg-card overflow-hidden scroll-mt-(--navbar-height)">
+    <div className="relative rounded-lg border bg-bg-layer-default overflow-hidden scroll-mt-(--navbar-height)">
       <Button
         type="button"
         variant="ghost"
         onClick={() => onSelect(folder.id)}
-        className="h-auto w-full flex-col items-stretch justify-start gap-2 rounded-none p-3 text-left active:bg-accent"
+        className="h-auto w-full flex-col items-stretch justify-start gap-2 rounded-none p-3 text-left active:bg-bg-transparent-pressed"
       >
         {/* 고정한 폴더는 북마크 아이콘 자리에 핀을 둔다 — 이름 칸을 줄이지 않는다(docs/BOOKMARK.md §5) */}
         {isPinned ? (
           <Pin
             role="img"
             aria-label={TEXTS.ariaLabels.folderPinned}
-            className="h-5 w-5 text-muted-foreground"
+            className="h-5 w-5 text-fg-neutral-muted"
           />
         ) : (
-          <Bookmark className="h-5 w-5 text-muted-foreground" />
+          <Bookmark className="h-5 w-5 text-fg-neutral-muted" />
         )}
         {/* 어절 단위로 줄바꿈하되 2줄 자리를 늘 비워 두고 넘치면 말줄임 — 카드 높이·개수 위치를 맞춘다
             (docs/BOOKMARK.md "폴더 이름 줄 수"). Button의 whitespace-nowrap을 푼다 */}
         <div className="font-medium whitespace-normal line-clamp-2 min-h-[2lh] pr-6">
           {folder.name}
         </div>
-        <div className="text-xs text-muted-foreground">{folder.bookmarkCount}</div>
+        <div className="text-xs text-fg-neutral-muted">{folder.bookmarkCount}</div>
       </Button>
       {/* 손가락으로 누르는 크기(44px). 카드 모서리에 붙여 아이콘이 전보다 4px만 안쪽으로 온다 — 누르는 자리는 이름
           첫 줄 위 4px까지 덮는다(docs/BOOKMARK.md §5 "터치 기기 버튼 44px") */}
@@ -272,7 +272,7 @@ function FolderCard({ folder, onSelect }: FolderCardProps) {
           {isPinned ? TEXTS.bookmark.folder.unpin : TEXTS.bookmark.folder.pin}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
-        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+        <DropdownMenuItem onClick={handleDelete} className="text-fg-critical">
           {TEXTS.buttons.delete}
         </DropdownMenuItem>
       </KebabMenu>
@@ -298,10 +298,10 @@ function CreateFolderCard() {
 
   if (creating) {
     return (
-      <div className="rounded-lg border bg-card p-3 flex flex-col gap-2">
+      <div className="rounded-lg border bg-bg-layer-default p-3 flex flex-col gap-2">
         {/* 글자 수는 아이콘 줄 오른쪽 — 위 이름 바꾸기 카드와 같은 자리(docs/BOOKMARK.md §5 "폴더 이름 글자 수") */}
         <div className="flex items-center justify-between gap-2">
-          <Plus className="h-5 w-5 text-muted-foreground" />
+          <Plus className="h-5 w-5 text-fg-neutral-muted" />
           <CharacterCount
             id={nameCountId}
             current={nameLength}
@@ -322,7 +322,7 @@ function CreateFolderCard() {
           aria-describedby={nameCountId}
           className="h-8"
         />
-        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+        {nameError && <p className="text-xs text-fg-critical">{nameError}</p>}
         {/* 버튼을 가로로 나열한다 — 세로 스택은 카드 높이가 늘어 grid row 전체가
             커지고 옆 FolderCard까지 함께 늘어난다 */}
         <div className="flex gap-2">
@@ -362,7 +362,7 @@ function CreateFolderCard() {
       type="button"
       variant="ghost"
       onClick={startCreating}
-      className="h-auto flex-col items-stretch justify-start gap-2 rounded-lg border border-dashed bg-card p-3 active:bg-accent text-muted-foreground"
+      className="h-auto flex-col items-stretch justify-start gap-2 rounded-lg border border-dashed bg-bg-layer-default p-3 active:bg-bg-transparent-pressed text-fg-neutral-muted"
     >
       <Plus className="h-5 w-5" />
       {/* 폴더 카드와 같은 2줄 자리 — 마지막 줄에 혼자 남아도 높이가 같다 */}

@@ -94,6 +94,14 @@
 
 ### Changed
 
+- `shared` 앱 화면의 색 클래스를 새 이름으로 옮기고 최근 검색에서 고른 줄 글자를 진하게
+  <details><summary>배경·구현</summary>
+
+  디자인 토큰 2단계 PR 7이다. #702에서 더한 당근(SEED) 꼴 색 이름(글자 fg, 배경 bg, 선 stroke로 시작)으로 앱 층(`src/shared` 밖의 app·pages·widgets·features·entities)의 313곳(47개 파일)과 e2e 단언 2곳을 옮겼다. 상태색은 쓰는 유틸리티에 따라 같은 역할의 글자·배경·선 이름으로 나눴고 값은 같다(옛 이름 → 새 이름 짝 54개를 라이트·다크 브라우저 계산값으로 비교). 값이 바뀐 곳은 하나다: 최근 검색 드롭다운에서 키보드·마우스로 고른 줄의 글자(옛 accent-foreground 3곳)를 본문 글자 fg.neutral로 합쳐 라이트에서 gray.900 → gray.950으로 조금 진해졌다(다크는 같음). 그전에는 고른 줄이 고르지 않은 줄보다 옅었고, 당근도 눌림 배경 위 글자를 따로 두지 않는다. 미리보기를 보고 사용자가 정했다(2026-11-27). 값을 지키려고 종류가 어긋난 채 둔 8곳(피드 카드 구분선, 인증 카드 테두리 4곳, 댓글 강조 링 2곳, 알림 점 링)은 줄마다 이유를 단 짝 린트 예외다. 앱 층에서 옛 shadcn 색 이름을 다시 쓰지 않게 ESLint `custom-tailwind/no-legacy-color`를 새로 걸었다(공용 UI 부품은 5단계에서 옮긴 뒤). 결정 기록은 `docs/DECISIONS.md` 2026-11-27 "범용 색 이름", 계획은 [`docs/plans/2026-11-24-design-tokens-stage2.md`](docs/plans/2026-11-24-design-tokens-stage2.md) Phase 4.
+  (`src/app/globals.css`를 포함한 앱 층 47개 파일, `e2e/comment-icon-scroll.spec.ts`, `e2e/bookmark-folder-hover-menu.spec.ts`, `scripts/lib/no-legacy-color-rule.js`·`.d.ts`(신규), `src/test/scripts/no-legacy-color-rule.test.ts`(신규), `eslint.config.js`, `packages/ui/tokens/shadcn.tokens.json`과 생성물, `docs/DESIGN-SYSTEM.md`, `docs/DECISIONS.md`, `.claude/skills/design-tokens/SKILL.md`, `.claude/CLAUDE.md`)
+
+  </details>
+
 - `post` 목록 카드 썸네일을 외부 원본 대신 BE가 줄여 둔 사본으로 받음
   <details><summary>배경·구현</summary>
 

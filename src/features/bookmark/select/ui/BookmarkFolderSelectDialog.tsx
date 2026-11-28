@@ -148,7 +148,7 @@ export function BookmarkFolderSelectDialog({
                     type="button"
                     variant="ghost"
                     onClick={() => setCreatingMode(true)}
-                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-muted-foreground"
+                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-fg-neutral-muted"
                   >
                     <Plus className="h-4 w-4" />
                     {TEXTS.bookmark.folder.create}
@@ -176,7 +176,7 @@ export function BookmarkFolderSelectDialog({
                     docs/BOOKMARK.md "목록을 받지 못하면"). 모양은 LoadMoreError와 같다 */}
                 {isFolderListFailed && (
                   <li className="flex flex-col items-center gap-2 border-t p-4">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-fg-neutral-muted">
                       {TEXTS.bookmark.folder.listLoadFailed}
                     </p>
                     <Button type="button" variant="outline" size="sm" onClick={retryFolderList}>
@@ -189,7 +189,7 @@ export function BookmarkFolderSelectDialog({
                 {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
                 {recentFolderList.length > 0 && (
                   <>
-                    <li className="px-4 pt-3 pb-1 text-group-label text-muted-foreground border-t">
+                    <li className="px-4 pt-3 pb-1 text-group-label text-fg-neutral-muted border-t">
                       {TEXTS.bookmark.folder.recentSection}
                     </li>
                     {recentFolderList.map((folder) => (
@@ -209,7 +209,7 @@ export function BookmarkFolderSelectDialog({
                 {/* 내 폴더 — 위 "최근 저장한 폴더"와 겹치더라도 그대로 중복 표시한다.
                     헤더가 최근 구획과의 경계선 역할도 겸한다 */}
                 {folderList.length > 0 && (
-                  <li className="px-4 pt-3 pb-1 text-group-label text-muted-foreground border-t">
+                  <li className="px-4 pt-3 pb-1 text-group-label text-fg-neutral-muted border-t">
                     {TEXTS.bookmark.folder.myFolders}
                   </li>
                 )}
@@ -240,7 +240,7 @@ export function BookmarkFolderSelectDialog({
                     variant="none"
                     onClick={dangerAction.onClick}
                     disabled={isAnyPending}
-                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-destructive hover:bg-destructive/10 border-t"
+                    className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-fg-critical hover:bg-bg-critical-solid/10 border-t"
                   >
                     <BookmarkX className="h-4 w-4" />
                     {dangerAction.label}
@@ -289,7 +289,7 @@ function FolderListLoading({ isMobile, dangerActionLabel }: FolderListLoadingPro
             type="button"
             variant="ghost"
             disabled
-            className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-muted-foreground"
+            className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-fg-neutral-muted"
           >
             <Plus className="h-4 w-4" />
             {TEXTS.bookmark.folder.create}
@@ -310,7 +310,7 @@ function FolderListLoading({ isMobile, dangerActionLabel }: FolderListLoadingPro
             >
               {/* FolderRow와 같이 아이콘을 span으로 감싼다 — Button은 svg가 직접 자식이면 좌우
                   여백을 줄여(has-[>svg]:px-3) 도착 후 행과 아이콘 위치가 어긋난다 */}
-              <span className="text-muted-foreground">
+              <span className="text-fg-neutral-muted">
                 <Bookmark className="h-4 w-4" />
               </span>
               <span className="flex-1 text-left">{TEXTS.bookmark.folder.uncategorized}</span>
@@ -353,7 +353,7 @@ function FolderListLoading({ isMobile, dangerActionLabel }: FolderListLoadingPro
               type="button"
               variant="none"
               disabled
-              className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-destructive border-t"
+              className="h-auto w-full justify-start gap-2 rounded-none px-4 py-2.5 text-sm text-fg-critical border-t"
             >
               <BookmarkX className="h-4 w-4" />
               {dangerActionLabel}
@@ -396,18 +396,18 @@ function FolderRow({ icon, name, count, isSelected, isPending, onClick }: Folder
           isSelected && 'font-medium'
         )}
       >
-        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-fg-neutral-muted">{icon}</span>
         {/* 말줄임 대신 어절 단위 줄바꿈(docs/BOOKMARK.md "폴더 이름 길이") — Button의 whitespace-nowrap을 푼다 */}
         <span className="min-w-0 flex-1 text-left whitespace-normal">{name}</span>
         {typeof count === 'number' && (
-          <span className="text-xs text-muted-foreground">{count}</span>
+          <span className="text-xs text-fg-neutral-muted">{count}</span>
         )}
         {/* 미선택·비저장 상태에도 자리를 비워둔다 — 체크가 나타날 때 개수 숫자가 밀리지 않도록 */}
         <span className="flex h-4 w-4 shrink-0 items-center justify-center">
           {isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <Loader2 className="h-4 w-4 animate-spin text-fg-neutral-muted" />
           ) : isSelected ? (
-            <Check className="h-4 w-4 text-primary" />
+            <Check className="h-4 w-4 text-fg-brand" />
           ) : null}
         </span>
       </Button>
@@ -436,7 +436,7 @@ function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
   return (
     <li className="flex flex-col gap-1 px-4 py-2.5">
       <div className="flex items-center gap-2">
-        <FolderPlus className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <FolderPlus className="h-4 w-4 shrink-0 text-fg-neutral-muted" />
         <Input
           autoFocus
           enterKeyHint="done"
@@ -478,7 +478,7 @@ function NewFolderInput({ onCancel, onCreated }: NewFolderInputProps) {
           (393px 폰, 2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "폴더 이름 글자 수"). 넘친 이유는 왼쪽에 둔다 */}
       <div className="flex items-start gap-2">
         {newFolderNameError && (
-          <p className="min-w-0 flex-1 text-xs text-destructive">{newFolderNameError}</p>
+          <p className="min-w-0 flex-1 text-xs text-fg-critical">{newFolderNameError}</p>
         )}
         <CharacterCount
           id={newFolderNameCountId}
