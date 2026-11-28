@@ -32,7 +32,7 @@
     "graph:archi": "node scripts/dep-graph.js --archi",
     "codegen:fetch": "node scripts/fetch-openapi.js && prettier --write src/shared/api/generated/openapi.json",
     "codegen": "openapi-typescript src/shared/api/generated/openapi.json -o src/shared/api/generated/openapi.gen.ts && prettier --write src/shared/api/generated/openapi.gen.ts",
-    "tokens": "pnpm --filter @baechan/ui tokens:build && prettier --write packages/ui/src/styles/tokens.gen.css packages/ui/src/generated/tokens.gen.ts && node scripts/generate-token-docs.js",
+    "tokens": "pnpm --filter @baechan/ui tokens:build && prettier --write packages/ui/src/styles/tokens.gen.css packages/ui/src/generated/tokens.gen.ts packages/ui/src/recipes && node scripts/generate-token-docs.js",
     "validate": "pnpm check:env && pnpm check",
     "check:env": "node -e \"if (!require('fs').existsSync('.env')) { console.error('⚠️ .env missing'); process.exit(1); }\"",
     "test": "vitest run --project=unit --project=ui",

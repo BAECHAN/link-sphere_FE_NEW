@@ -60,6 +60,7 @@ const SECTIONS = [
     groups: ['spacing'],
     render: (tokens) => renderSingleValueTable(tokens, 'gap-'),
   },
+  { title: '부품 토큰: Button', groups: ['button'], render: renderComponentTable },
 ];
 
 function code(text) {
@@ -139,6 +140,22 @@ function renderColorTable(tokens) {
     tokens.map((token) => [
       code(token.name),
       code(token.cssVar),
+      withResolved(token.value, token.resolved),
+      darkCell(token),
+      cell(describe(token)),
+    ])
+  );
+}
+
+/**
+ * 부품 토큰 표. 부품 토큰은 CSS 변수로 나가지 않고 레시피(packages/ui/src/recipes/<부품>.recipe.gen.ts)의 클래스로 굳으므로
+ * CSS 변수 칸을 두지 않는다. 값 칸은 그 클래스가 쓰는 값이다(2026-11-28 게이트 4).
+ */
+function renderComponentTable(tokens) {
+  return table(
+    ['토큰', '라이트', '다크', '설명'],
+    tokens.map((token) => [
+      code(token.id.split('.').slice(1).join('.')),
       withResolved(token.value, token.resolved),
       darkCell(token),
       cell(describe(token)),
@@ -241,8 +258,14 @@ function renderSection(section) {
   const descriptions = TOKEN_GROUPS.filter((group) => section.groups.includes(group.id))
     .map((group) => group.description)
     .filter(Boolean);
+  // 부품 토큰은 components/ 아래에 있다
   const sources = section.groups
-    .flatMap((group) => [`${group}.tokens.json`, `${group}.dark.tokens.json`])
+    .flatMap((group) =>
+      ['', 'components/'].flatMap((dir) => [
+        `${dir}${group}.tokens.json`,
+        `${dir}${group}.dark.tokens.json`,
+      ])
+    )
     .filter((file) => fs.existsSync(path.join(ROOT, SOURCE_DIR, file)))
     .map((file) => `[\`${file}\`](../${SOURCE_DIR}/${file})`);
 
@@ -268,7 +291,7 @@ function render() {
     '# 디자인 토큰 표',
     `> \`pnpm tokens\`가 [\`${SOURCE_DIR}/\`](../${SOURCE_DIR}/)의 원본에서 만든 파일이다. 직접 고치지 않는다.`,
     [
-      `공용 UI 패키지(\`@baechan/ui\`)의 범용 토큰 ${TOKENS.length}개와 값을 정한 이유다.`,
+      `공용 UI 패키지(\`@baechan/ui\`)의 토큰 ${TOKENS.length}개(범용 토큰과 부품 토큰)와 값을 정한 이유다.`,
       '앱 전용 토큰(카테고리·차트·사이드바 등)은 [`src/app/globals.css`](../src/app/globals.css)에 있고 이 표에 없다.',
       '원본과 생성물이 어떻게 이어지는지, 값을 고치는 순서는',
       '[`DESIGN-SYSTEM.md`](./DESIGN-SYSTEM.md) §5 "토큰 원본과 생성물"에 있다.',

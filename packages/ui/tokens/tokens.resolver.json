@@ -16,7 +16,8 @@
         { "$ref": "duration.tokens.json" },
         { "$ref": "timing-function.tokens.json" },
         { "$ref": "shadow.tokens.json" },
-        { "$ref": "spacing.tokens.json" }
+        { "$ref": "spacing.tokens.json" },
+        { "$ref": "components/button.tokens.json" }
       ]
     }
   },
@@ -24,7 +25,11 @@
     "theme": {
       "contexts": {
         "light": [],
-        "dark": [{ "$ref": "color.dark.tokens.json" }, { "$ref": "shadcn.dark.tokens.json" }]
+        "dark": [
+          { "$ref": "color.dark.tokens.json" },
+          { "$ref": "shadcn.dark.tokens.json" },
+          { "$ref": "components/button.dark.tokens.json" }
+        ]
       },
       "default": "light"
     }

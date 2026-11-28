@@ -1,0 +1,44 @@
+{
+  "button": {
+    "variant": {
+      "destructive": {
+        "background": {
+          "$type": "color",
+          "$value": "{color.bg.critical-solid}",
+          "$extensions": { "baechan.ui": { "alpha": 0.6 } }
+        },
+        "background-hover": {
+          "$type": "color",
+          "$value": "{color.bg.critical-solid}",
+          "$extensions": { "baechan.ui": { "alpha": 0.6 } },
+          "$description": "다크에서는 호버해도 배경이 그대로다(지금 화면 그대로 옮겼다)."
+        },
+        "focus-ring": {
+          "$type": "color",
+          "$value": "{color.stroke.critical-solid}",
+          "$extensions": { "baechan.ui": { "alpha": 0.4 } }
+        }
+      },
+      "outline": {
+        "background": {
+          "$type": "color",
+          "$value": "{shadcn.input}",
+          "$extensions": { "baechan.ui": { "alpha": 0.3 } }
+        },
+        "background-hover": {
+          "$type": "color",
+          "$value": "{shadcn.input}",
+          "$extensions": { "baechan.ui": { "alpha": 0.5 } }
+        },
+        "border-color": { "$type": "color", "$value": "{shadcn.input}" }
+      },
+      "ghost": {
+        "background-hover": {
+          "$type": "color",
+          "$value": "{color.bg.transparent-pressed}",
+          "$extensions": { "baechan.ui": { "alpha": 0.5 } }
+        }
+      }
+    }
+  }
+}
