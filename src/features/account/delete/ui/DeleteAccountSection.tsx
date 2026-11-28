@@ -8,12 +8,12 @@ export function DeleteAccountSection() {
   const { form, onSubmit, isPending } = useDeleteAccount();
 
   return (
-    <div className="rounded-lg border border-destructive/30 p-4 space-y-4">
+    <div className="rounded-lg border border-stroke-critical-solid/30 p-4 space-y-4">
       <div className="space-y-1">
-        <h2 className="text-subsection-title text-destructive">
+        <h2 className="text-subsection-title text-fg-critical">
           {TEXTS.accountSettings.deleteSectionTitle}
         </h2>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-fg-neutral-muted">
           {TEXTS.accountSettings.deleteSectionDescription}
         </p>
       </div>

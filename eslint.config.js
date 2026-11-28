@@ -12,6 +12,7 @@ import { mutationRetryRule } from './scripts/lib/mutation-retry-rule.js';
 import { noIndexFileRule, noValueReExportRule } from './scripts/lib/no-barrel-rules.js';
 import { noLiteralA11yNameRule } from './scripts/lib/no-literal-a11y-name-rule.js';
 import { noLiteralJsxTextRule } from './scripts/lib/no-literal-jsx-text-rule.js';
+import { noLegacyColorRule } from './scripts/lib/no-legacy-color-rule.js';
 import { noRawColorRule } from './scripts/lib/no-raw-color-rule.js';
 import { noRawMotionRule } from './scripts/lib/no-raw-motion-rule.js';
 import { noRawShadowRule } from './scripts/lib/no-raw-shadow-rule.js';
@@ -446,6 +447,9 @@ const customTailwindRulesPlugin = {
     // [금지] 종류가 맞지 않는 의미 색(글자 유틸리티에 배경 색 등) - 2026-11-27 게이트 3
     // 본체는 단위 테스트를 위해 scripts/lib/semantic-color-kind-rule.js에 둔다 - 그 파일 머리말 참고
     'semantic-color-kind': semanticColorKindRule,
+    // [금지] 옛 shadcn 색 이름 - 새 의미 색 이름을 쓴다. 이름을 옮긴 층에만 건다(2026-11-27 게이트 3 ④, 아래 등록 블록)
+    // 본체는 단위 테스트를 위해 scripts/lib/no-legacy-color-rule.js에 둔다 - 그 파일 머리말 참고
+    'no-legacy-color': noLegacyColorRule,
     // [금지] 숫자·Tailwind 기본 이름·대괄호 값의 시간·곡선 유틸리티 - 토큰 클래스(duration-d4, ease-easing 등)를 쓴다
     // 이유: 같은 시간이 여러 파일에 숫자로, 일부는 JS 타이머에도 따로 적혀 있었다(2026-11-26 게이트 2에서 토큰으로 옮김).
     // 본체는 단위 테스트를 위해 scripts/lib/no-raw-motion-rule.js에 둔다 - 그 파일 머리말 참고
@@ -2000,6 +2004,16 @@ export default [
       'custom-tailwind/no-raw-shadow': 'error',
       'custom-tailwind/no-raw-title': 'error',
       'custom-tailwind/no-classname-template-literal': 'error',
+    },
+  },
+  // 옛 shadcn 색 이름은 새 이름으로 옮긴 앱 층에서만 막는다(2026-11-27 PR 7). 공용 UI 부품(src/shared, packages/ui)은
+  // 토큰 2단계 계획의 Phase 5에서 부품 토큰을 넣으며 옮긴 뒤 이 블록에서 빼는 목록을 지운다(docs/DESIGN-SYSTEM.md §5 "색 이름")
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/shared/**', '**/*.stories.tsx', '**/*.test.{ts,tsx}'],
+    plugins: { 'custom-tailwind': customTailwindRulesPlugin },
+    rules: {
+      'custom-tailwind/no-legacy-color': 'error',
     },
   },
 ];

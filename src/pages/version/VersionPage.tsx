@@ -12,9 +12,9 @@ const GITHUB_REPO_URL = 'https://github.com/BAECHAN/link-sphere_FE_NEW';
 type SyncStatus = 'match' | 'mismatch' | 'checkFailed';
 
 const STATUS_BANNER_CLASSNAME: Record<SyncStatus, string> = {
-  match: 'bg-success text-success-foreground',
-  mismatch: 'bg-warning text-warning-foreground',
-  checkFailed: 'bg-muted text-muted-foreground',
+  match: 'bg-bg-positive-solid text-fg-on-positive-solid',
+  mismatch: 'bg-bg-warning-solid text-fg-on-warning-solid',
+  checkFailed: 'bg-bg-neutral-muted text-fg-neutral-muted',
 };
 
 const STATUS_BANNER_TEXT: Record<SyncStatus, string> = {
@@ -44,11 +44,11 @@ export function VersionPage() {
       : 'checkFailed';
 
   return (
-    <div className="min-h-screen bg-background p-4">
+    <div className="min-h-screen bg-bg-layer-basement p-4">
       <div className="mx-auto max-w-2xl space-y-4">
         <div>
-          <h1 className="text-screen-title text-foreground">{TEXTS.version.title}</h1>
-          <p className="text-muted-foreground">{TEXTS.version.description}</p>
+          <h1 className="text-screen-title text-fg-neutral">{TEXTS.version.title}</h1>
+          <p className="text-fg-neutral-muted">{TEXTS.version.description}</p>
         </div>
 
         {!import.meta.env.DEV && status && (
@@ -97,17 +97,17 @@ export function VersionPage() {
                 href={`${GITHUB_REPO_URL}/commit/${BUILD_INFO.sha}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary underline underline-offset-4"
+                className="text-fg-brand underline underline-offset-4"
               >
                 {BUILD_INFO.sha.slice(0, 7)}
               </a>{' '}
-              <span className="text-muted-foreground">({BUILD_INFO.ref})</span>
+              <span className="text-fg-neutral-muted">({BUILD_INFO.ref})</span>
             </p>
             {/* dev 서버는 첫 script[type=module]이 Vite HMR 클라이언트(/@vite/client)라
              * VersionUtil.readEntryScriptSrc가 실제 엔트리(/src/main.tsx)를 가리키지 않는다.
              * useAppVersionCheck도 같은 이유로 DEV에서는 이 값을 안 쓴다 - 프로덕션에서만 의미있다. */}
             {!import.meta.env.DEV && (
-              <p className="text-muted-foreground">
+              <p className="text-fg-neutral-muted">
                 {TEXTS.version.entryScript}: {loadedEntryScript ?? '—'}
               </p>
             )}
@@ -120,7 +120,7 @@ export function VersionPage() {
           </CardHeader>
           <CardContent className="space-y-1 text-sm">
             {import.meta.env.DEV && (
-              <p className="text-muted-foreground">{TEXTS.version.devModeNotice}</p>
+              <p className="text-fg-neutral-muted">{TEXTS.version.devModeNotice}</p>
             )}
             {deployedBuildInfo && (
               <>
@@ -129,22 +129,22 @@ export function VersionPage() {
                     href={`${GITHUB_REPO_URL}/commit/${deployedBuildInfo.sha}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary underline underline-offset-4"
+                    className="text-fg-brand underline underline-offset-4"
                   >
                     {deployedBuildInfo.sha.slice(0, 7)}
                   </a>{' '}
-                  <span className="text-muted-foreground">({deployedBuildInfo.ref})</span>
+                  <span className="text-fg-neutral-muted">({deployedBuildInfo.ref})</span>
                 </p>
-                <p className="text-muted-foreground">
+                <p className="text-fg-neutral-muted">
                   {TEXTS.version.deployedAt}:{' '}
                   {DateUtil.formatKoreanDateTime(deployedBuildInfo.builtAt)}
                 </p>
                 {deployedBuildInfo.runNumber && (
-                  <p className="text-muted-foreground">
+                  <p className="text-fg-neutral-muted">
                     {TEXTS.version.runNumber}: #{deployedBuildInfo.runNumber}
                   </p>
                 )}
-                <p className="text-muted-foreground">
+                <p className="text-fg-neutral-muted">
                   {TEXTS.version.entryScript}: {deployedEntryScript ?? '—'}
                 </p>
               </>
@@ -156,7 +156,7 @@ export function VersionPage() {
           href={`${GITHUB_REPO_URL}/blob/${BUILD_INFO.sha}/CHANGELOG.md`}
           target="_blank"
           rel="noopener noreferrer"
-          className="block text-sm text-primary underline underline-offset-4"
+          className="block text-sm text-fg-brand underline underline-offset-4"
         >
           {TEXTS.version.viewChangelog}
         </a>

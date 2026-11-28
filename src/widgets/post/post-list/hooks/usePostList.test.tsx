@@ -394,8 +394,8 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     await user.click(frontendChip);
     await waitForGateCount(inOrder, 3);
     // 커밋 전에도 두 칩이 모두 켜져 있다 - URL 갱신이 먼저 나가도 미러는 바로 반영된다
-    expect(backendChip).toHaveClass('bg-primary');
-    expect(frontendChip).toHaveClass('bg-primary');
+    expect(backendChip).toHaveClass('bg-bg-brand-solid');
+    expect(frontendChip).toHaveClass('bg-bg-brand-solid');
 
     await releaseAllGates(inOrder);
 
@@ -417,14 +417,14 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     const bookmarkChip = screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly });
     await user.click(bookmarkChip);
     await waitForGateCount(inOrder, 2);
-    expect(bookmarkChip).toHaveClass('bg-warning');
+    expect(bookmarkChip).toHaveClass('bg-bg-warning-solid');
 
     // 커밋 전에 원래 항목으로 돌아간다 - location.key가 처음과 같아 React 쪽에선 변화가 안 보인다
     await act(async () => {
       await router.navigate(-1);
     });
 
-    await waitFor(() => expect(bookmarkChip).not.toHaveClass('bg-warning'));
+    await waitFor(() => expect(bookmarkChip).not.toHaveClass('bg-bg-warning-solid'));
 
     await user.click(screen.getByRole('button', { name: TEXTS.buttons.myPosts }));
     await waitForGateCount(inOrder, 3);
@@ -433,7 +433,7 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     await waitFor(() => {
       expect(readCommittedParams().get('filter')).toBe('isMyPosts');
     });
-    expect(bookmarkChip).not.toHaveClass('bg-warning');
+    expect(bookmarkChip).not.toHaveClass('bg-bg-warning-solid');
   });
 
   it('시나리오 F-2: 로딩 중 뒤로가기를 하면 라벨 칩도 꺼지고 검색어가 남지 않는다', async () => {
@@ -449,20 +449,20 @@ describe('usePostList — 정지 구간(v7_startTransition) 중 필터 조작', 
     const backendChip = await screen.findByRole('button', { name: '@백엔드' });
     await user.click(backendChip);
     await waitForGateCount(inOrder, 2);
-    expect(backendChip).toHaveClass('bg-primary');
+    expect(backendChip).toHaveClass('bg-bg-brand-solid');
 
     await act(async () => {
       await router.navigate(-1);
     });
 
-    await waitFor(() => expect(backendChip).not.toHaveClass('bg-primary'));
+    await waitFor(() => expect(backendChip).not.toHaveClass('bg-bg-brand-solid'));
 
     await releaseAllGates(inOrder);
 
     await waitFor(() => {
       expect(readCommittedParams().get('q')).toBeNull();
     });
-    expect(backendChip).not.toHaveClass('bg-primary');
+    expect(backendChip).not.toHaveClass('bg-bg-brand-solid');
   });
 });
 
@@ -506,7 +506,7 @@ describe('usePostList — 로그아웃 상태에서 누른 범위 칩을 로그�
 
     // 로그인 창만 열린다 - 칩도 주소도 그대로이고 목록을 새로 요청하지 않는다
     await waitFor(() => expect(isLoginDialogOpen(router)).toBe(true));
-    expect(myPostsChip).not.toHaveClass('bg-info');
+    expect(myPostsChip).not.toHaveClass('bg-bg-informative-solid');
     expect(inOrder).toHaveLength(1);
 
     await signInThroughDialog(router);
@@ -514,7 +514,7 @@ describe('usePostList — 로그아웃 상태에서 누른 범위 칩을 로그�
     // 새 조건의 응답을 아직 받지 못한 정지 구간 - 커밋된 주소는 그대로지만 칩은 켜져 있다
     await waitForGateCount(inOrder, 2);
     expect(readCommittedParams().get('filter')).toBeNull();
-    expect(myPostsChip).toHaveClass('bg-info');
+    expect(myPostsChip).toHaveClass('bg-bg-informative-solid');
 
     await user.click(screen.getByRole('button', { name: TEXTS.buttons.bookmarkOnly }));
     await waitForGateCount(inOrder, 3);
@@ -523,7 +523,7 @@ describe('usePostList — 로그아웃 상태에서 누른 범위 칩을 로그�
     await waitFor(() => {
       expect(readCommittedParams().get('filter')).toBe('isMyPosts,isBookmarked');
     });
-    expect(myPostsChip).toHaveClass('bg-info');
+    expect(myPostsChip).toHaveClass('bg-bg-informative-solid');
   });
 
   it('시나리오 H: 라벨 칩의 응답을 기다리는 중에 범위 칩을 누르고 로그인해도 라벨이 주소에 남는다', async () => {
@@ -554,7 +554,7 @@ describe('usePostList — 로그아웃 상태에서 누른 범위 칩을 로그�
       expect(readCommittedParams().get('q')).toBe('@백엔드');
     });
     expect(readCommittedParams().get('filter')).toBe('isMyPosts');
-    expect(backendChip).toHaveClass('bg-primary');
-    expect(myPostsChip).toHaveClass('bg-info');
+    expect(backendChip).toHaveClass('bg-bg-brand-solid');
+    expect(myPostsChip).toHaveClass('bg-bg-informative-solid');
   });
 });

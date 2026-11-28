@@ -14,7 +14,7 @@ export function MyAccountPage() {
 
       <div className="space-y-3">
         <h2 className="text-subsection-title">{TEXTS.mypage.title}</h2>
-        <p className="text-sm text-muted-foreground">{TEXTS.mypage.description}</p>
+        <p className="text-sm text-fg-neutral-muted">{TEXTS.mypage.description}</p>
         <UpdateAccountForm />
       </div>
 

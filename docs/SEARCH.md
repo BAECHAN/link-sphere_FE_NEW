@@ -208,7 +208,7 @@ history 항목의 `location.key`를 그대로 되돌려주므로, 커밋 전에 
   경로인데 쿼리가 다르면 "적용 중"이다. 다른 페이지로 가는 이동은 곧 언마운트되므로 보지 않는다.
 - 0.5초(`LOADING_INDICATOR_DELAY_MS`, 스켈레톤과 같은 값)가 지나야 띄운다. 응답 대부분은 그 안에
   와서 아무것도 보이지 않는다.
-- 모양: `bg-background/60` 덮개 + 스피너와 "결과를 불러오는 중이에요." 알약. 알약은 navbar 바로
+- 모양: `bg-bg-layer-basement/60` 덮개 + 스피너와 "결과를 불러오는 중이에요." 알약. 알약은 navbar 바로
   아래(`top-[calc(var(--navbar-height)+1rem)]`)에 붙어 목록을 내려 본 상태에서도 보인다.
   덮개가 떠 있는 동안 이전 카드는 눌리지 않는다.
 - 최신 위치는 `useSyncExternalStore`가 아니라 `useState` + 구독으로 받는다. 정지 구간에 칩을 또

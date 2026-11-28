@@ -82,7 +82,7 @@ export function FolderSidebar({
         {/* 최근 저장한 폴더 — split menu 상단 구획. 아래 본 목록에서 빼지 않고 그대로 중복 표시한다 */}
         {recentFolderList.length > 0 && (
           <>
-            <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground select-none">
+            <div className="px-3 pt-1 pb-1 text-group-label text-fg-neutral-muted select-none">
               {TEXTS.bookmark.folder.recentSection}
             </div>
             {recentFolderList.map((folder) => (
@@ -111,7 +111,7 @@ export function FolderSidebar({
             (2026-09-22) — 전에는 라벨이 스크롤 영역 안에 있어 스크롤하면 라벨도 같이
             밀려 올라갔다. */}
         {(folderList?.length ?? 0) > 0 && (
-          <div className="px-3 pt-1 pb-1 text-group-label text-muted-foreground select-none">
+          <div className="px-3 pt-1 pb-1 text-group-label text-fg-neutral-muted select-none">
             {TEXTS.bookmark.folder.myFolders}
           </div>
         )}
@@ -148,7 +148,7 @@ export function FolderSidebar({
             목록을 받지 못했을 때") */}
         {isFolderListFailed && (
           <div className="flex flex-col items-center gap-2 px-3 py-4 text-center">
-            <p className="text-sm text-muted-foreground">{TEXTS.bookmark.folder.listLoadFailed}</p>
+            <p className="text-sm text-fg-neutral-muted">{TEXTS.bookmark.folder.listLoadFailed}</p>
             <Button type="button" variant="outline" size="sm" onClick={retryFolderList}>
               <RotateCw aria-hidden="true" />
               {TEXTS.buttons.retry}
@@ -183,12 +183,12 @@ function FixedItem({ icon, label, count, selected, onClick, onPrefetch }: FixedI
       onFocus={onPrefetch}
       className={cn(
         'h-auto min-h-11 justify-start gap-3 px-3 py-2 text-sm md:pointer-fine:min-h-0',
-        selected && 'bg-accent font-medium'
+        selected && 'bg-bg-transparent-pressed font-medium'
       )}
     >
-      <span className={selected ? 'text-primary' : 'text-muted-foreground'}>{icon}</span>
+      <span className={selected ? 'text-fg-brand' : 'text-fg-neutral-muted'}>{icon}</span>
       <span className="flex-1 text-left">{label}</span>
-      {typeof count === 'number' && <span className="text-xs text-muted-foreground">{count}</span>}
+      {typeof count === 'number' && <span className="text-xs text-fg-neutral-muted">{count}</span>}
     </Button>
   );
 }
@@ -229,9 +229,9 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
       <div className="flex flex-col gap-1 px-3 py-1">
         <div className="flex items-center gap-2">
           {isPinned ? (
-            <Pin className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Pin className="h-4 w-4 text-fg-neutral-muted shrink-0" />
           ) : (
-            <Bookmark className="h-4 w-4 text-muted-foreground shrink-0" />
+            <Bookmark className="h-4 w-4 text-fg-neutral-muted shrink-0" />
           )}
           <Input
             autoFocus
@@ -246,7 +246,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
             className="h-7 flex-1"
           />
         </div>
-        {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+        {nameError && <p className="text-xs text-fg-critical">{nameError}</p>}
         {/* 아래 새 폴더 입력과 같은 모양 — 같은 줄이면 입력이 103px로 줄어 14자 이름이 5자만 보이고, 아래 줄은 자리가
             남아 글자로 쓴다(2026-11-04 사용자 선택, docs/BOOKMARK.md §5 "이름 바꾸기 취소·저장 버튼") */}
         <div className="flex justify-end gap-1">
@@ -291,7 +291,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
   }
 
   return (
-    // 래퍼에 여백(pl-3/pr-1/py-1/gap-2)을 두지 않는다 — hover:bg-accent가 이 div 전체에
+    // 래퍼에 여백(pl-3/pr-1/py-1/gap-2)을 두지 않는다 — hover:bg-bg-transparent-pressed가 이 div 전체에
     // 걸리는데, 안쪽 버튼들 사이 여백만큼은 실제 클릭 영역(button)이 아니라 커서가
     // default로 풀리는 구멍이 생겨 마우스를 세로로 훑을 때 pointer가 깜빡였다(2026-09-11,
     // 좌표 스윕으로 실측). 대신 버튼들이 그 여백을 흡수해 행 전체를 채운다. ⋮ 메뉴는
@@ -299,8 +299,8 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
     // hover 시 카운트를 숨기는 방식도 검토했으나 겹침 처리보다 이 편이 단순하다.
     <div
       className={cn(
-        'group flex items-center rounded-md text-sm hover-or-open:bg-accent',
-        selected && 'bg-accent font-medium'
+        'group flex items-center rounded-md text-sm hover-or-open:bg-bg-transparent-pressed',
+        selected && 'bg-bg-transparent-pressed font-medium'
       )}
     >
       <Button
@@ -316,11 +316,11 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           <Pin
             role="img"
             aria-label={TEXTS.ariaLabels.folderPinned}
-            className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')}
+            className={cn('h-4 w-4', selected ? 'text-fg-brand' : 'text-fg-neutral-muted')}
           />
         ) : (
           <Bookmark
-            className={cn('h-4 w-4', selected ? 'text-primary' : 'text-muted-foreground')}
+            className={cn('h-4 w-4', selected ? 'text-fg-brand' : 'text-fg-neutral-muted')}
           />
         )}
         {/* 이름은 어절 단위로 줄바꿈하고 2줄에서 말줄임한다 — 전체 이름은 폴더를 열면 제목에 나온다
@@ -329,7 +329,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
         <span className="min-w-0 flex-1 text-left whitespace-normal line-clamp-2">
           {folder.name}
         </span>
-        <span className="text-xs text-muted-foreground">{folder.bookmarkCount}</span>
+        <span className="text-xs text-fg-neutral-muted">{folder.bookmarkCount}</span>
       </Button>
 
       <KebabMenu
@@ -344,7 +344,7 @@ function FolderItem({ folder, selected, onClick, onDeleted, onPrefetch }: Folder
           {isPinned ? TEXTS.bookmark.folder.unpin : TEXTS.bookmark.folder.pin}
         </DropdownMenuItem>
         <DropdownMenuItem onClick={startRename}>{TEXTS.bookmark.folder.rename}</DropdownMenuItem>
-        <DropdownMenuItem onClick={handleDelete} className="text-destructive">
+        <DropdownMenuItem onClick={handleDelete} className="text-fg-critical">
           {TEXTS.buttons.delete}
         </DropdownMenuItem>
       </KebabMenu>
@@ -363,7 +363,7 @@ function CreateFolderInput() {
       type="button"
       variant="ghost"
       onClick={startCreating}
-      className="h-auto min-h-11 justify-start gap-2 px-3 py-2 text-sm text-muted-foreground md:pointer-fine:min-h-0"
+      className="h-auto min-h-11 justify-start gap-2 px-3 py-2 text-sm text-fg-neutral-muted md:pointer-fine:min-h-0"
     >
       <Plus className="h-4 w-4" />
       {TEXTS.bookmark.folder.create}
@@ -406,7 +406,7 @@ function InlineCreateFolderInput({ onClose }: InlineCreateFolderInputProps) {
         aria-describedby={nameCountId}
         className="h-7 w-full"
       />
-      {nameError && <p className="text-xs text-destructive">{nameError}</p>}
+      {nameError && <p className="text-xs text-fg-critical">{nameError}</p>}
       <div className="flex justify-end gap-1">
         {/* 글자 수는 버튼 줄 왼쪽 빈자리 — 위 이름 바꾸기와 같은 자리(docs/BOOKMARK.md §5 "폴더 이름 글자 수") */}
         <CharacterCount

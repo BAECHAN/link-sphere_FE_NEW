@@ -96,9 +96,9 @@ export const PostCard = memo(function PostCard({
       aria-busy={isUpdating}
     >
       {isUpdating && (
-        <div className="absolute inset-0 z-raised flex items-center justify-center gap-2 bg-background/60">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <span className="text-sm font-medium text-muted-foreground">{TEXTS.common.updating}</span>
+        <div className="absolute inset-0 z-raised flex items-center justify-center gap-2 bg-bg-layer-basement/60">
+          <Loader2 className="h-4 w-4 animate-spin text-fg-neutral-muted" />
+          <span className="text-sm font-medium text-fg-neutral-muted">{TEXTS.common.updating}</span>
         </div>
       )}
 
@@ -111,7 +111,7 @@ export const PostCard = memo(function PostCard({
           dimmedClassName
         )}
       >
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+        <div className="flex items-center gap-1.5 text-xs text-fg-neutral-muted min-w-0">
           <UserAvatar
             image={author?.image}
             nickname={author?.nickname}
@@ -147,7 +147,7 @@ export const PostCard = memo(function PostCard({
                 title={TEXTS.post.card.makePublic}
                 aria-label={TEXTS.post.card.makePublic}
               >
-                <Lock className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+                <Lock className="h-3 w-3 md:h-4 md:w-4 text-fg-neutral-muted" />
               </Button>
             )}
 
@@ -181,7 +181,7 @@ export const PostCard = memo(function PostCard({
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleDelete}
-                className="text-destructive focus:text-destructive"
+                className="text-fg-critical focus:text-fg-critical"
               >
                 <Trash className="mr-2 h-4 w-4" />
                 {TEXTS.buttons.delete}
@@ -215,15 +215,15 @@ export const PostCard = memo(function PostCard({
           // 검색어와 글자가 안 겹쳐도 의미로 찾은 결과라는 걸 알려주는 옅은 한 줄 - 구글
           // 포토의 "텍스트 일치" 라벨과 같은 톤으로, 배지(안 A)나 상단 띠(안 C)보다 조용하다.
           // 안 B로 확정: https://claude.ai/artifact/Jb3DS6YWM5ZsFbtg9kN37j
-          <p className="pl-0.5 mb-2 flex items-center gap-1 text-micro text-muted-foreground">
-            <Lightbulb className="h-3 w-3 text-info shrink-0" />
+          <p className="pl-0.5 mb-2 flex items-center gap-1 text-micro text-fg-neutral-muted">
+            <Lightbulb className="h-3 w-3 text-fg-informative shrink-0" />
             {TEXTS.post.card.semanticMatch}
           </p>
         )}
 
         {post.description && (
           <p
-            className={cn('pl-0.5 text-sm text-muted-foreground mb-2', !isDetail && 'line-clamp-3')}
+            className={cn('pl-0.5 text-sm text-fg-neutral-muted mb-2', !isDetail && 'line-clamp-3')}
           >
             {post.description}
           </p>
@@ -238,33 +238,40 @@ export const PostCard = memo(function PostCard({
           // 맞추되, 크기는 그대로 둔다(설명 자리를 대체하는 역할이라 description과 같은
           // text-sm이 맞다 - Artifact 3안 비교로 확정,
           // https://claude.ai/artifact/65Pveiiyocavrzu2QFRUAE).
-          <p className="pl-0.5 text-sm text-muted-foreground mb-2">
+          <p className="pl-0.5 text-sm text-fg-neutral-muted mb-2">
             {TEXTS.post.card.metadataUnavailable}
           </p>
         )}
 
         {post.aiSummary && (
-          <div className={cn('mb-2 bg-info/8 rounded-md overflow-hidden block', raisedClassName)}>
+          <div
+            className={cn(
+              'mb-2 bg-bg-informative-solid/8 rounded-md overflow-hidden block',
+              raisedClassName
+            )}
+          >
             <Button
               type="button"
               variant="none"
               onClick={() => setIsAiSummaryExpanded(!isAiSummaryExpanded)}
-              className="w-full flex items-center justify-between h-auto p-2 hover:bg-info/15 transition-colors rounded-none"
+              className="w-full flex items-center justify-between h-auto p-2 hover:bg-bg-informative-solid/15 transition-colors rounded-none"
             >
               <div className="flex items-center gap-2">
-                <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-info" />
+                <Lightbulb className="h-3 w-3 md:h-4 md:w-4 text-fg-informative" />
                 {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 배지 라벨, 제목 아님 */}
-                <span className="text-xs font-semibold text-info">{TEXTS.post.card.aiSummary}</span>
+                <span className="text-xs font-semibold text-fg-informative">
+                  {TEXTS.post.card.aiSummary}
+                </span>
               </div>
               {isAiSummaryExpanded ? (
-                <ChevronUp className="h-3 w-3 text-info" />
+                <ChevronUp className="h-3 w-3 text-fg-informative" />
               ) : (
-                <ChevronDown className="h-3 w-3 text-info" />
+                <ChevronDown className="h-3 w-3 text-fg-informative" />
               )}
             </Button>
             {isAiSummaryExpanded && (
-              <div className="p-2 pt-0 border-t border-info/15">
-                <p className="text-xs md:text-sm text-foreground/80 leading-relaxed">
+              <div className="p-2 pt-0 border-t border-stroke-informative-solid/15">
+                <p className="text-xs md:text-sm text-fg-neutral/80 leading-relaxed">
                   {post.aiSummary}
                 </p>
               </div>
@@ -289,14 +296,14 @@ export const PostCard = memo(function PostCard({
             priority={priorityThumbnail}
           />
           <div className="p-2 md:p-3 flex items-center justify-between">
-            <span className="text-xs md:text-sm text-muted-foreground truncate flex-1 pr-2 md:pr-4">
+            <span className="text-xs md:text-sm text-fg-neutral-muted truncate flex-1 pr-2 md:pr-4">
               {post.url}
             </span>
             <div className="flex items-center gap-2 shrink-0">
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-6 w-6 rounded-full p-0 text-muted-foreground hover:text-foreground"
+                className="h-6 w-6 rounded-full p-0 text-fg-neutral-muted hover:text-fg-neutral"
                 onClick={handleCopyOriginalUrl}
                 title={TEXTS.post.card.copyOriginalLink}
               >
@@ -338,14 +345,20 @@ export const PostCard = memo(function PostCard({
 
       <CardFooter className={cn('p-3 pt-0 flex gap-2 flex-wrap items-center', dimmedClassName)}>
         <div
-          className={cn('flex items-center bg-muted/50 rounded-full p-0.5 md:p-1', raisedClassName)}
+          className={cn(
+            'flex items-center bg-bg-neutral-muted/50 rounded-full p-0.5 md:p-1',
+            raisedClassName
+          )}
         >
           <LikePostButton
             postId={post.id}
             isLiked={post.userInteractions.isLiked}
             likeCount={post.stats.likeCount}
           />
-          <div className="w-px h-3 bg-muted-foreground/20 mx-0.5 md:mx-1" />
+          <div
+            // eslint-disable-next-line custom-tailwind/semantic-color-kind -- 좋아요와 댓글 사이 구분선은 보조 글자색을 옅게 쓴다(옆 아이콘·숫자와 같은 색에서 나온 값을 지킨다)
+            className="w-px h-3 bg-fg-neutral-muted/20 mx-0.5 md:mx-1"
+          />
           {/* 댓글 영역으로 스크롤한다(CommentList의 해시 이동). 상세 안에서는 replace로 같은 글
               엔트리를 하나 더 쌓지 않고(쌓이면 돌아가기 navigate(-1)가 같은 글로 돌아간다),
               preventScrollReset으로 ScrollRestoration이 맨 위로 올렸다 내려오지 않게 한다 */}
@@ -353,7 +366,7 @@ export const PostCard = memo(function PostCard({
             asChild
             variant="none"
             size="sm"
-            className="gap-1 md:gap-1.5 text-muted-foreground h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-background/80 hover:text-foreground"
+            className="gap-1 md:gap-1.5 text-fg-neutral-muted h-6 md:h-8 px-2 md:px-3 text-micro md:text-sm rounded-full hover:bg-bg-layer-basement/80 hover:text-fg-neutral"
           >
             <Link
               to={`/post/${post.id}${COMMENT_SECTION_HASH}`}
@@ -379,7 +392,7 @@ export const PostCard = memo(function PostCard({
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 md:h-9 md:w-9 rounded-full text-muted-foreground"
+            className="h-8 w-8 md:h-9 md:w-9 rounded-full text-fg-neutral-muted"
             onClick={handleCopyLink}
           >
             <Share2 className="size-4" />
@@ -391,7 +404,7 @@ export const PostCard = memo(function PostCard({
             (post-card-grid.const.ts의 minColumnWidth). 숨김 클래스로 두면 e2e 푸터 줄바꿈 검사
             (footer.children의 세로 중심 비교)가 크기 0인 칸까지 세므로 렌더하지 않는다 */}
         {isDetail && (
-          <div className="items-center gap-1 md:gap-1.5 text-muted-foreground text-xs flex">
+          <div className="items-center gap-1 md:gap-1.5 text-fg-neutral-muted text-xs flex">
             <Eye className="h-3 w-3" />
             <span>{NumberUtil.formatCompact(post.stats.viewCount || 0)}</span>
           </div>

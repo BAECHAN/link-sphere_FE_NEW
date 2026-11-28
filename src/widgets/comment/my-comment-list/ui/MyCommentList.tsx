@@ -40,7 +40,7 @@ function MyCommentListContent() {
 
   if (comments.length === 0) {
     return (
-      <EmptyState className="border rounded-lg bg-muted/10">
+      <EmptyState className="border rounded-lg bg-bg-neutral-muted/10">
         {TEXTS.comment.myList.empty}
       </EmptyState>
     );
@@ -55,7 +55,7 @@ function MyCommentListContent() {
       {isNextPageFailed && <LoadMoreError onRetry={retryNextPage} />}
       {hasNextPage && !isNextPageFailed && (
         <div ref={observerRef} className="flex justify-center p-4">
-          {isFetchingNextPage && <Loader2 className="size-6 animate-spin text-muted-foreground" />}
+          {isFetchingNextPage && <Loader2 className="size-6 animate-spin text-fg-neutral-muted" />}
         </div>
       )}
     </div>

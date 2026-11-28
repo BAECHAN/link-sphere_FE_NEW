@@ -21,9 +21,9 @@ const STATE_ICON: Record<PasswordRequirementState, LucideIcon> = {
 };
 
 const STATE_TONE: Record<PasswordRequirementState, string> = {
-  met: 'text-success',
-  unmet: 'text-destructive',
-  pending: 'text-muted-foreground',
+  met: 'text-fg-positive',
+  unmet: 'text-fg-critical',
+  pending: 'text-fg-neutral-muted',
 };
 
 /**
@@ -45,7 +45,7 @@ export function PasswordRequirementList({
       <p
         id={messageId}
         aria-live="polite"
-        className="text-sm font-medium text-destructive pl-0.5 empty:sr-only"
+        className="text-sm font-medium text-fg-critical pl-0.5 empty:sr-only"
       >
         {message}
       </p>

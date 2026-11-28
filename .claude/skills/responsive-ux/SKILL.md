@@ -78,7 +78,7 @@ paths: src/**/*.tsx
 
 ```
 // nav
-md:hidden fixed bottom-0 inset-x-0 z-nav border-t bg-background pb-[env(safe-area-inset-bottom)]
+md:hidden fixed bottom-0 inset-x-0 z-nav border-t bg-bg-layer-basement pb-[env(safe-area-inset-bottom)]
 // 내부 div — 실제 높이는 여기서 결정된다
 flex h-16
 ```

@@ -26,7 +26,7 @@ function PostCardSkeleton() {
 
         <div className="border rounded-lg overflow-hidden mt-1">
           <Skeleton className="aspect-video w-full rounded-none" />
-          <div className="p-2 md:p-3 bg-muted/30 flex items-center justify-between">
+          <div className="p-2 md:p-3 bg-bg-neutral-muted/30 flex items-center justify-between">
             <Skeleton className="h-3 w-2/3" />
             <Skeleton className="size-6 rounded-full shrink-0" />
           </div>

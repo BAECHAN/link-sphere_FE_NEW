@@ -26,7 +26,10 @@ export const ConfirmPasswordResetForm = () => {
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-s4 border-muted-foreground/10 gap-4">
+      <Card
+        // eslint-disable-next-line custom-tailwind/semantic-color-kind -- 인증 카드 테두리는 보조 글자색을 옅게 깔아 쓴다(선 색이 아니라 값을 지키려고 글자 색을 둔다)
+        className="w-full max-w-md shadow-s4 border-fg-neutral-muted/10 gap-4"
+      >
         <CardHeader className="text-center space-y-3">
           <FeaturedIcon
             icon={isFormShown ? Lock : Clock}
@@ -92,8 +95,11 @@ export const ConfirmPasswordResetForm = () => {
               </Link>
             </Button>
           )}
-          <div className="border-t pt-3 text-sm text-center text-muted-foreground">
-            <Link to={ROUTES_PATHS.AUTH.LOGIN} className="text-primary hover:underline font-medium">
+          <div className="border-t pt-3 text-sm text-center text-fg-neutral-muted">
+            <Link
+              to={ROUTES_PATHS.AUTH.LOGIN}
+              className="text-fg-brand hover:underline font-medium"
+            >
               {TEXTS.auth.resetPassword.backToLogin}
             </Link>
           </div>

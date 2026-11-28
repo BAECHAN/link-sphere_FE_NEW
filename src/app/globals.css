@@ -5,11 +5,12 @@
 @import '@baechan/ui/styles.css';
 @import 'nprogress/nprogress.css';
 
-/* 토큰 원본(JSON)과 원본에서 만든 토큰 표 문서는 Tailwind가 훑지 않게 한다. 이 앱의 Tailwind는 저장소 전체를
-   훑어서, 두 곳에 적힌 토큰 종류 이름과 설명 글이 쓰지 않는 유틸리티로 만들어진다. 생성된 토큰 목록(TS)은
-   패키지 CSS가 뺀다(packages/ui/src/styles/tokens.css) */
+/* 토큰 원본(JSON)과 원본에서 만든 토큰 표 문서, 색 클래스를 고르는 skill 표는 Tailwind가 훑지 않게 한다. 이 앱의
+   Tailwind는 저장소 전체를 훑어서, 세 곳에 적힌 토큰 종류 이름·클래스 이름과 설명 글이 쓰지 않는 유틸리티로
+   만들어진다. 생성된 토큰 목록(TS)은 패키지 CSS가 뺀다(packages/ui/src/styles/tokens.css) */
 @source not '../../packages/ui/tokens';
 @source not '../../docs/DESIGN-TOKENS.md';
+@source not '../../.claude/skills/design-tokens';
 
 /*
  * hover:와 같되, 이 요소 안의 팝업 트리거(드롭다운·셀렉트·팝오버)가 열려 있는 동안에도 유지된다.
@@ -162,7 +163,7 @@ font-family만 'Pretendard'로 맞춘 것)에서 한다 — 당근마켓·마켓
 
 @layer base {
   body {
-    @apply bg-background text-foreground;
+    @apply bg-bg-layer-basement text-fg-neutral;
     /* 한글은 어절(공백 단위) 안 아무 글자 사이에서나 개행될 수 있어 "보내드렸어요"가
        "보내드렸"/"어요"로 쪼개지는 식으로 문장이 부자연스럽게 끊긴다. keep-all은 공백에서만
        개행하고 어절 내부는 끊지 않는다 - MDN: CJK 텍스트엔 word break를 쓰면 안 된다
@@ -192,13 +193,13 @@ font-family만 'Pretendard'로 맞춘 것)에서 한다 — 당근마켓·마켓
 
 /* NProgress Theme Overrides */
 #nprogress .bar {
-  @apply !bg-primary;
+  @apply !bg-bg-brand-solid;
 }
 
 #nprogress .peg {
-  @apply !shadow-[0_0_10px_var(--color-primary),0_0_5px_var(--color-primary)];
+  @apply !shadow-[0_0_10px_var(--color-bg-brand-solid),0_0_5px_var(--color-bg-brand-solid)];
 }
 
 #nprogress .spinner-icon {
-  @apply !border-t-primary !border-l-primary;
+  @apply !border-t-stroke-brand-solid !border-l-stroke-brand-solid;
 }

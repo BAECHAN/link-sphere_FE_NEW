@@ -27,7 +27,7 @@ export function PasswordConfirmMessage({ id, status }: PasswordConfirmMessagePro
       aria-live="polite"
       className={cn(
         'text-sm font-medium pl-0.5 empty:sr-only',
-        status === 'match' ? 'text-success' : 'text-destructive'
+        status === 'match' ? 'text-fg-positive' : 'text-fg-critical'
       )}
     >
       {STATUS_MESSAGE[status]}

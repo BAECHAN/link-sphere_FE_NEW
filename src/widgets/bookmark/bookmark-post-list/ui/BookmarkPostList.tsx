@@ -50,7 +50,7 @@ export function BookmarkPostList({
   if (isPending) {
     return (
       <DelayedFallback className={cn('flex justify-center py-12', className)}>
-        <Loader2 className="size-8 animate-spin text-primary" />
+        <Loader2 className="size-8 animate-spin text-fg-brand" />
       </DelayedFallback>
     );
   }
@@ -61,7 +61,7 @@ export function BookmarkPostList({
 
   if (posts.length === 0) {
     return (
-      <EmptyState className={cn('border rounded-lg bg-muted/10', className)}>
+      <EmptyState className={cn('border rounded-lg bg-bg-neutral-muted/10', className)}>
         {search
           ? TEXTS.bookmark.empty.searchNoResult
           : folderKey === 'all'
@@ -78,7 +78,7 @@ export function BookmarkPostList({
   return (
     <div className={cn('space-y-6', className)}>
       {correctedSearch && (
-        <div className="text-sm text-muted-foreground text-center">
+        <div className="text-sm text-fg-neutral-muted text-center">
           {TEXTS.post.search.corrected(correctedSearch)}
         </div>
       )}
@@ -118,7 +118,7 @@ export function BookmarkPostList({
 
       {isFetchingNextPage && (
         <div className="flex justify-center p-4">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          <Loader2 className="size-6 animate-spin text-fg-neutral-muted" />
         </div>
       )}
       {isNextPageFailed && <LoadMoreError onRetry={retryNextPage} />}

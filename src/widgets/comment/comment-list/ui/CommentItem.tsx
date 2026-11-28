@@ -22,7 +22,7 @@ import { LinkThumbnail } from '@baechan/ui/atoms/link-thumbnail';
 import { useDeleteComment } from '@/features/comment/delete/hooks/useDeleteComment';
 
 const LINK_CARD_CLASS =
-  'block mt-2 border rounded-lg overflow-hidden hover:border-primary/50 transition-colors';
+  'block mt-2 border rounded-lg overflow-hidden hover:border-stroke-brand-solid/50 transition-colors';
 const LINK_CARD_STYLE = { maxWidth: '400px' };
 
 /**
@@ -36,15 +36,15 @@ function LinkCard({ linkMetadata }: { linkMetadata: NonNullable<Comment['linkMet
   const body = (
     <>
       <LinkThumbnail src={linkMetadata.ogImage} alt={linkMetadata.title} />
-      <div className="p-2 bg-muted/30">
+      <div className="p-2 bg-bg-neutral-muted/30">
         {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 외부 링크 메타데이터 제목, UI 제목 아님 */}
         <p className="text-xs font-semibold truncate">{linkMetadata.title}</p>
         {linkMetadata.description && (
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+          <p className="text-xs text-fg-neutral-muted line-clamp-2 mt-0.5">
             {linkMetadata.description}
           </p>
         )}
-        <p className="text-xs text-muted-foreground truncate mt-1">{linkMetadata.url}</p>
+        <p className="text-xs text-fg-neutral-muted truncate mt-1">{linkMetadata.url}</p>
       </div>
     </>
   );
@@ -133,7 +133,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
           <RelativeTime
             date={comment.createdAt}
             format={(date, now) => DateUtil.formatRelativeShort(date, now)}
-            className="text-xs text-muted-foreground shrink-0"
+            className="text-xs text-fg-neutral-muted shrink-0"
           />
           {isOwner && canShowActionBar && (
             // 수정·삭제를 동작 줄에 두면 좁은 폰(381px 미만)에서 줄이 화면 밖으로 밀린다(docs/COMMENT.md §5 "내 댓글 메뉴").
@@ -148,7 +148,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(comment.id)}
-                className="text-destructive focus:text-destructive"
+                className="text-fg-critical focus:text-fg-critical"
               >
                 <Trash className="mr-2 h-4 w-4" />
                 {TEXTS.buttons.delete}
@@ -170,14 +170,14 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
               content={comment.content}
               isMobile={isMobile}
               inAppPostLinks
-              className={cn('text-foreground', isDeleted && 'text-muted-foreground italic')}
+              className={cn('text-fg-neutral', isDeleted && 'text-fg-neutral-muted italic')}
             />
             {!isDeleted && comment.linkMetadata && <LinkCard linkMetadata={comment.linkMetadata} />}
           </>
         )}
 
         {canShowActionBar && (
-          <div className="flex items-center gap-1 text-xs text-muted-foreground md:gap-4">
+          <div className="flex items-center gap-1 text-xs text-fg-neutral-muted md:gap-4">
             <LikeCommentButton
               commentId={comment.id}
               postId={postId}
@@ -190,7 +190,7 @@ export function CommentItem({ comment, postId, postAuthorId, depth = 0 }: Commen
                 icon={MessageSquare}
                 label={TEXTS.comment.item.reply}
                 onClick={() => setIsReplying(!isReplying)}
-                className="min-h-11 px-2 hover:text-info md:pointer-fine:min-h-0 md:pointer-fine:px-0"
+                className="min-h-11 px-2 hover:text-fg-informative md:pointer-fine:min-h-0 md:pointer-fine:px-0"
               />
             )}
           </div>

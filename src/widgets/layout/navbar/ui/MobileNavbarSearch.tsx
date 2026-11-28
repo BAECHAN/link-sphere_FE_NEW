@@ -41,10 +41,10 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
         aria-label={TEXTS.ariaLabels.close}
         onClick={onClose}
       >
-        <ArrowLeftIcon className="size-6 text-muted-foreground" />
+        <ArrowLeftIcon className="size-6 text-fg-neutral-muted" />
       </Button>
       <div className="relative flex-1">
-        <SearchIcon className="absolute left-2 top-2.5 size-4 text-muted-foreground" />
+        <SearchIcon className="absolute left-2 top-2.5 size-4 text-fg-neutral-muted" />
         <Input
           ref={inputRef}
           id="mobile-search-input"
@@ -53,7 +53,7 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
           placeholder={TEXTS.placeholders.postSearch}
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
-          className="pl-8 pr-10 bg-muted/50 border-none transition-all focus:bg-background focus:ring-1 focus:ring-primary/20"
+          className="pl-8 pr-10 bg-bg-neutral-muted/50 border-none transition-all focus:bg-bg-layer-basement focus:ring-1 focus:ring-stroke-brand-solid/20"
         />
         <Button
           type="button"
@@ -63,7 +63,7 @@ export const MobileNavbarSearch = ({ onClose, onSubmit }: MobileNavbarSearchProp
           className="absolute right-1 top-1/2 -translate-y-1/2"
           onClick={handleTrailingIconClick}
         >
-          <XIcon className="size-4 text-muted-foreground" />
+          <XIcon className="size-4 text-fg-neutral-muted" />
         </Button>
       </div>
     </form>

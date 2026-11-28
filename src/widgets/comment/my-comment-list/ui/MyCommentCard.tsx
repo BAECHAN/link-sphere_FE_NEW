@@ -39,14 +39,14 @@ export function MyCommentCard({ comment }: MyCommentCardProps) {
         <p
           className={cn(
             'text-sm leading-relaxed line-clamp-3',
-            isImageOnly ? 'text-muted-foreground italic' : 'text-foreground'
+            isImageOnly ? 'text-fg-neutral-muted italic' : 'text-fg-neutral'
           )}
         >
           {isImageOnly ? TEXTS.comment.myList.imageOnly(imageCount) : text}
         </p>
-        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-2 text-xs text-fg-neutral-muted">
           <span className="flex items-center gap-2 min-w-0">
-            <span className="inline-flex items-center gap-1.5 min-w-0 font-medium text-info">
+            <span className="inline-flex items-center gap-1.5 min-w-0 font-medium text-fg-informative">
               <Link2 className="size-3.5 shrink-0" />
               <span className="truncate">{comment.postTitle}</span>
             </span>

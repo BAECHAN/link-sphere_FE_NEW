@@ -53,7 +53,7 @@ export const TOKEN_GROUPS = [
   {
     id: 'shadcn',
     description:
-      '옛 shadcn/ui 색 이름. 앱과 공용 UI 부품이 아직 이 이름을 써서 의미 색(color)의 별칭으로 남긴다. CSS 변수도 예전 그대로 접두사 없이 --background처럼 나간다. 어느 의미 색을 가리킬지는 이름 꼴로 정했다: 꼬리가 없으면 배경(bg), -foreground면 글자(fg), border·input·ring은 선(stroke). 쓰는 곳을 새 이름으로 옮긴 층부터 린트로 막는다(앱은 PR 7 끝, 공용 UI 부품은 5단계 끝, 2026-11-27 게이트 3).',
+      '옛 shadcn/ui 색 이름. 공용 UI 부품이 아직 이 이름을 써서 의미 색(color)의 별칭으로 남긴다(앱 층은 2026-11-28 PR 7에서 새 이름으로 옮겼다). CSS 변수도 예전 그대로 접두사 없이 --background처럼 나간다. 어느 의미 색을 가리킬지는 이름 꼴로 정했다: 꼬리가 없으면 배경(bg), -foreground면 글자(fg), border·input·ring은 선(stroke). 쓰는 곳을 새 이름으로 옮긴 층부터 린트로 막는다(앱 층은 PR 7부터 custom-tailwind/no-legacy-color, 공용 UI 부품은 5단계 끝, 2026-11-27 게이트 3).',
   },
   {
     id: 'radius',
@@ -920,7 +920,7 @@ export const TOKENS = [
     darkValue: 'var(--bui-color-palette-gray-50)',
     darkResolved: 'oklch(0.985 0 0)',
     description:
-      '라이트가 gray.900이라 fg.neutral(gray.950)과 값이 달라 팔레트를 그대로 가리킨다. fg.neutral로 합칠지는 앱의 쓰는 곳을 옮기는 PR 7에서 정한다.',
+      '라이트가 gray.900이라 fg.neutral(gray.950)과 값이 달라 팔레트를 그대로 가리킨다. 앱 층은 PR 7에서 fg.neutral로 옮겼다(2026-11-27 사용자 결정). 이 별칭을 fg.neutral로 합칠지는 공용 UI 부품을 옮기는 5단계에서 정한다.',
     darkDescription: null,
   },
   {
@@ -973,7 +973,7 @@ export const TOKENS = [
     darkValue: 'var(--bui-color-palette-gray-50)',
     darkResolved: 'oklch(0.985 0 0)',
     description:
-      '라이트가 gray.900이라 fg.neutral(gray.950)과 값이 달라 팔레트를 그대로 가리킨다. fg.neutral로 합칠지는 앱의 쓰는 곳을 옮기는 PR 7에서 정한다.',
+      '라이트가 gray.900이라 fg.neutral(gray.950)과 값이 달라 팔레트를 그대로 가리킨다. 앱 층은 PR 7에서 fg.neutral로 옮겼다(2026-11-27 사용자 결정). 이 별칭을 fg.neutral로 합칠지는 공용 UI 부품을 옮기는 5단계에서 정한다.',
     darkDescription: null,
   },
   {

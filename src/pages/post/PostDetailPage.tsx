@@ -34,7 +34,7 @@ function PostDetailContent() {
           variant="ghost"
           size="sm"
           onClick={goBack}
-          className="hidden md:inline-flex self-start -ml-2 text-muted-foreground hover:text-foreground"
+          className="hidden md:inline-flex self-start -ml-2 text-fg-neutral-muted hover:text-fg-neutral"
         >
           <ArrowLeft className="h-5 w-5" />
           {backLabel}
@@ -67,11 +67,11 @@ function PostNotFound() {
 
   return (
     <div className="mx-auto mt-6 flex max-w-sm flex-col items-center gap-2 text-center">
-      <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+      <div className="mb-2 flex size-12 items-center justify-center rounded-full bg-bg-neutral-muted text-fg-neutral-muted">
         <FileX className="size-6" />
       </div>
-      <h2 className="text-screen-title text-foreground">{TEXTS.post.detail.notFound.title}</h2>
-      <p className="text-sm text-muted-foreground">{TEXTS.post.detail.notFound.description}</p>
+      <h2 className="text-screen-title text-fg-neutral">{TEXTS.post.detail.notFound.title}</h2>
+      <p className="text-sm text-fg-neutral-muted">{TEXTS.post.detail.notFound.description}</p>
       <Button asChild className="mt-4">
         <Link to={ROUTES_PATHS.POST.ROOT}>{TEXTS.post.detail.backToList}</Link>
       </Button>

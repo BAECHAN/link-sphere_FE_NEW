@@ -19,10 +19,13 @@ export const VerifyEmailStatus = () => {
 
   return (
     <div className="flex h-[calc(100vh-var(--navbar-height))] items-center justify-center px-4">
-      <Card className="w-full max-w-md shadow-s4 border-muted-foreground/10 gap-4">
+      <Card
+        // eslint-disable-next-line custom-tailwind/semantic-color-kind -- 인증 카드 테두리는 보조 글자색을 옅게 깔아 쓴다(선 색이 아니라 값을 지키려고 글자 색을 둔다)
+        className="w-full max-w-md shadow-s4 border-fg-neutral-muted/10 gap-4"
+      >
         <CardHeader className="text-center space-y-3">
           {status === 'pending' && (
-            <Spinner className="mx-auto mb-1 size-11 text-muted-foreground" />
+            <Spinner className="mx-auto mb-1 size-11 text-fg-neutral-muted" />
           )}
           {status === 'success' && (
             <FeaturedIcon icon={CheckCircle2} variant="success" className="mx-auto mb-1" />

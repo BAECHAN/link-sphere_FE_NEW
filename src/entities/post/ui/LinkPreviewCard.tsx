@@ -23,7 +23,7 @@ const PREVIEW_HEIGHT_CLASSNAME = 'h-24';
 // 썸네일 열 너비 - 모바일은 좁혀 본문이 두 줄 이상 들어가게 한다(시안 비교 후 가로형 L1 채택,
 // docs/DECISIONS.md 2026-10-03 "게시글 등록·수정: 기다리지 않고 이동 → 응답 대기" 항목)
 const CARD_GRID_CLASSNAME = cn(
-  'grid grid-cols-[104px_1fr] items-center overflow-hidden rounded-lg border bg-muted/30 sm:grid-cols-[128px_1fr]',
+  'grid grid-cols-[104px_1fr] items-center overflow-hidden rounded-lg border bg-bg-neutral-muted/30 sm:grid-cols-[128px_1fr]',
   PREVIEW_HEIGHT_CLASSNAME
 );
 
@@ -46,7 +46,7 @@ export function LinkPreviewCard({
     return (
       <p
         className={cn(
-          'flex items-center justify-center rounded-lg border bg-muted/30 px-3 text-sm text-muted-foreground',
+          'flex items-center justify-center rounded-lg border bg-bg-neutral-muted/30 px-3 text-sm text-fg-neutral-muted',
           PREVIEW_HEIGHT_CLASSNAME
         )}
       >
@@ -59,7 +59,7 @@ export function LinkPreviewCard({
     return (
       <p
         className={cn(
-          'flex items-center rounded-lg border px-3 text-sm text-muted-foreground',
+          'flex items-center rounded-lg border px-3 text-sm text-fg-neutral-muted',
           PREVIEW_HEIGHT_CLASSNAME
         )}
         aria-live="polite"
@@ -79,7 +79,7 @@ export function LinkPreviewCard({
         <Skeleton className="aspect-video w-full rounded-none" />
         <div className="flex min-w-0 flex-col gap-1.5 p-2.5">
           <Skeleton className="h-3.5 w-3/4" />
-          <p className="text-xs text-muted-foreground" aria-live="polite">
+          <p className="text-xs text-fg-neutral-muted" aria-live="polite">
             {TEXTS.post.form.preview.loading}
           </p>
         </div>
@@ -96,19 +96,19 @@ export function LinkPreviewCard({
       {preview.ogImage ? (
         <LinkThumbnail src={preview.ogImage} alt={title} />
       ) : (
-        <div className="aspect-video w-full bg-muted" aria-hidden="true" />
+        <div className="aspect-video w-full bg-bg-neutral-muted" aria-hidden="true" />
       )}
       <div className="flex min-w-0 flex-col gap-0.5 p-2.5">
         {/* eslint-disable-next-line custom-tailwind/no-raw-title -- 외부 링크 메타데이터 제목, UI 제목 아님 */}
         <p className="truncate text-sm font-semibold">{title}</p>
         {hasMetadata ? (
           preview.description && (
-            <p className="line-clamp-2 text-xs text-muted-foreground">{preview.description}</p>
+            <p className="line-clamp-2 text-xs text-fg-neutral-muted">{preview.description}</p>
           )
         ) : (
-          <p className="text-xs text-muted-foreground">{TEXTS.post.card.metadataUnavailable}</p>
+          <p className="text-xs text-fg-neutral-muted">{TEXTS.post.card.metadataUnavailable}</p>
         )}
-        <p className="truncate text-xs text-muted-foreground">{preview.url}</p>
+        <p className="truncate text-xs text-fg-neutral-muted">{preview.url}</p>
       </div>
     </div>
   );

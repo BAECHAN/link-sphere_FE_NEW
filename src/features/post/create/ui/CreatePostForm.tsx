@@ -149,7 +149,7 @@ export function CreatePostForm({ renderFolderSelect }: CreatePostFormProps) {
               <div
                 ref={barRef}
                 className={cn(
-                  'fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-panel flex flex-col gap-2 border-t bg-background px-4 py-2',
+                  'fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-panel flex flex-col gap-2 border-t bg-bg-layer-basement px-4 py-2',
                   'md:static md:border-0 md:bg-transparent md:p-0',
                   isMobileSearchOpen && 'hidden'
                 )}

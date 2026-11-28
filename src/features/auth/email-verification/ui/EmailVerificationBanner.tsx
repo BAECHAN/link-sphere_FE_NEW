@@ -13,8 +13,8 @@ export const EmailVerificationBanner = () => {
   }
 
   return (
-    <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 space-y-3">
-      <p className="text-sm text-warning-foreground">
+    <div className="rounded-lg border border-stroke-warning-solid/30 bg-bg-warning-solid/10 p-4 space-y-3">
+      <p className="text-sm text-fg-on-warning-solid">
         {TEXTS.accountSettings.emailVerificationNeeded}
       </p>
       <Button variant="outline" size="sm" disabled={isPending} onClick={handleResend}>

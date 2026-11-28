@@ -60,8 +60,8 @@ export function UpdateAccountForm() {
               size="lg"
               className="text-xl"
             />
-            <div className="absolute inset-0 rounded-full bg-scrim/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-              <Camera className="text-scrim-foreground h-5 w-5" />
+            <div className="absolute inset-0 rounded-full bg-bg-overlay/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+              <Camera className="text-fg-on-overlay h-5 w-5" />
             </div>
           </button>
           <span className="text-sm font-medium">{account?.nickname}</span>
