@@ -1,4 +1,7 @@
 ### 2026-11-28 (FE)
+- 디자인 시스템 고도화를 위한 컴포넌트 토큰 적용 기반 마련 ([#706](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/706))
+
+### 2026-11-28 (FE)
 - 버튼 컴포넌트의 색상 및 크기 스타일을 부품 토큰화하고 클래스 기반으로 구조화하여 스타일 관리의 일관성과 유지보수성 향상 ([#705](https://github.com/BAECHAN/link-sphere_FE_NEW/pull/705))
 
 ### 2026-11-27 (FE)
