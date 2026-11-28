@@ -114,12 +114,12 @@ jobs:
           fi
 
       - name: 토큰 생성물 최신성 확인
-        # 토큰 원본(packages/ui/tokens)으로 생성물 세 개를 다시 만들어 커밋된 것과 같은지 본다: 토큰 CSS,
-        # 토큰 목록(TS), 토큰 표 문서. 원본만 고치거나 생성물을 직접 고치면 여기서 걸린다. 위 단계와 같은 이유로
-        # git status로 본다.
+        # 토큰 원본(packages/ui/tokens)으로 생성물을 다시 만들어 커밋된 것과 같은지 본다: 토큰 CSS,
+        # 토큰 목록(TS), 부품 레시피(TS), 토큰 표 문서. 원본만 고치거나 생성물을 직접 고치면 여기서 걸린다. 위 단계와
+        # 같은 이유로 git status로 본다(새로 생긴 레시피 파일도 ??로 잡힌다).
         run: |
           pnpm tokens
-          changed="$(git status --porcelain packages/ui/src/styles/tokens.gen.css packages/ui/src/generated/ docs/DESIGN-TOKENS.md)"
+          changed="$(git status --porcelain packages/ui/src/styles/tokens.gen.css packages/ui/src/generated/ packages/ui/src/recipes/ docs/DESIGN-TOKENS.md)"
           if [ -n "$changed" ]; then
             echo "$changed"
             echo "토큰 원본(packages/ui/tokens)과 생성물이 다릅니다. pnpm tokens를 돌려 생성물을 함께 커밋하세요."

@@ -2,38 +2,33 @@ import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 
 import { cn } from '@baechan/ui/lib/tailwind/utils';
+import { BUTTON_RECIPE } from '@baechan/ui/recipes/button.recipe.gen';
 import { forwardRef } from 'react';
 
+// 버튼만의 결정(변형·크기별 색, 높이, 여백, 글자)은 부품 토큰(packages/ui/tokens/components/button.tokens.json)에서
+// 만든 BUTTON_RECIPE가 갖는다. 여기에는 배치와, 입력칸 등 다른 부품과 함께 쓰는 포커스·오류 표시만 둔다
+// (2026-11-28 게이트 4, docs/DESIGN-SYSTEM.md §5 "부품 토큰").
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  `inline-flex items-center justify-center whitespace-nowrap transition-all disabled:pointer-events-none [&_svg]:pointer-events-none shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-stroke-focus-ring focus-visible:ring-stroke-focus-ring/50 focus-visible:ring-[3px] aria-invalid:ring-stroke-critical-solid/20 dark:aria-invalid:ring-stroke-critical-solid/40 aria-invalid:border-stroke-critical-solid ${BUTTON_RECIPE.base}`,
   {
     variants: {
       variant: {
-        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-        destructive:
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
-        outline:
-          'border bg-background shadow-s1 hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50',
-        secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
-        link: 'text-primary underline-offset-4 hover:underline',
+        default: BUTTON_RECIPE.variant.default,
+        destructive: BUTTON_RECIPE.variant.destructive,
+        outline: BUTTON_RECIPE.variant.outline,
+        secondary: BUTTON_RECIPE.variant.secondary,
+        ghost: BUTTON_RECIPE.variant.ghost,
+        link: `${BUTTON_RECIPE.variant.link} underline-offset-4 hover:underline`,
         // 호버 스타일이 전혀 없는 variant. 배경·글자색을 호출부가 전부 정하는
         // 컴포넌트(FilterChip 등)를 위한 것이다 — ghost를 쓰면 호출부의
-        // `hover:bg-X`가 twMerge로 ghost의 `hover:bg-accent`만 지우고
-        // `dark:hover:bg-accent/50`은 modifier 그룹(`dark:hover:` vs `hover:`)이
-        // 달라 그대로 남아, 다크모드에서만 호버 시 색이 덮인다(2026-09-21 실측).
+        // `hover:bg-X`가 twMerge로 ghost의 호버 배경만 지우고 다크 호버 배경은
+        // modifier 그룹(`dark:hover:` vs `hover:`)이 달라 그대로 남아, 다크모드에서만
+        // 호버 시 색이 덮인다(2026-09-21 실측). 부품 토큰이 없는 자리라 레시피에도 없다.
         // 값이 빈 문자열이라 variant 슬롯만 비고, base 클래스(레이아웃·포커스 링·
         // disabled 처리)는 그대로 적용된다.
         none: '',
       },
-      size: {
-        default: 'h-9 px-4 py-2 has-[>svg]:px-3',
-        sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5',
-        lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
-        icon: 'size-9',
-        'icon-sm': 'size-8',
-        'icon-lg': 'size-10',
-      },
+      size: BUTTON_RECIPE.size,
     },
     defaultVariants: {
       variant: 'default',

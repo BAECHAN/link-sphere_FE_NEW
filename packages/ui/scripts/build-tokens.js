@@ -3,6 +3,7 @@
 //   tokens/*.tokens.json (DTCG 2025.10 형식, 사람이 고친다)
 //     -> src/styles/tokens.gen.css     Tailwind 테마 블록과 :root, .dark 변수
 //     -> src/generated/tokens.gen.ts   카탈로그, 토큰 표 문서, cn()이 읽는 목록
+//     -> src/recipes/<부품>.recipe.gen.ts  부품 토큰(tokens/components/)을 굳힌 Tailwind 클래스. 그 부품의 cva가 읽는다
 //
 // 실행은 저장소 루트의 `pnpm tokens`다(이 스크립트 -> prettier -> 토큰 표 문서). 생성물은 커밋하고, CI가 다시 만들어
 // 커밋된 것과 같은지 본다(.github/workflows/ci.yml "토큰 생성물 최신성 확인").
@@ -20,7 +21,8 @@
 //   - 블록 배치: Tailwind 4의 @theme 블록과 하위 키(--text-<이름>--line-height)는 내장 출력에 없다. Tailwind 기본 시간·곡선이
 //     토큰을 가리키게 하는 줄(TAILWIND_DEFAULTS)도 여기서 더한다.
 //   - 층 규칙: 의미 색은 값을 숫자로 적지 않고 팔레트를 가리킨다(2026-11-26 게이트 2, assertColorsUsePalette). 옛 shadcn
-//     이름은 의미 색이나 팔레트를 가리킨다(2026-11-27 게이트 3, assertShadcnUsesColor).
+//     이름은 의미 색이나 팔레트를 가리킨다(2026-11-27 게이트 3, assertShadcnUsesColor). 부품 토큰의 색은 의미 색(아직
+//     값이 다른 옛 이름 포함)을 가리킨다(2026-11-28 게이트 4, assertComponentsUseSemantic).
 //   - 다크의 별칭: 다크 파일에 없는 별칭도 가리키는 토큰이 다크에서 바뀌면 .dark에 같은 값을 한 번 더 적는다. CSS 변수 안의
 //     var()는 그 변수를 적은 요소에서 풀려, :root에만 적으면 안쪽 요소에 붙은 .dark를 따르지 못한다.
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -45,6 +47,14 @@ const TAILWIND_DEFAULTS = [
   { cssVar: '--default-transition-duration', token: 'duration.color-transition' },
   { cssVar: '--default-transition-timing-function', token: 'timing-function.easing' },
 ];
+// 부품 토큰 축(tokens/components/<이름>.tokens.json의 맨 위 그룹). CSS 변수를 만들지 않고 src/recipes/<이름>.recipe.gen.ts에
+// Tailwind 클래스로 굳힌다(당근식, 2026-11-28 게이트 4). 레시피는 Tailwind가 훑는 곳이어야 해서 src/generated에 두지 않는다
+const COMPONENTS = ['button'];
+const RECIPE_DIR = join(PACKAGE_ROOT, 'src/recipes');
+// 별칭에 투명도를 붙이는 확장. DTCG 2025.10에는 "별칭 + 투명도" 꼴이 없다
+const ALPHA_EXTENSION = 'baechan.ui';
+// 토큰 모델에서 부품 레시피만 읽고 TS 생성물에는 싣지 않는 칸
+const RECIPE_ONLY_FIELDS = ['raw', 'reference', 'alpha', 'dark', 'type'];
 const GENERATED_NOTICE = [
   '생성 파일 - 직접 고치지 않는다.',
   '원본: packages/ui/tokens/*.tokens.json, 다시 만들기: 저장소 루트에서 pnpm tokens',
@@ -53,6 +63,11 @@ const GENERATED_NOTICE = [
 
 function fail(id, message) {
   throw new Error(`[tokens] ${id}: ${message}`);
+}
+
+/** 0~1 투명도를 백분율 숫자로(0.7 * 100이 70.00000000000001이 되는 부동소수 오차를 없앤다). */
+function toPercent(ratio) {
+  return Math.round(ratio * 1000) / 10;
 }
 
 function isNumber(value) {
@@ -189,6 +204,10 @@ function describePath(path) {
     case 'text':
       return { group, name: rest[0], part: rest[1] };
     default:
+      if (COMPONENTS.includes(group)) {
+        return { group, name: rest.join('-'), part: null };
+      }
+
       return fail(path.join('.'), '이름 규칙이 없는 축이다');
   }
 }
@@ -228,6 +247,10 @@ function cssVarName(path) {
     case 'spacing':
       return `--spacing-${name}`;
     default:
+      if (COMPONENTS.includes(group)) {
+        return `--bui-${group}-${name}`;
+      }
+
       return part === 'font-size' ? `--text-${name}` : `--text-${name}--${part}`;
   }
 }
@@ -346,6 +369,18 @@ function assertShadcnUsesColor(tree) {
   }
 }
 
+/** 부품 토큰의 색이 의미 색이나 옛 shadcn 이름을 가리키는지 본다. 팔레트를 바로 가리키거나 값을 직접 적으면 멈춘다. */
+function assertComponentsUseSemantic(tree) {
+  for (const [id, token] of listTokens(tree)) {
+    const reference = typeof token.$value === 'string' ? token.$value.match(REFERENCE) : null;
+    const isComponent = COMPONENTS.some((name) => id.startsWith(`${name}.`));
+
+    if (isComponent && token.$type === 'color' && !/^(color|shadcn)\./.test(reference?.[1] ?? '')) {
+      fail(id, `부품 토큰의 색은 의미 색을 가리킨다(받은 값: ${JSON.stringify(token.$value)})`);
+    }
+  }
+}
+
 /** 토큰 나무를 Style Dictionary에 넘겨 별칭을 풀고 토큰마다 CSS 값을 낸다. */
 async function resolveTree(tree) {
   assertReferencesExist(tree);
@@ -394,14 +429,28 @@ async function resolveTree(tree) {
   return allTokens.map((token) => {
     const original = token.original.$value;
     const reference = typeof original === 'string' ? original.match(REFERENCE) : null;
+    const alpha = token.original.$extensions?.[ALPHA_EXTENSION]?.alpha ?? null;
+    const referenceVar = reference ? `var(${cssVarName(reference[1].split('.'))})` : null;
+
+    if (alpha !== null && !reference) {
+      fail(token.path.join('.'), '투명도 확장은 별칭에만 붙인다');
+    }
 
     return {
       id: token.path.join('.'),
       path: token.path,
-      // CSS에 적는 값: 별칭이면 가리키는 변수, 아니면 값 그대로
-      value: reference ? `var(${cssVarName(reference[1].split('.'))})` : token.$value,
+      // CSS에 적는 값: 별칭이면 가리키는 변수(투명도가 있으면 Tailwind의 /<투명도>와 같은 color-mix), 아니면 값 그대로
+      value:
+        alpha !== null
+          ? `color-mix(in oklab, ${referenceVar} ${toPercent(alpha)}%, transparent)`
+          : (referenceVar ?? token.$value),
       // 별칭을 끝까지 푼 값
-      resolved: token.$value,
+      resolved: alpha !== null ? `${token.$value} / ${alpha}` : token.$value,
+      // 별칭이 아닌 원본 값(DTCG 객체·숫자). 부품 레시피가 Tailwind 눈금 클래스로 바꿀 때 읽는다
+      raw: reference ? null : original,
+      reference: reference?.[1] ?? null,
+      alpha,
+      type: token.$type,
       description: token.$description ?? null,
     };
   });
@@ -428,6 +477,7 @@ async function buildModel() {
   for (const tree of [lightTree, darkTree]) {
     assertColorsUsePalette(tree);
     assertShadcnUsesColor(tree);
+    assertComponentsUseSemantic(tree);
   }
 
   const light = await resolveTree(lightTree);
@@ -446,6 +496,14 @@ async function buildModel() {
       // 다크 파일에 적혀 있을 때만 값이 있다. 적혀 있지 않아도 가리키는 토큰이 바뀌면 darkResolved는 달라질 수 있다.
       darkValue: isDeclaredInDark ? inDark.value : null,
       darkResolved: inDark.resolved,
+      // 아래 다섯 개는 부품 레시피만 읽는다(RECIPE_ONLY_FIELDS)
+      raw: token.raw,
+      reference: token.reference,
+      alpha: token.alpha,
+      dark: isDeclaredInDark
+        ? { raw: inDark.raw, reference: inDark.reference, alpha: inDark.alpha }
+        : null,
+      type: token.type,
       description: token.description,
       darkDescription: isDeclaredInDark ? inDark.description : null,
     };
@@ -464,6 +522,8 @@ function renderCss({ tokens }) {
   const inGroup = (group) => tokens.filter((token) => token.group === group);
   const line = (token) => `  ${token.cssVar}: ${token.value};`;
   const colors = [...inGroup('color'), ...inGroup('shadcn')];
+  // 부품 토큰은 CSS 변수로 내보내지 않는다(레시피로 굳힌다)
+  const cssTokens = tokens.filter((token) => !COMPONENTS.includes(token.group));
   const lineHeights = new Map(inGroup('line-height').map((token) => [token.name, token]));
   // 시간·곡선 축의 토큰 뒤에, 그 축을 가리키는 Tailwind 기본값 줄을 붙인다
   const withTailwindDefaults = (group) => [
@@ -513,7 +573,7 @@ function renderCss({ tokens }) {
     [':root', [...inGroup('palette'), ...colors].map(line)],
     [
       '.dark',
-      tokens.flatMap((token) => {
+      cssTokens.flatMap((token) => {
         if (token.darkValue !== null) {
           return [`  ${token.cssVar}: ${token.darkValue};`];
         }
@@ -571,8 +631,9 @@ export interface DesignToken {
   name: string;
   /** 글자 역할(text)에서만 값이 있다. 한 역할이 글자 크기, 줄 높이, 두께로 나뉜다 */
   part: 'font-size' | 'line-height' | 'font-weight' | null;
+  /** 부품 토큰(${COMPONENTS.join(', ')})은 CSS로 내보내지 않아 이 변수가 없다. 레시피(src/recipes)의 클래스로만 쓴다 */
   cssVar: string;
-  /** CSS에 적힌 값. 다른 토큰을 가리키면 var(--...)다 */
+  /** CSS에 적힌 값(부품 토큰은 CSS에 적히지 않고 같은 꼴로만 적는다). 다른 토큰을 가리키면 var(--...)다 */
   value: string;
   /** 가리키는 토큰을 끝까지 따라간 값 */
   resolved: string;
@@ -590,7 +651,11 @@ export const TOKEN_GROUPS = ${json(groups)} as const satisfies readonly {
   description: string | null;
 }[];
 
-export const TOKENS = ${json(tokens)} as const satisfies readonly DesignToken[];
+export const TOKENS = ${json(
+    tokens.map((token) =>
+      Object.fromEntries(Object.entries(token).filter(([key]) => !RECIPE_ONLY_FIELDS.includes(key)))
+    )
+  )} as const satisfies readonly DesignToken[];
 
 /** 글자 크기를 정하는 토큰 이름. cn()이 이 이름들을 글자 색이 아니라 글자 크기로 알아야 한다(lib/tailwind/utils.ts) */
 export const TEXT_SIZE_TOKEN_NAMES = ${json(textSizeNames)} as const;
@@ -610,11 +675,119 @@ export const DURATION_MS = ${json(durationMs)} as const;
 `;
 }
 
+// 부품 레시피: 부품 토큰의 속성 이름 -> Tailwind 유틸리티. 상태 꼬리(-hover, -with-icon)는 앞에 붙는 변형이 된다.
+// 새 부품에 없는 속성이 나오면 여기에 한 줄 더한다(없으면 멈춘다)
+const STATIC_UTILITIES = {
+  background: { utility: 'bg' },
+  foreground: { utility: 'text' },
+  'border-color': { utility: 'border' },
+  'border-width': { utility: 'border' },
+  'focus-ring': { utility: 'ring', prefix: 'focus-visible:' },
+  shadow: { utility: 'shadow' },
+  radius: { utility: 'rounded' },
+  'font-size': { utility: 'text' },
+  'line-height': { utility: 'leading' },
+  'font-weight': { utility: 'font' },
+  gap: { utility: 'gap', scale: true },
+  height: { utility: 'h', scale: true },
+  square: { utility: 'size', scale: true },
+  'padding-x': { utility: 'px', scale: true },
+  'padding-y': { utility: 'py', scale: true },
+  'icon-size': { utility: 'size', prefix: "[&_svg:not([class*='size-'])]:", scale: true },
+  'disabled-opacity': { utility: 'opacity', prefix: 'disabled:' },
+};
+const STATE_PREFIXES = { hover: 'hover:', 'with-icon': 'has-[>svg]:' };
+// Tailwind 4의 이름 붙은 글자 두께(theme.css --font-weight-*)
+const FONT_WEIGHT_NAMES = { 400: 'normal', 500: 'medium', 600: 'semibold', 700: 'bold' };
+
+/** 부품 토큰 하나를 Tailwind 클래스 하나로 굳힌다. 다크 값이면 dark: 변형을 붙인다. */
+function toStaticClass(token, { dark }) {
+  const property = token.id.split('.').at(-1);
+  const state = Object.keys(STATE_PREFIXES).find((name) => property.endsWith(`-${name}`));
+  const base = state ? property.slice(0, -(state.length + 1)) : property;
+  const rule =
+    STATIC_UTILITIES[base] ?? fail(token.id, `클래스로 바꿀 규칙이 없는 속성이다: ${base}`);
+  const { raw, reference, alpha } = dark ? token.dark : token;
+  let suffix;
+
+  if (reference) {
+    // 의미 색 fg.neutral은 Tailwind 색 이름 fg-neutral, 반경 radius.md는 md다(cssVarName의 이름과 같다)
+    suffix = describePath(reference.split('.')).name;
+    suffix += alpha === null ? '' : `/${toPercent(alpha)}`;
+  } else if (token.type === 'dimension') {
+    const { value, unit } = raw;
+
+    if (base === 'border-width' && value === 1 && unit === 'px') {
+      suffix = null;
+    } else if (rule.scale && unit === 'rem' && Number.isInteger(value * 8)) {
+      // Tailwind 간격 눈금(--spacing 0.25rem의 배수, 0.5 단위까지)
+      suffix = String(value * 4);
+    } else {
+      suffix = `[${value}${unit}]`;
+    }
+  } else if (token.type === 'fontWeight') {
+    suffix = FONT_WEIGHT_NAMES[raw] ?? `[${raw}]`;
+  } else if (token.type === 'number') {
+    suffix = String(toPercent(raw));
+  } else {
+    fail(token.id, `클래스로 바꿀 규칙이 없는 값이다: ${token.type}`);
+  }
+
+  const prefixes = `${dark ? 'dark:' : ''}${state ? STATE_PREFIXES[state] : ''}${rule.prefix ?? ''}`;
+
+  return `${prefixes}${rule.utility}${suffix === null ? '' : `-${suffix}`}`;
+}
+
+/** 부품 레시피 파일. base는 문자열, variant·size는 이름별 문자열이다. */
+function renderRecipe(component, tokens) {
+  const recipe = {};
+
+  for (const token of tokens.filter((candidate) => candidate.group === component)) {
+    const [, section, ...rest] = token.id.split('.');
+    const key = section === 'base' ? null : rest[0];
+    const classes = [toStaticClass(token, { dark: false })];
+
+    if (token.dark !== null) {
+      classes.push(toStaticClass(token, { dark: true }));
+    }
+
+    if (key === null) {
+      recipe[section] = [...(recipe[section] ?? []), ...classes];
+    } else {
+      recipe[section] ??= {};
+      recipe[section][key] = [...(recipe[section][key] ?? []), ...classes];
+    }
+  }
+
+  const join = (value) =>
+    Array.isArray(value)
+      ? value.join(' ')
+      : Object.fromEntries(Object.entries(value).map(([key, list]) => [key, list.join(' ')]));
+  const body = Object.fromEntries(Object.entries(recipe).map(([key, value]) => [key, join(value)]));
+  const constName = `${component.toUpperCase().replaceAll('-', '_')}_RECIPE`;
+
+  return `${GENERATED_NOTICE.map((text) => `// ${text}`).join('\n')}
+
+/** ${component} 부품 토큰을 Tailwind 클래스로 굳힌 것. 부품의 cva가 읽는다 */
+export const ${constName} = ${JSON.stringify(body, null, 2)} as const;
+`;
+}
+
 const model = await buildModel();
 
 mkdirSync(dirname(CSS_OUT), { recursive: true });
 mkdirSync(dirname(TS_OUT), { recursive: true });
+mkdirSync(RECIPE_DIR, { recursive: true });
 writeFileSync(CSS_OUT, renderCss(model));
 writeFileSync(TS_OUT, renderTs(model));
 
-console.log(`토큰 ${model.tokens.length}개: ${basename(CSS_OUT)}, ${basename(TS_OUT)}`);
+for (const component of COMPONENTS) {
+  writeFileSync(
+    join(RECIPE_DIR, `${component}.recipe.gen.ts`),
+    renderRecipe(component, model.tokens)
+  );
+}
+
+console.log(
+  `토큰 ${model.tokens.length}개: ${basename(CSS_OUT)}, ${basename(TS_OUT)}, 부품 레시피 ${COMPONENTS.length}개`
+);

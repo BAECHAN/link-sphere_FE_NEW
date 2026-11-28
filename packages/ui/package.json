@@ -14,6 +14,7 @@
     "./atoms/*": "./src/atoms/*.tsx",
     "./elements/*": "./src/elements/*.tsx",
     "./lib/*": "./src/lib/*.ts",
+    "./recipes/*": "./src/recipes/*.ts",
     "./texts/UiTextsProvider": "./src/texts/UiTextsProvider.tsx",
     "./texts/ui-texts": "./src/texts/ui-texts.ts",
     "./texts/ko-ui-texts": "./src/texts/ko-ui-texts.ts",

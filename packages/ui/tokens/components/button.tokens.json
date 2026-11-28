@@ -1,0 +1,98 @@
+{
+  "button": {
+    "$description": "Button(packages/ui/src/atoms/button.tsx)의 부품 토큰(라이트). 당근(SEED)의 부품 명세(action-button.yaml)처럼 변형(variant)·크기(size)마다 부위의 값을 적는다. 상태는 이름 꼬리(-hover, -with-icon)로 붙인다. 색은 의미 색(color)을 가리키고, 아직 의미 색과 값이 다른 옛 이름 세 개(accent-foreground, secondary-foreground, input)만 shadcn을 가리킨다. 투명도는 DTCG에 별칭+투명도 꼴이 없어 $extensions의 baechan.ui.alpha로 적는다. 다크에서 달라지는 값은 button.dark.tokens.json에 있다. CSS 변수로 내보내지 않고 생성 스크립트가 Tailwind 클래스로 굳혀 packages/ui/src/recipes/button.recipe.gen.ts에 쓴다. 그 파일은 button.tsx만 가져다 쓴다(2026-11-28 게이트 4).",
+    "base": {
+      "radius": { "$type": "dimension", "$value": "{radius.md}" },
+      "font-size": {
+        "$type": "dimension",
+        "$value": { "value": 0.875, "unit": "rem" },
+        "$description": "Tailwind 기본 글자 크기 sm과 같은 값이다. 눈금 font-size.t4와 크기는 같지만 줄 높이가 달라(1.25rem 대 1.1875rem) 옮기면 화면이 바뀐다."
+      },
+      "line-height": { "$type": "dimension", "$value": { "value": 1.25, "unit": "rem" } },
+      "font-weight": { "$type": "fontWeight", "$value": 500 },
+      "gap": { "$type": "dimension", "$value": { "value": 0.5, "unit": "rem" } },
+      "icon-size": { "$type": "dimension", "$value": { "value": 1, "unit": "rem" } },
+      "disabled-opacity": { "$type": "number", "$value": 0.5 }
+    },
+    "variant": {
+      "default": {
+        "background": { "$type": "color", "$value": "{color.bg.brand-solid}" },
+        "background-hover": {
+          "$type": "color",
+          "$value": "{color.bg.brand-solid}",
+          "$extensions": { "baechan.ui": { "alpha": 0.9 } }
+        },
+        "foreground": { "$type": "color", "$value": "{color.fg.on-brand-solid}" }
+      },
+      "destructive": {
+        "background": { "$type": "color", "$value": "{color.bg.critical-solid}" },
+        "background-hover": {
+          "$type": "color",
+          "$value": "{color.bg.critical-solid}",
+          "$extensions": { "baechan.ui": { "alpha": 0.9 } }
+        },
+        "foreground": { "$type": "color", "$value": "{color.fg.on-critical-solid}" },
+        "focus-ring": {
+          "$type": "color",
+          "$value": "{color.stroke.critical-solid}",
+          "$extensions": { "baechan.ui": { "alpha": 0.2 } }
+        }
+      },
+      "outline": {
+        "background": { "$type": "color", "$value": "{color.bg.layer-basement}" },
+        "background-hover": { "$type": "color", "$value": "{color.bg.transparent-pressed}" },
+        "foreground-hover": { "$type": "color", "$value": "{shadcn.accent-foreground}" },
+        "border-color": { "$type": "color", "$value": "{color.stroke.neutral-weak}" },
+        "border-width": { "$type": "dimension", "$value": { "value": 1, "unit": "px" } },
+        "shadow": { "$type": "shadow", "$value": "{shadow.s1}" }
+      },
+      "secondary": {
+        "background": { "$type": "color", "$value": "{color.bg.neutral-weak}" },
+        "background-hover": {
+          "$type": "color",
+          "$value": "{color.bg.neutral-weak}",
+          "$extensions": { "baechan.ui": { "alpha": 0.8 } }
+        },
+        "foreground": { "$type": "color", "$value": "{shadcn.secondary-foreground}" }
+      },
+      "ghost": {
+        "background-hover": { "$type": "color", "$value": "{color.bg.transparent-pressed}" },
+        "foreground-hover": { "$type": "color", "$value": "{shadcn.accent-foreground}" }
+      },
+      "link": {
+        "foreground": { "$type": "color", "$value": "{color.fg.brand}" }
+      }
+    },
+    "size": {
+      "default": {
+        "height": { "$type": "dimension", "$value": { "value": 2.25, "unit": "rem" } },
+        "padding-x": { "$type": "dimension", "$value": { "value": 1, "unit": "rem" } },
+        "padding-x-with-icon": { "$type": "dimension", "$value": { "value": 0.75, "unit": "rem" } },
+        "padding-y": { "$type": "dimension", "$value": { "value": 0.5, "unit": "rem" } }
+      },
+      "sm": {
+        "height": { "$type": "dimension", "$value": { "value": 2, "unit": "rem" } },
+        "padding-x": { "$type": "dimension", "$value": { "value": 0.75, "unit": "rem" } },
+        "padding-x-with-icon": {
+          "$type": "dimension",
+          "$value": { "value": 0.625, "unit": "rem" }
+        },
+        "gap": { "$type": "dimension", "$value": { "value": 0.375, "unit": "rem" } }
+      },
+      "lg": {
+        "height": { "$type": "dimension", "$value": { "value": 2.5, "unit": "rem" } },
+        "padding-x": { "$type": "dimension", "$value": { "value": 1.5, "unit": "rem" } },
+        "padding-x-with-icon": { "$type": "dimension", "$value": { "value": 1, "unit": "rem" } }
+      },
+      "icon": {
+        "square": { "$type": "dimension", "$value": { "value": 2.25, "unit": "rem" } }
+      },
+      "icon-sm": {
+        "square": { "$type": "dimension", "$value": { "value": 2, "unit": "rem" } }
+      },
+      "icon-lg": {
+        "square": { "$type": "dimension", "$value": { "value": 2.5, "unit": "rem" } }
+      }
+    }
+  }
+}

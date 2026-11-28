@@ -34,6 +34,30 @@ module.exports = {
       },
     },
     {
+      name: 'component-recipe-only-in-own-component',
+      comment:
+        '부품 레시피(packages/ui/src/recipes/<부품>.recipe.gen.ts)는 같은 이름의 부품 파일(atoms·elements의 ' +
+        '<부품>.tsx)만 import한다 — 부품 토큰은 그 부품만의 결정이다(docs/DESIGN-SYSTEM.md §5 "부품 토큰", ' +
+        '2026-11-28 게이트 4). 다른 곳에서 같은 모양이 필요하면 그 부품을 쓰거나 의미 색·눈금 토큰을 쓴다.',
+      severity: 'error',
+      // $1은 부품 파일 이름(button.tsx의 button). 하위 폴더는 (?:.+/|)로 받는다 - (?:[^/]+/)* 꼴은
+      // dependency-cruiser 18.7.2가 안전하지 않은 정규식(safe-regex 2.1.1)이라며 멈춘다
+      from: { path: '^packages/ui/src/(?:atoms|elements)/(?:.+/|)([^/.]+)[.]tsx$' },
+      to: {
+        path: '^packages/ui/src/recipes/',
+        pathNot: '^packages/ui/src/recipes/$1[.]recipe[.]gen[.]ts$',
+      },
+    },
+    {
+      name: 'component-recipe-not-outside-components',
+      comment:
+        '부품 레시피는 공용 UI 패키지의 부품 파일 밖(앱 코드, 스토리, 테스트, 다른 패키지 파일)에서 import하지 ' +
+        '않는다. 위 규칙과 같은 이유다.',
+      severity: 'error',
+      from: { pathNot: '^packages/ui/src/(?:atoms|elements)/(?:.+/|)[^/.]+[.]tsx$' },
+      to: { path: '^packages/ui/src/recipes/' },
+    },
+    {
       name: 'no-non-package-json',
       comment:
         'package.json에 없는 패키지는 import하지 않는다 — .npmrc가 shamefully-hoist=true라 ' +
