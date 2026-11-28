@@ -499,7 +499,7 @@ flowchart LR
 부품 토큰은 한 부품만의 결정(변형·크기마다의 색, 높이, 여백, 글자)을 적은 토큰이다. 의미 색이 "브랜드 채움"처럼 여러 부품이 함께
 쓰는 뜻이라면, 부품 토큰은 "주 버튼의 호버 배경은 브랜드 채움의 90%"처럼 그 부품 안에서만 쓰는 값이다. 지금은 Button 하나에
 있다(`packages/ui/tokens/components/button.tokens.json`·`button.dark.tokens.json`, 토큰 40개. 값은 [토큰 표](./DESIGN-TOKENS.md)
-"부품 토큰: Button"). 나머지 부품은 후속 계획(2단계 계획 Phase 5b)에서 같은 방식으로 더한다.
+"부품 토큰: button"). 나머지 부품은 후속 계획([Phase 5b](./plans/2026-11-28-design-tokens-phase5b.md))에서 같은 방식으로 더한다.
 
 - **당근은** 부품마다 명세 파일(`components/action-button.yaml`)에 변형·상태·부위별 값을 적고, 빌드 때 정적 CSS 클래스로
   굳힌다. 부품별 CSS 변수는 두지 않고 클래스가 의미 색 변수를 바로 읽는다(2단계 계획 "당근 근거"에 적은 자료, 굳히는 과정은 웹
@@ -522,7 +522,10 @@ flowchart LR
     T --> G --> R --> B --> W
 ```
 
-- **원본 꼴**: `button.<base | variant.<변형> | size.<크기>>.<속성>`. 상태는 속성 이름 꼬리로 붙인다(`background-hover`는 호버,
+- **원본 꼴**: `button.<base | variant.<변형> | size.<크기>>.<속성>`. 부위(slot)가 여럿인 부품(대화창의 덮개·본문, 메뉴의 목록·
+  항목)은 당근 명세의 slots처럼 부위 단계를 하나 더 둔다: `<부품>.<부위>.<base | variant.<변형> | size.<크기>>.<속성>`. 한 부품의
+  토큰은 모두 부위 아래에 있거나 모두 부위 없이 있어야 하고, 부위 아래 칸이 셋 밖이면 생성이 멈춘다(2026-11-28 Phase 5b, 생성기
+  시험은 §9). 상태는 속성 이름 꼬리로 붙인다(`background-hover`는 호버,
   `padding-x-with-icon`은 아이콘이 든 버튼). 색은 의미 색(`color.*`)을 가리킨다. 값이 아직 의미 색과 다른 옛 이름 셋
   (`accent-foreground`, `secondary-foreground`, `input`)만 `shadcn.*`을 가리킨다. 팔레트를 바로 가리키거나 값을 적으면 생성
   스크립트가 멈춘다(`assertComponentsUseSemantic`). 투명도는 DTCG 2025.10에 "별칭 + 투명도" 꼴이 없어
@@ -531,21 +534,33 @@ flowchart LR
 - **레시피로 굳히는 규칙**: 생성 스크립트가 속성 이름마다 정해 둔 Tailwind 유틸리티로 바꾼다. 별칭은 그 토큰의 클래스 이름으로,
   rem 값은 Tailwind 간격 눈금(0.25rem 단위)의 숫자로 바꾼다. 눈금에 없는 값은 임의 값이 된다. 글자 두께는 이름(500 → medium)으로,
   투명도는 수식자(/90)로 바꾼다. 표에 없는 속성이 나오면 생성이 멈추므로 새 부품에서 새 속성이 나올 때만 표에 한 줄을 더한다.
+  상태 꼬리도 같다. 꼬리 표(`STATE_PREFIXES`)에 없는 꼬리는 속성 이름의 일부로 읽혀 "규칙이 없는 속성"으로 멈춘다. 그래서
+  포커스·체크·열림 같은 꼬리는 그 꼬리를 처음 쓰는 부품 PR에서 표에 더한다(Phase 5b 계획 "상태 꼬리").
   글자 크기는 Tailwind 기본 크기 sm(0.875rem, 줄 높이 1.25rem)과 같은 값을 적었다. 우리 눈금 t4는 크기가 같지만 줄 높이가 달라
   (1.1875rem) 옮기면 화면이 바뀐다. 그래서 레시피에서는 크기와 줄 높이가 임의 값 클래스 두 개가 된다.
 - **레시피 위치**: `src/generated`는 패키지 CSS가 훑지 않는다(설명 글의 클래스 이름이 쓰지 않는 규칙이 되는 것을 막으려고).
   레시피는 Tailwind가 클래스를 찾아야 해서 훑는 자리인 `src/recipes/`에 둔다. 레시피 파일에는 설명 글 없이 클래스만 든다.
+  부위가 여럿이면 레시피도 부위마다 묶음이다(`<부품>_RECIPE.<부위>.base`).
+- **파일 등록과 이름**: 부품 목록은 모드 파일(`tokens.resolver.json`)에 등록한 `components/<이름>.tokens.json`에서 읽는다. 폴더에
+  있는데 등록하지 않은 파일(다크 파일 포함)이 있거나, 파일의 맨 위 그룹이 파일 이름 하나가 아니면 생성이 멈춘다
+  (`assertComponentFiles`). 레시피 파일 이름은 부품 파일 이름과 같다. 부품 파일이 PascalCase(`FormField.tsx`)면 그룹에
+  `$extensions: { "baechan.ui": { "file": "FormField" } }`로 적는다. 의존성 규칙이 파일 이름으로 짝을 짓기 때문이다.
 - **연결 검사**: 레시피는 `as const`라 부품이 없는 변형·크기 이름을 읽으면 타입 오류다. 의존성 규칙 두 개가 레시피를 같은 이름의
   부품 파일만 import하게 한다(`.dependency-cruiser.cjs`의 `component-recipe-only-in-own-component`,
-  `component-recipe-not-outside-components`). 생성물 최신성 확인(CI)이 레시피도 본다.
+  `component-recipe-not-outside-components`). 대상은 공용 UI 패키지와 `src/shared/ui`의 atoms·elements다(`src/shared/ui`는
+  Phase 5b에서 더했다 — 패키지로 옮기기 전에 레시피부터 쓰기 때문이다). 생성물 최신성 확인(CI)이 레시피도 본다. 카탈로그
+  스토리(`DesignTokens` → `ComponentTokens`)와 토큰 표 문서는 생성 목록 `COMPONENT_TOKEN_GROUPS`에서 부품마다 표를 만든다.
 - **부품에 남는 것**: 배치(정렬, 줄바꿈 막기, 아이콘 크기 고정), 전환, 그리고 입력칸 같은 다른 부품과 함께 쓰는 포커스 링·오류
   테두리다. 포커스·오류는 부품만의 결정이 아니라 의미 색(`stroke.focus-ring`, `stroke.critical-solid`)을 그대로 쓴다. 링크
   변형의 밑줄과 `none` 변형(색을 쓰는 쪽이 정하는 자리)은 토큰이 없다.
 - **쓰는 쪽 덮어쓰기**: 지금처럼 `className`만이다(`cn(자기 클래스, className)`). 레시피 클래스도 tailwind-merge가 같은 묶음으로
   알아본다. 바꾸기 전과 후로 앱의 Button 95곳에서 쓰는 쪽 클래스가 살아남는지 비교해 모두 같았다(§9).
 - **배치만 하는 부품**(2026-11-28 게이트 4, 사용자 결정): 부품만의 결정이 없는 부품은 토큰 파일을 만들지 않는다. 대신 계약 표에
-  "부품 토큰 없음: 배치만"과 이유를 적는다. 당근의 Box·Flex·Stack과 같다. 검사가 "토큰 파일이 있거나, 없는 이유가 적혀 있다"를
-  보게 하는 일은 후속 계획에서 한다. 빈 파일을 두는 안은 모양은 고르지만 내용 없는 파일이 생겨 기각했다.
+  "부품 토큰 없음: 배치만"과 이유를 적는다. 당근의 Box·Flex·Stack과 같다. 빈 파일을 두는 안은 모양은 고르지만 내용 없는 파일이
+  생겨 기각했다. Phase 5b에서 기준을 넓혔다(2026-11-28 사용자 결정): 다른 공용 부품을 감싸 덧칠만 하는 조립 부품도 토큰 파일 없이
+  색 이름만 바꾸고 이유를 적는다. 그 표가 계약 테스트의 `COMPONENT_TOKENS_OUTSIDE`(`src/shared/ui/ApiContract.test.tsx`)이고, 부품
+  파일마다 자기 레시피를 import하거나 표에 이유가 있어야 통과한다. 레시피를 읽게 된 부품이 표에 남아 있어도 실패한다. 아직
+  옮기지 않은 부품은 "Phase 5b에서 옮긴다"로 있고 묶음 PR마다 빠진다.
 
 **신규 shared/ui/atoms**: 위 재사용성 절 이후 `RequiredMark`(`required-mark.tsx`),
 `Divider`(`divider.tsx`), `FeaturedIcon`(`featured-icon.tsx`), `LabeledDivider`(`labeled-divider.tsx`),
@@ -1116,6 +1131,27 @@ PR #108·#110·#111·#112·#113·#114·#115·#116 머지 후 신선한 `main` �
   테스트 221개), 예제 앱 빌드(복사본을 다시 만든 뒤), `pnpm test:e2e`(chromium·mobile-chrome 396개, 재시도 없음)가 통과했다. 규칙
   비교가 못 보는 것(동작 줄이기, 토스트 위치, 열림·닫힘 시간, JS 타이머)은 임시 브라우저 스펙을 만들지 않았다. 이 PR은 전환 클래스와
   JS를 바꾸지 않았고, 위 Storybook 계산값이 호버·포커스·다크를 봤다.
+
+2026-11-28 실측 (Phase 5b 기반, 워크트리 `ds-tokens-pr9-phase5b-base`, `main` `504cfcad` 기준) — 직접 측정. 기준 빌드는 같은 커밋을
+스크래치패드의 임시 워크트리에 받아 만들었고, 임시 스크립트도 저장소 밖에 뒀다. 부품 파일은 바꾸지 않았다.
+
+- **생성기 시험**(패키지의 생성 스크립트와 원본을 스크래치패드에 복사해 시험 부품을 더함): 부위가 둘(root·label)이고 레시피 파일
+  이름을 확장에 적은 부품에서 레시피가 부위별 묶음으로 나오고, 다크 값은 그 부위의 다크 변형 클래스가 된다. 막아야 하는 다섯 경우
+  — 폴더에 있는데 모드 파일에 등록하지 않은 파일, 다크 파일만 등록하지 않은 경우, 부위 있는 토큰과 없는 토큰을 섞은 경우, 부위 아래
+  칸이 셋 밖인 경우, 맨 위 그룹이 파일 이름과 다른 경우 — 에서 모두 어느 파일·토큰인지 짚고 멈췄다. 실제 저장소에서 `pnpm tokens`를
+  두 번 돌려 Button 레시피가 바이트까지 그대로이고 두 번째 실행 뒤 바뀐 파일이 없음을 봤다.
+- **검사가 실제로 막는지**(고쳤다가 되돌림): `src/shared/ui`의 atom 하나와 앱 화면 하나에 Button 레시피 import를 넣으면
+  `pnpm check:deps`가 두 규칙으로 하나씩 막는다. 계약 테스트의 이유 표에서 줄 하나를 지우면 "자기 레시피를 읽거나 이유"가, 레시피를
+  읽는 Button을 표에 넣으면 "표에 남은 줄"이 그 이름을 짚어 실패한다. `src/shared/ui` 부품이 자기 레시피를 읽어 통과하는 경우는 그런
+  레시피가 처음 생기는 PR 10에서 본다.
+- **빌드된 CSS 규칙 비교**(PR 7과 같은 임시 스크립트): 앱 진입 CSS와 Storybook CSS는 규칙 1,151 → 1,153개이고 빠지거나 선언이 바뀐
+  규칙은 없다. 더해진 둘은 새 카탈로그 스토리 표의 오른쪽 여백·위 정렬 클래스다. 앱의 Tailwind가 스토리 파일도 훑기 때문이다(§10
+  "Tailwind 스캐너"). 예제 앱 진입 CSS는 255개, 36,259바이트로 같다(복사본을 다시 만들고 새 코드가 든 것을 grep으로 본 뒤).
+- **카탈로그**: 정적 Storybook의 `DesignTokens` → `ComponentTokens`를 Playwright로 열어 Button 표(토큰 40개, 견본·라이트·다크·설명)가
+  원본대로 그려지는 것을 봤다.
+- **검사 묶음**(`caffeinate -dims`로 묶음): `pnpm check`, `pnpm check:docs`, `pnpm build`, `pnpm build-storybook`, 예제 앱 빌드,
+  `pnpm test`(파일 232개, 테스트 3,521개), `pnpm test:storybook`(파일 60개, 테스트 222개), `pnpm test:e2e`(chromium·mobile-chrome
+  396개, 재시도 없음)가 통과했다. 부품 파일·전환 클래스·JS를 바꾸지 않아 임시 브라우저 스펙은 만들지 않았다.
 
 ## 10. 시행착오
 

@@ -2719,3 +2719,6 @@ export const DURATION_MS = {
   d12: 600,
   'color-transition': 150,
 } as const;
+
+/** 부품 토큰 축(tokens/components/). 카탈로그 스토리와 토큰 표 문서가 부품마다 표를 만든다 */
+export const COMPONENT_TOKEN_GROUPS = ['button'] as const satisfies readonly TokenGroup[];
